@@ -2,309 +2,221 @@
 
 ## Code Quality Standards
 
-### File Structure
-- **Single Export per Screen**: Each screen file exports one main component (e.g., `export const HomeScreen`, `export const ListingEditorScreen`)
-- **Imports Organization**: Group imports logically - React/React Native first, then third-party libraries, then local imports
-- **StyleSheet at Bottom**: All StyleSheet.create() definitions placed at the end of the file
+### File Structure and Organization
+- **Consistent imports order**: External libraries first (React, React Native, Expo), then internal imports (contexts, services, components)
+- **Named exports**: Use named exports for components (e.g., `export const HomeScreen = () => {}`)
+- **Single responsibility**: Each file contains one primary component or service
+- **Co-located styles**: StyleSheet definitions at the bottom of component files
 
-### Naming Conventions
-- **Components**: PascalCase for component names (HomeScreen, ListingEditorScreen)
-- **Files**: PascalCase for component files matching component name (HomeScreen.js, ListingEditorScreen.js)
-- **Variables**: camelCase for state variables and functions (selectedCategory, handleEditPress, showImagePicker)
-- **Constants**: UPPER_SNAKE_CASE for true constants (MOCK_LISTINGS, GEMINI_API_KEY)
-- **Style Objects**: camelCase for style names (container, modalOverlay, cardButton)
+### Formatting Conventions
+- **Indentation**: 2 spaces consistently throughout the codebase
+- **Line length**: Keep lines readable, break long JSX into multiple lines
+- **Spacing**: Consistent spacing around operators, after commas, and in object literals
+- **Semicolons**: Used consistently at the end of statements
+- **Quotes**: Single quotes for strings, double quotes for JSX attributes
 
-### Component Structure Pattern
+### Naming Standards
+- **Components**: PascalCase with descriptive suffixes (e.g., `HomeScreen`, `ProductCard`, `LoadingSpinner`)
+- **Services**: camelCase with "Service" suffix (e.g., `aiService`, `platformService`, `storageService`)
+- **Contexts**: PascalCase with "Context" suffix (e.g., `AuthContext`, `ListingsContext`)
+- **Functions**: camelCase with verb prefixes (e.g., `handlePress`, `loadListings`, `validateTokens`)
+- **Constants**: UPPER_SNAKE_CASE for true constants (e.g., `MOCK_LISTINGS`, `GEMINI_API_KEY`)
+- **State variables**: Descriptive camelCase (e.g., `selectedCategory`, `imagePickerVisible`, `connectedPlatforms`)
+
+### Documentation Practices
+- **JSDoc comments**: Used for service methods to describe purpose, parameters, and return values
+- **Inline comments**: Explain complex logic, phase indicators (Phase 1/Phase 2), and future integration points
+- **TODO comments**: Mark areas ready for real API integration
+- **Error context**: Console.error statements include descriptive context
+
+## Semantic Patterns
+
+### React Component Patterns
+
+#### Functional Components with Hooks
+All components use functional component syntax with React Hooks:
 ```javascript
-// 1. Imports
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-
-// 2. Component Definition
-export const ComponentName = ({ navigation, route }) => {
-  // 3. Hooks (contexts, state, refs, effects)
+export const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const [state, setState] = useState(initialValue);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const floatAnim = useRef(new Animated.Value(0)).current;
   
-  // 4. Handler Functions
-  const handleAction = () => {
-    // implementation
-  };
-  
-  // 5. JSX Return
-  return (
-    <View style={styles.container}>
-      {/* content */}
-    </View>
-  );
-};
-
-// 6. Styles
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-});
-```
-
-## React & React Native Patterns
-
-### State Management
-- **useState for Local State**: Use for component-specific state (modals, dropdowns, form inputs)
-- **Context API for Global State**: Use custom hooks (useAuth, useListings) to access context
-- **Destructuring Context**: Always destructure needed values from context hooks
-```javascript
-const { user } = useAuth();
-const { allListings, addListing } = useListings();
-```
-
-### Hooks Usage
-- **useEffect for Side Effects**: Load data, setup animations, cleanup
-- **useRef for Animations**: Store Animated.Value instances
-- **Custom Hooks**: Access contexts via custom hooks (useAuth, useListings)
-
-### Navigation Patterns
-- **Props Destructuring**: Always destructure `{ navigation, route }` from props
-- **Route Params**: Access via `route.params.paramName`
-- **Navigation Methods**:
-  - `navigation.navigate('ScreenName')` - Navigate to screen
-  - `navigation.goBack()` - Go back
-  - `navigation.replace('ScreenName')` - Replace current screen
-  - Pass params: `navigation.navigate('Screen', { param: value })`
-
-### Conditional Rendering
-- **Ternary for Simple Conditions**: `{condition ? <ComponentA /> : <ComponentB />}`
-- **Logical AND for Single Branch**: `{condition && <Component />}`
-- **Early Returns**: Not commonly used; prefer conditional JSX in return
-
-## Styling Conventions
-
-### StyleSheet Patterns
-- **Inline Styles for Dynamic Values**: Use array syntax for combining styles
-```javascript
-style={[styles.base, { backgroundColor: dynamicColor }]}
-style={[styles.thumbnail, selectedThumbnail === index && styles.thumbnailSelected]}
-```
-
-### Layout Patterns
-- **Flexbox Primary**: Use flexbox for all layouts (flexDirection, justifyContent, alignItems)
-- **Absolute Positioning**: For overlays, floating elements (floatingHeader, thumbnailContainer)
-- **SafeAreaView**: Wrap top-level screens with SafeAreaView from 'react-native-safe-area-context'
-```javascript
-<SafeAreaView style={styles.container} edges={['top']}>
-```
-
-### Color & Typography
-- **Custom Fonts**: Use Montserrat font family with weights (Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold)
-- **Font Weights**: Specify both fontWeight and fontFamily for consistency
-- **Color Palette**: Use hex colors consistently (#7704F4 for primary purple, #FF8C42 for accent orange)
-
-### Common Style Patterns
-- **Card Components**: Rounded corners (borderRadius: 16-20), white background, padding
-- **Buttons**: Gradient backgrounds using LinearGradient, rounded (borderRadius: 20-30)
-- **Icons**: Ionicons with consistent sizing (20-24 for standard, 16 for small)
-- **Spacing**: Consistent padding/margin values (12, 16, 20, 24, 28)
-- **FAB Button**: 56x56 size, borderRadius 28, positioned absolute (bottom: 100, right: 20), #FF6B35 background
-- **Tab Bar**: Uniform across screens with paddingHorizontal: 40, paddingVertical: 16, paddingBottom: 28
-- **Background Colors**: #FAFAFA for main container, #FFF for cards and tab bar
-
-## Component Patterns
-
-### Modal Implementation
-```javascript
-// State for modal visibility
-const [modalVisible, setModalVisible] = useState(false);
-
-// Modal with backdrop
-<Modal visible={modalVisible} transparent={true} animationType="fade">
-  <View style={styles.modalBackdrop}>
-    <View style={styles.modalContent}>
-      {/* content */}
-    </View>
-  </View>
-</Modal>
-```
-
-### Dropdown Pattern
-```javascript
-// State for dropdown
-const [showDropdown, setShowDropdown] = useState(false);
-
-// Toggle button
-<TouchableOpacity onPress={() => setShowDropdown(!showDropdown)}>
-
-// Conditional dropdown list
-{showDropdown && (
-  <View style={styles.dropdownList}>
-    {items.map((item) => (
-      <TouchableOpacity onPress={() => {
-        setSelectedItem(item);
-        setShowDropdown(false);
-      }}>
-    ))}
-  </View>
-)}
-```
-
-### Image Handling
-- **expo-image-picker**: Use for camera and gallery access
-- **Permission Handling**: Check permissions before launching picker
-- **Image URI**: Pass imageUri through navigation params
-```javascript
-const result = await ImagePicker.launchCameraAsync({
-  mediaTypes: ['images'],
-  allowsEditing: false,
-  quality: 0.8,
-});
-if (!result.canceled) {
-  navigation.navigate('Screen', { imageUri: result.assets[0].uri });
-}
-```
-
-### Gradient Usage
-```javascript
-import { LinearGradient } from 'expo-linear-gradient';
-
-<LinearGradient
-  colors={['#7C3AED', '#FF7A2F']}
-  start={{ x: 0, y: 0 }}
-  end={{ x: 1, y: 0 }}
-  style={styles.gradientButton}
->
-  <Text style={styles.buttonText}>Button Text</Text>
-</LinearGradient>
-```
-
-## Service Layer Patterns
-
-### AI Service Structure
-- **Async/Await**: All service methods are async
-- **Try-Catch**: Wrap API calls in try-catch blocks
-- **Error Handling**: Return structured error objects
-```javascript
-try {
-  const result = await apiCall();
-  return { success: true, data: result };
-} catch (error) {
-  console.error('Error:', error);
-  return { success: false, error: error.message };
-}
-```
-
-### Gemini AI Integration
-- **Model Initialization**: Use GoogleGenerativeAI with API key
-- **Prompt Engineering**: Detailed prompts with JSON structure requirements
-- **Response Parsing**: Extract JSON from response using regex
-```javascript
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-const result = await model.generateContent([prompt, imageData]);
-const text = response.text();
-const jsonMatch = text.match(/\{[\s\S]*\}/);
-const data = JSON.parse(jsonMatch[0]);
-```
-
-### Context Provider Pattern
-```javascript
-const Context = createContext(null);
-
-export const Provider = ({ children }) => {
-  const [state, setState] = useState(initialState);
-  
-  const methods = {
-    addItem: async (item) => { /* implementation */ },
-    updateItem: async (id, updates) => { /* implementation */ },
-  };
+  useEffect(() => {
+    loadData();
+  }, []);
   
   return (
-    <Context.Provider value={{ state, ...methods }}>
-      {children}
-    </Context.Provider>
+    <SafeAreaView style={styles.container}>
+      {/* Component content */}
+    </SafeAreaView>
   );
 };
+```
 
-export const useCustomHook = () => {
-  const context = useContext(Context);
+#### Context API Usage
+Custom hooks for accessing context with error boundaries:
+```javascript
+export const useListings = () => {
+  const context = useContext(ListingsContext);
   if (!context) {
-    throw new Error('useCustomHook must be used within Provider');
+    throw new Error('useListings must be used within ListingsProvider');
   }
   return context;
 };
 ```
 
-## Navigation Architecture
+### Service Layer Patterns
 
-### Stack Navigator Setup
+#### Service Object Structure
+Services exported as objects with async methods:
 ```javascript
-const Stack = createNativeStackNavigator();
-
-<Stack.Navigator screenOptions={{ 
-  headerShown: false,
-  animation: 'ios_from_right'
-}}>
-  {!user ? (
-    // Auth screens
-    <Stack.Screen name="Login" component={LoginScreen} />
-  ) : (
-    // App screens
-    <Stack.Screen name="MainTabs" component={MainTabs} />
-  )}
-</Stack.Navigator>
+export const aiService = {
+  async analyzeImage(imageUri) {
+    try {
+      // Implementation
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('AI Analysis Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+};
 ```
 
-### Screen Transitions
-- **Animation**: Use `ios_from_right` for all screen transitions
-- **Consistency**: Apply same animation across all navigators
-
-### Bottom Tab Navigation
-- **Custom Implementation**: Tab bar hidden in navigator, custom tab bar in each screen
-- **Three Items**: Home, My Listings, Profile (no center FAB in tab bar)
-- **Floating Action Button**: Positioned in bottom right corner (bottom: 100, right: 20)
-- **FAB Color**: #FF6B35 (orange) across all screens
-- **Tab Bar Styling**:
-  - Background: #FFF
-  - Padding: horizontal 40, vertical 16, bottom 28
-  - Border radius: 24 (top corners only)
-  - Consistent across all screens
-
-### Conditional Navigation
-- **Authentication-Based**: Show different screen stacks based on user state
-- **Nested Navigation**: MainTabs contains bottom tab navigator with stack navigators
-
-## Data Persistence
-
-### AsyncStorage Pattern
+#### Consistent Response Format
+Services return objects with `success` boolean and either `data` or `error`:
 ```javascript
-// Save data
-await storageService.saveListings(listings);
+// Success response
+return {
+  success: true,
+  data: { /* result data */ },
+};
 
-// Load data
-const stored = await storageService.getListings();
+// Error response
+return {
+  success: false,
+  error: error.message,
+};
 ```
 
-### Data Structure
-- **Unique IDs**: Use `Date.now().toString()` for generating IDs
-- **Timestamps**: Store ISO strings with `new Date().toISOString()`
-- **User Association**: Include userId and userName in listings
+### State Management Patterns
 
-## Error Handling
-
-### Console Logging
-- **Descriptive Logs**: Use clear prefixes ('=== TAKE PHOTO STARTED ===')
-- **Error Logging**: Always log errors with context
+#### Local State with useState
 ```javascript
-console.error('AI Analysis Error:', error);
+const [selectedCategory, setSelectedCategory] = useState('Electronics');
+const [loading, setLoading] = useState(true);
+const [connectedPlatforms, setConnectedPlatforms] = useState({
+  carousell: false,
+  facebook: false,
+});
 ```
 
-### User Feedback
-- **Alert for Errors**: Use Alert.alert() for user-facing errors
-- **Loading States**: Show loading indicators during async operations
-- **Success Feedback**: Navigate to success screens after operations
-
-## Animation Patterns
-
-### Animated Values
+#### Refs for Animations
 ```javascript
-const floatAnim = React.useRef(new Animated.Value(0)).current;
+const floatAnim = useRef(new Animated.Value(0)).current;
+const slideAnim = useRef(new Animated.Value(300)).current;
+```
 
-React.useEffect(() => {
+#### Effect Hooks for Data Loading
+```javascript
+useEffect(() => {
+  loadConnectedPlatforms();
+}, []);
+
+const loadConnectedPlatforms = async () => {
+  try {
+    const platforms = await platformService.getConnectedPlatforms(user.id);
+    setConnectedPlatforms(platforms);
+  } catch (error) {
+    console.error('Error loading platforms:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+### Navigation Patterns
+
+#### Navigation Props
+Components receive navigation prop and use it for screen transitions:
+```javascript
+export const HomeScreen = ({ navigation }) => {
+  const handleNavigate = () => {
+    navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+  };
+};
+```
+
+#### Route Parameters
+Access route parameters via route.params:
+```javascript
+export const ListingEditorScreen = ({ navigation, route }) => {
+  const { productData, listing } = route.params;
+  const data = productData || listing;
+};
+```
+
+### UI/UX Patterns
+
+#### Modal Patterns
+Controlled modals with animation and backdrop:
+```javascript
+<Modal
+  visible={menuVisible}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setMenuVisible(false)}
+>
+  <TouchableOpacity 
+    style={styles.modalOverlay} 
+    activeOpacity={1}
+    onPress={() => setMenuVisible(false)}
+  >
+    <View style={styles.menuModal}>
+      {/* Modal content */}
+    </View>
+  </TouchableOpacity>
+</Modal>
+```
+
+#### Alert Confirmations
+Use Alert.alert for destructive actions:
+```javascript
+Alert.alert(
+  'Delete Listing',
+  'Are you sure you want to delete this listing?',
+  [
+    { text: 'Cancel', style: 'cancel' },
+    { 
+      text: 'Delete', 
+      style: 'destructive', 
+      onPress: () => handleDelete() 
+    }
+  ]
+);
+```
+
+#### Loading States
+Consistent loading state handling:
+```javascript
+if (loading) {
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+```
+
+### Animation Patterns
+
+#### Animated Values
+```javascript
+const floatAnim = useRef(new Animated.Value(0)).current;
+
+useEffect(() => {
   Animated.loop(
     Animated.sequence([
       Animated.timing(floatAnim, {
@@ -312,41 +224,223 @@ React.useEffect(() => {
         duration: 3000,
         useNativeDriver: true,
       }),
-      Animated.timing(floatAnim, { toValue: 0, duration: 3000, useNativeDriver: true }),
+      Animated.timing(floatAnim, {
+        toValue: 0,
+        duration: 3000,
+        useNativeDriver: true,
+      }),
     ])
   ).start();
 }, []);
+```
 
-const translateY = floatAnim.interpolate({
-  inputRange: [0, 1],
-  outputRange: [0, -20],
+#### Spring Animations for Modals
+```javascript
+Animated.spring(slideAnim, {
+  toValue: 0,
+  useNativeDriver: true,
+  tension: 65,
+  friction: 11,
+}).start();
+```
+
+### Styling Patterns
+
+#### StyleSheet at Bottom
+All styles defined in StyleSheet.create() at file bottom:
+```javascript
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FAFAFA' 
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
 });
 ```
 
-### Modal Animations
-- **Slide Animations**: Use Animated.spring or Animated.timing for modal entry/exit
-- **Transform Property**: Apply translateY for slide effects
-- **Native Driver**: Always use `useNativeDriver: true` when possible
+#### Consistent Color Palette
+- Primary: `#FF6B35` (orange)
+- Purple gradient: `#7704F4`, `#D493FF`
+- Backgrounds: `#FAFAFA`, `#F8F9FC`, `#FFF`
+- Text: `#000` (primary), `#666` (secondary), `#999` (tertiary)
+
+#### Font Families
+Montserrat font family with weight variants:
+- Regular: `Montserrat_400Regular`
+- Medium: `Montserrat_500Medium`
+- SemiBold: `Montserrat_600SemiBold`
+- Bold: `Montserrat_700Bold`
+
+### Error Handling Patterns
+
+#### Try-Catch with Logging
+```javascript
+try {
+  const result = await platformService.connectCarousell(user.id);
+  if (result.success) {
+    setConnectedPlatforms({ ...connectedPlatforms, carousell: true });
+    Alert.alert('Success', 'Carousell account connected!');
+  } else {
+    Alert.alert('Error', result.error || 'Failed to connect Carousell');
+  }
+} catch (error) {
+  Alert.alert('Error', 'Failed to connect to Carousell');
+}
+```
+
+#### Graceful Degradation
+Services return fallback data on error:
+```javascript
+catch (error) {
+  console.error('Price Suggestion Error:', error);
+  const basePrice = 50;
+  return {
+    suggestedPrice: basePrice,
+    priceRange: {
+      min: Math.floor(basePrice * 0.8),
+      max: Math.floor(basePrice * 1.2),
+    },
+  };
+}
+```
+
+### Data Persistence Patterns
+
+#### AsyncStorage Wrapper
+All storage operations go through storageService:
+```javascript
+await storageService.savePlatformToken(userId, 'carousell', mockToken);
+const tokens = await storageService.getPlatformTokens(userId);
+await storageService.removePlatformToken(userId, platform);
+```
+
+#### Context + Storage Sync
+Context providers sync state with AsyncStorage:
+```javascript
+const addListing = async (listing) => {
+  const newListing = { ...listing, id: Date.now().toString() };
+  const updatedAll = [newListing, ...allListings];
+  
+  setAllListings(updatedAll);
+  await storageService.saveListings(updatedAll);
+  
+  return newListing;
+};
+```
+
+### Mock Implementation Patterns
+
+#### Phase Comments
+Code marked with phase indicators for future integration:
+```javascript
+// Mock authentication for now (Phase 1)
+// In Phase 2, this will be real OAuth
+const result = await platformService.connectCarousell(user.id);
+```
+
+#### Simulated Delays
+Mock services include realistic delays:
+```javascript
+// Simulated processing delay
+await new Promise(resolve => setTimeout(resolve, 1200));
+
+// Mock API call - simulate network delay
+await new Promise((resolve) => setTimeout(resolve, 1500));
+```
+
+#### Mock Data Generation
+```javascript
+const mockToken = {
+  accessToken: `carousell_mock_token_${Date.now()}`,
+  refreshToken: `carousell_refresh_${Date.now()}`,
+  expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  userId: 'mock_carousell_user_id',
+  userName: 'Mock Carousell User',
+};
+```
+
+## Common Code Idioms
+
+### Conditional Rendering
+```javascript
+{connectedPlatforms.carousell && (
+  <View style={styles.connectedBadge}>
+    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+  </View>
+)}
+```
+
+### Ternary for Conditional Styles
+```javascript
+style={[
+  styles.thumbnailItem,
+  selectedThumbnail === index && styles.thumbnailItemSelected
+]}
+```
+
+### Array Mapping for Lists
+```javascript
+{categories.map((category) => (
+  <TouchableOpacity
+    key={category.name}
+    style={styles.dropdownItem}
+    onPress={() => handleSelect(category.name)}
+  >
+    <Text>{category.name}</Text>
+  </TouchableOpacity>
+))}
+```
+
+### Destructuring Props and State
+```javascript
+const { user } = useAuth();
+const { productData, listing } = route.params;
+const { allListings, myListings, addListing } = useListings();
+```
+
+### Async/Await Pattern
+```javascript
+const handleConnect = async () => {
+  const result = await platformService.connectCarousell(user.id);
+  if (result.success) {
+    // Handle success
+  }
+};
+```
 
 ## Best Practices
 
 ### Performance
-- **useNativeDriver**: Use for transform and opacity animations
-- **ScrollView**: Add `showsVerticalScrollIndicator={false}` for cleaner UI
-- **Image Optimization**: Set quality parameter in image picker (0.8)
+- Use `useNativeDriver: true` for animations
+- Memoize expensive computations with useMemo
+- Use `showsVerticalScrollIndicator={false}` for cleaner UI
+- Implement loading states to prevent UI blocking
+
+### Accessibility
+- Use semantic component names
+- Provide meaningful text for screen readers
+- Use appropriate touch target sizes (minimum 44x44)
 
 ### Code Organization
-- **Single Responsibility**: Each component handles one primary concern
-- **Reusable Components**: Extract common UI patterns into components
-- **Service Abstraction**: Keep business logic in service files
-
-### User Experience
-- **Loading States**: Show spinners during async operations
-- **Feedback**: Provide visual feedback for user actions
-- **Error Messages**: Display user-friendly error messages
-- **Smooth Transitions**: Use animations for screen transitions and modals
+- Keep components focused and single-purpose
+- Extract reusable logic into custom hooks
+- Separate business logic into service layer
+- Use constants for repeated values
 
 ### Security
-- **API Keys**: Store in separate config files (config/gemini.js)
-- **Environment Variables**: Use for sensitive data in production
-- **Permission Handling**: Request and check permissions before accessing device features
+- Never commit API keys (use environment variables)
+- Validate user input before processing
+- Implement proper error boundaries
+- Use secure storage for sensitive data
+
+### Testing Readiness
+- Services return consistent response formats
+- Components receive props for easy testing
+- Mock implementations ready for integration testing
+- Error handling allows for failure scenario testing

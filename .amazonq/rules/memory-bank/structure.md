@@ -4,7 +4,7 @@
 
 ```
 SnapSell/
-├── src/                      # Source code directory
+├── src/                      # Source code
 │   ├── components/           # Reusable UI components
 │   ├── config/              # Configuration files
 │   ├── constants/           # App-wide constants
@@ -13,13 +13,12 @@ SnapSell/
 │   ├── screens/             # Screen components
 │   ├── services/            # Business logic & API services
 │   └── utils/               # Helper functions
-├── assets/                  # Static assets (images, icons)
+├── assets/                  # Static assets (images, animations)
 ├── android/                 # Android native configuration
 ├── .amazonq/               # Amazon Q rules and memory bank
-├── App.js                  # Root application component
+├── App.js                  # Root component
 ├── index.js                # Entry point
-├── app.json                # Expo configuration
-└── package.json            # Dependencies and scripts
+└── Configuration files     # package.json, app.json, etc.
 ```
 
 ## Core Components
@@ -30,56 +29,48 @@ Reusable UI building blocks used across screens:
 - **Input.js**: Text input component with validation support
 - **ProductCard.js**: Card component for displaying product listings
 - **LoadingSpinner.js**: Loading indicator component
-- **SideMenu.js**: Drawer navigation menu
-- **SnapSellIntro.js**: Onboarding introduction component
+- **FAB.js**: Floating Action Button for primary actions
+- **TabBar.js**: Custom bottom tab bar navigation
+- **SideMenu.js**: Drawer menu component
+- **SnapSellIntro.js**: Introductory component for new users
 
 ### Screens (`src/screens/`)
-Full-page views representing app functionality:
-- **LoginScreen.js**: User authentication login
-- **SignupScreen.js**: New user registration
-- **HomeScreen.js**: Main dashboard with stats, recent listings, and FAB button
-- **CameraScreen.js**: Photo capture and gallery selection
-- **AnalyzingScreen.js**: AI processing animation screen
-- **ListingEditorScreen.js**: Edit AI-generated listing details
-- **ListingSuccessScreen.js**: Confirmation after publishing
-- **ProductDetailScreen.js**: Detailed product view
-- **MyListingsScreen.js**: User's personal listings management (no header, SafeAreaView with top edge)
-- **ProfileScreen.js**: Earnings summary and settings (no profile header section)
-- **OnboardingScreen1/2/3.js**: First-time user onboarding
-- **SplashScreen.js**: App launch screen
-
-### Screen Layout Patterns
-- **Uniform Tab Bars**: All main screens (Home, My Listings, Profile) have identical tab bar styling
-- **FAB Positioning**: Floating action button consistently positioned in bottom right corner across screens
-- **SafeAreaView Usage**: Screens use SafeAreaView with edges={['top']} for proper status bar handling
-- **No Headers on Some Screens**: My Listings and Profile screens have no header section for cleaner layout
+Full-screen views representing app pages:
+- **Authentication**: LoginScreen, SignupScreen
+- **Onboarding**: OnboardingContainer, OnboardingScreen1-3, SplashScreen
+- **Core Features**: HomeScreen, CameraScreen, ListingEditorScreen
+- **Management**: MyListingsScreen, ProductDetailScreen, ProfileScreen
+- **Platform Integration**: ConnectPlatformsScreen
+- **Feedback**: AnalyzingScreen, ListingSuccessScreen, PaywallScreen
 
 ### Navigation (`src/navigation/`)
-App navigation structure:
+Navigation structure and routing:
 - **AppNavigator.js**: Root navigation container with authentication flow
 - **MainTabs.js**: Bottom tab navigation for main app sections
-- **DrawerNavigator.js**: Side drawer navigation menu
+- **DrawerNavigator.js**: Side drawer navigation for additional features
 
 ### Contexts (`src/contexts/`)
 Global state management using React Context API:
 - **AuthContext.js**: User authentication state and methods
-- **ListingsContext.js**: Marketplace listings data and CRUD operations
+- **ListingsContext.js**: Marketplace listings state and CRUD operations
 
 ### Services (`src/services/`)
 Business logic and external integrations:
-- **auth.js**: Authentication service with mock implementation
-- **ai.js**: AI image analysis service (mock, ready for Gemini integration)
+- **ai.js**: AI image analysis service (mock implementation, ready for Gemini 2.5 Flash)
+- **auth.js**: Authentication service with user management
 - **storage.js**: AsyncStorage wrapper for data persistence
+- **platforms.js**: Platform connection service (Carousell, Facebook Marketplace)
 
 ### Constants (`src/constants/`)
-App-wide configuration values:
+App-wide configuration and theming:
 - **categories.js**: Product category definitions
-- **theme.js**: Color palette, spacing, typography constants
+- **theme.js**: Color palette, spacing, typography
 
-### Configuration (`src/config/`)
+### Config (`src/config/`)
+External service configurations:
 - **gemini.js**: Gemini AI API configuration
 
-### Utilities (`src/utils/`)
+### Utils (`src/utils/`)
 Helper functions and utilities:
 - **helpers.js**: Common utility functions
 - **animations.js**: Animation configurations
@@ -87,41 +78,59 @@ Helper functions and utilities:
 ## Architectural Patterns
 
 ### Component Architecture
-- **Functional Components**: All components use React hooks
-- **Context API**: Global state management without Redux
-- **Separation of Concerns**: UI, logic, and data layers are separated
-- **Reusable Components**: Common UI elements extracted into components
-
-### Navigation Pattern
-- **Stack Navigation**: For hierarchical screen flows with ios_from_right animation
-- **Tab Navigation**: Custom tab bar implementation (3 items: Home, My Listings, Profile)
-- **FAB Navigation**: Floating action button for quick access to camera/sell functionality
-- **Nested Navigation**: Tabs contain stack navigators
-- **Hidden Native Tab Bar**: Native tab bar hidden, custom implementation in each screen
-
-### Data Flow
-1. **Authentication Flow**: AuthContext → Screens → Services
-2. **Listings Flow**: ListingsContext → Screens → Storage Service
-3. **AI Flow**: Camera → AI Service → Listing Editor → Storage
+- **Separation of Concerns**: UI components separated from business logic
+- **Reusability**: Shared components in dedicated directory
+- **Composition**: Complex screens built from smaller components
 
 ### State Management
-- **Local State**: Component-level state with useState
-- **Global State**: Context API for shared data
-- **Persistent State**: AsyncStorage for data persistence
+- **Context API**: Global state for authentication and listings
+- **Local State**: Component-level state with useState hooks
+- **Persistent Storage**: AsyncStorage for data that survives app restarts
+
+### Navigation Pattern
+- **Stack Navigation**: For hierarchical screen flows
+- **Tab Navigation**: For main app sections (Home, Camera, Listings, Profile)
+- **Drawer Navigation**: For secondary features and settings
+- **Nested Navigation**: Tabs within stacks for complex flows
+
+### Service Layer Pattern
+- **Abstraction**: Business logic separated from UI components
+- **Mock Services**: Ready for real API integration
+- **Error Handling**: Consistent error handling across services
+
+### Data Flow
+1. User interacts with UI (Screen/Component)
+2. Screen calls Service method
+3. Service performs business logic
+4. Service updates Context or returns data
+5. Context notifies subscribed components
+6. UI re-renders with new data
 
 ## Key Relationships
 
-### Screen Dependencies
-- All screens consume AuthContext for user state
-- Marketplace screens consume ListingsContext for product data
-- Camera flow: CameraScreen → AnalyzingScreen → ListingEditorScreen → ListingSuccessScreen
+### Authentication Flow
+```
+LoginScreen/SignupScreen → AuthContext → auth.js → storage.js
+```
 
-### Service Integration
-- Auth service integrates with AsyncStorage for session persistence
-- AI service processes images and returns structured product data
-- Storage service provides abstraction over AsyncStorage
+### Listing Creation Flow
+```
+CameraScreen → ai.js → ListingEditorScreen → ListingsContext → storage.js
+```
 
-### Component Composition
-- Screens compose multiple reusable components
-- Navigation components wrap screen components
-- Context providers wrap the entire app tree
+### Platform Connection Flow
+```
+ConnectPlatformsScreen → platforms.js → storage.js
+```
+
+### Marketplace Browsing Flow
+```
+HomeScreen → ListingsContext → ProductDetailScreen
+```
+
+## File Naming Conventions
+- **Screens**: PascalCase with "Screen" suffix (e.g., HomeScreen.js)
+- **Components**: PascalCase (e.g., ProductCard.js)
+- **Services**: camelCase (e.g., ai.js, auth.js)
+- **Constants**: camelCase (e.g., categories.js, theme.js)
+- **Contexts**: PascalCase with "Context" suffix (e.g., AuthContext.js)

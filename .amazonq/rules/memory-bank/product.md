@@ -1,65 +1,67 @@
 # Product Overview
 
 ## Project Purpose
-Snap & Sell is an innovative mobile marketplace application that revolutionizes online selling by leveraging AI technology to automate product listing creation. Users can simply take a photo of an item they want to sell, and the AI automatically generates comprehensive product details including name, description, category, condition assessment, and price suggestions.
+SnapSell is an innovative mobile marketplace application that revolutionizes online selling by leveraging AI-powered image analysis to create instant product listings. The app eliminates the tedious process of manually creating product descriptions, pricing, and categorization by automatically generating comprehensive listing details from a single photo.
 
 ## Value Proposition
-- **Instant Listing Creation**: Eliminates the tedious manual process of creating product listings
-- **AI-Powered Intelligence**: Automatically identifies products, assesses condition, and suggests optimal pricing
-- **Integrated Marketplace**: Built-in platform for browsing and selling products similar to Facebook Marketplace
-- **Time-Saving**: Reduces listing creation time from minutes to seconds
-- **Smart Pricing**: Market-based price suggestions help sellers price competitively
+- **Time Efficiency**: Transform product photography into complete marketplace listings in seconds
+- **AI-Powered Intelligence**: Automatic product identification, description generation, and price suggestions
+- **Multi-Platform Publishing**: Connect and publish to multiple marketplaces (Carousell, Facebook Marketplace) from one app
+- **User-Friendly**: Intuitive interface designed for quick listing creation and management
 
 ## Key Features
 
 ### Core Capabilities
 1. **AI Image Analysis**
    - Take photos or select from gallery
-   - Automatic product identification
-   - Brand recognition
-   - Category classification
+   - Automatic product identification and brand recognition
+   - Category classification (Electronics, Clothing, Furniture, Books, Sporting Goods)
    - Condition assessment
+   - Detailed description generation
+   - Smart price suggestions with market-based ranges
 
-2. **Auto-Generated Content**
-   - Product name and brand extraction
-   - Compelling product descriptions
-   - Price range suggestions with min/max values
-   - Category auto-assignment
+2. **Marketplace Integration**
+   - Built-in marketplace for browsing and selling
+   - Multi-platform publishing (Carousell, Facebook Marketplace)
+   - Platform connection management
+   - Synchronized listing updates across platforms
 
-3. **Marketplace**
-   - Browse all user listings
-   - Filter by categories (Electronics, Clothing, Furniture, Books, Sporting Goods)
-   - View detailed product information
-   - Pull-to-refresh functionality
-
-4. **Listing Management**
+3. **Listing Management**
    - Edit AI-generated content before publishing
-   - Manage active listings
-   - Delete or update existing listings
-   - Track listing statistics
+   - Track all active listings
+   - Update or delete listings
+   - Performance tracking
 
-5. **User Experience**
+4. **User Experience**
    - Authentication system with demo accounts
    - Personalized user profiles
-   - Account statistics dashboard
-   - Persistent sessions
+   - Account statistics and settings
+   - Onboarding flow for new users
+   - Splash screen and animations
+
+### Advanced Features
+- Category-based filtering
+- Pull-to-refresh functionality
+- Product detail views
+- Persistent user sessions
+- Loading states and user feedback
+- Error handling throughout
 
 ## Target Users
-- **Individual Sellers**: People looking to declutter and sell personal items quickly
-- **Small Business Owners**: Entrepreneurs needing efficient product listing tools
-- **Resellers**: Users who frequently list multiple items for sale
-- **Casual Sellers**: Anyone wanting to sell items without technical complexity
+- Individual sellers looking to quickly list items for sale
+- Small business owners managing inventory across multiple platforms
+- Casual sellers who want to declutter without spending hours on listings
+- Anyone seeking to maximize their selling efficiency with AI assistance
 
 ## Use Cases
-1. **Quick Decluttering**: Snap photos of unused items and list them instantly
-2. **Garage Sale Digitization**: Convert physical garage sale items to online listings
-3. **Resale Business**: Efficiently manage inventory for resale operations
-4. **Gift Reselling**: Quickly list unwanted gifts for sale
-5. **Upgrade Sales**: Sell old items when upgrading to new ones
+1. **Quick Decluttering**: Snap photos of items around the house and list them instantly
+2. **Business Inventory**: Small businesses can rapidly create listings for new stock
+3. **Multi-Platform Selling**: Manage listings across Carousell and Facebook Marketplace from one place
+4. **Market Research**: Get AI-powered price suggestions based on market data
+5. **Time-Saving**: Reduce listing creation time from minutes to seconds
 
 ## Current Status
-- Fully functional mobile app with mock AI implementation
-- Ready for Gemini 2.5 Flash AI integration
-- Local data persistence using AsyncStorage
-- Demo authentication system
-- Complete marketplace functionality
+- **Phase 1**: Mock AI implementation with simulated analysis (2-second delay)
+- **Ready for Integration**: Designed for Gemini 2.5 Flash AI integration
+- **Platform Connections**: Mock OAuth flows ready for real implementation
+- **Local Storage**: AsyncStorage for data persistence (production-ready for backend migration)

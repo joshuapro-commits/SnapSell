@@ -157,6 +157,27 @@ export const ProductDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Platform Badges */}
+        {(listing.publishedPlatforms || listing.selectedPlatforms) && (
+          <View style={styles.platformBadgesRow}>
+            <Text style={styles.platformBadgesLabel}>Published on:</Text>
+            <View style={styles.platformBadgesContainer}>
+              {(listing.publishedPlatforms?.carousell || listing.selectedPlatforms?.carousell) && (
+                <View style={[styles.platformBadge, { backgroundColor: '#FFE8E8' }]}>
+                  <Ionicons name="cart-outline" size={14} color="#D32F2F" />
+                  <Text style={[styles.platformBadgeText, { color: '#D32F2F' }]}>Carousell</Text>
+                </View>
+              )}
+              {(listing.publishedPlatforms?.facebook || listing.selectedPlatforms?.facebook) && (
+                <View style={[styles.platformBadge, { backgroundColor: '#E8F0FE' }]}>
+                  <Ionicons name="logo-facebook" size={14} color="#1877F2" />
+                  <Text style={[styles.platformBadgeText, { color: '#1877F2' }]}>Facebook</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Rating */}
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={18} color="#FFB800" />
@@ -380,6 +401,33 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     backgroundColor: COLORS.secondary,
+  },
+  platformBadgesRow: {
+    marginBottom: SPACING.md,
+  },
+  platformBadgesLabel: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginBottom: 8,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  platformBadgesContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  platformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  platformBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
   },
   ratingContainer: {
     flexDirection: 'row',

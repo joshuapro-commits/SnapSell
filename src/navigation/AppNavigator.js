@@ -10,6 +10,7 @@ import { ListingEditorScreen } from '../screens/ListingEditorScreen';
 import { ListingSuccessScreen } from '../screens/ListingSuccessScreen';
 import { AnalyzingScreen } from '../screens/AnalyzingScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
+import { ConnectPlatformsScreen } from '../screens/ConnectPlatformsScreen';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
 
@@ -87,6 +88,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Paywall"
               component={PaywallScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ConnectPlatforms"
+              component={ConnectPlatformsScreen}
               options={{ headerShown: false }}
             />
           </>

@@ -5,8 +5,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
 
 export const ListingSuccessScreen = ({ navigation, route }) => {
-  const { productName } = route.params || {};
+  const { productName, selectedPlatforms, publishResults } = route.params || {};
   const animationRef = useRef(null);
+
+  const publishedToCarousell = selectedPlatforms?.carousell && publishResults?.carousell?.success;
+  const publishedToFacebook = selectedPlatforms?.facebook && publishResults?.facebook?.success;
+  const hasErrors = publishResults?.errors && publishResults.errors.length > 0;
 
   useEffect(() => {
     animationRef.current?.play();
@@ -36,34 +40,85 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
 
       {/* Subtitle */}
       <Text style={styles.subtitle}>
-        Your item is now live on{'\n'}
-        <Text style={styles.bold}>Facebook & Carousell</Text>. Good{'\n'}
-        luck with the sale!
+        Your item is now live on{' '}
+        {publishedToCarousell && publishedToFacebook && (
+          <Text style={styles.bold}>Facebook & Carousell</Text>
+        )}
+        {publishedToCarousell && !publishedToFacebook && (
+          <Text style={styles.bold}>Carousell</Text>
+        )}
+        {!publishedToCarousell && publishedToFacebook && (
+          <Text style={styles.bold}>Facebook Marketplace</Text>
+        )}
+        .{' '}Good luck with the sale!
       </Text>
+
+      {hasErrors && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="warning" size={20} color="#FF6B35" />
+          <Text style={styles.errorText}>
+            Some platforms failed to publish. Check details below.
+          </Text>
+        </View>
+      )}
 
       {/* Platform Cards */}
       <View style={styles.platformCards}>
-        <TouchableOpacity style={styles.platformCard}>
-          <View style={styles.platformIconCircle}>
-            <Ionicons name="logo-facebook" size={24} color="#4267B2" />
-          </View>
-          <View style={styles.platformTextContainer}>
-            <Text style={styles.platformLabel}>PLATFORM</Text>
-            <Text style={styles.platformName}>View Post on FB</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#CCC" />
-        </TouchableOpacity>
+        {publishedToFacebook && (
+          <TouchableOpacity style={styles.platformCard}>
+            <View style={styles.platformIconCircle}>
+              <Ionicons name="logo-facebook" size={24} color="#1877F2" />
+            </View>
+            <View style={styles.platformTextContainer}>
+              <View style={styles.platformHeader}>
+                <Text style={styles.platformLabel}>FACEBOOK MARKETPLACE</Text>
+                <View style={styles.successBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                  <Text style={styles.successText}>Published</Text>
+                </View>
+              </View>
+              <Text style={styles.platformName}>View Post on Facebook</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#CCC" />
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity style={styles.platformCard}>
-          <View style={[styles.platformIconCircle, { backgroundColor: '#FFE8E8' }]}>
-            <Ionicons name="bag-handle" size={24} color="#FF4444" />
+        {publishedToCarousell && (
+          <TouchableOpacity style={styles.platformCard}>
+            <View style={[styles.platformIconCircle, { backgroundColor: '#FFE8E8' }]}>
+              <Ionicons name="cart-outline" size={24} color="#D32F2F" />
+            </View>
+            <View style={styles.platformTextContainer}>
+              <View style={styles.platformHeader}>
+                <Text style={styles.platformLabel}>CAROUSELL</Text>
+                <View style={styles.successBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                  <Text style={styles.successText}>Published</Text>
+                </View>
+              </View>
+              <Text style={styles.platformName}>View Post on Carousell</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#CCC" />
+          </TouchableOpacity>
+        )}
+
+        {hasErrors && publishResults.errors.map((error, index) => (
+          <View key={index} style={[styles.platformCard, styles.platformCardError]}>
+            <View style={[styles.platformIconCircle, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="close-circle" size={24} color="#EF4444" />
+            </View>
+            <View style={styles.platformTextContainer}>
+              <View style={styles.platformHeader}>
+                <Text style={styles.platformLabel}>{error.platform.toUpperCase()}</Text>
+                <View style={styles.errorBadgeSmall}>
+                  <Ionicons name="alert-circle" size={14} color="#EF4444" />
+                  <Text style={styles.errorTextSmall}>Failed</Text>
+                </View>
+              </View>
+              <Text style={styles.platformErrorText}>{error.error}</Text>
+            </View>
           </View>
-          <View style={styles.platformTextContainer}>
-            <Text style={styles.platformLabel}>PLATFORM</Text>
-            <Text style={styles.platformName}>View Post on Carousell</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#CCC" />
-        </TouchableOpacity>
+        ))}
       </View>
 
       {/* Action Buttons */}
@@ -203,6 +258,64 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#000',
+  },
+  platformHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  successBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  successText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+    width: '100%',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#92400E',
+    flex: 1,
+  },
+  platformCardError: {
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  errorBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  errorTextSmall: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  platformErrorText: {
+    fontSize: 13,
+    color: '#EF4444',
   },
   actionButtons: {
     width: '100%',

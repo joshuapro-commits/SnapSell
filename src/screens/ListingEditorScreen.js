@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useListings } from '../contexts/ListingsContext';
+import { useAuth } from '../contexts/AuthContext';
+import { platformService } from '../services/platforms';
 
 export const ListingEditorScreen = ({ navigation, route }) => {
   const { productData, listing } = route.params;
   const data = productData || listing;
   const { addListing } = useListings();
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(data.category || 'Electronics');
   const [selectedCondition, setSelectedCondition] = useState(data.condition || 'Like New');
+  const [carousellCategory, setCarousellCategory] = useState(data.category || 'Electronics');
+  const [carousellCondition, setCarousellCondition] = useState(data.condition || 'Like New');
+  const [facebookCategory, setFacebookCategory] = useState(data.platformData?.facebook?.category || 'Other');
+  const [facebookCondition, setFacebookCondition] = useState(data.condition || 'Like New');
   const [location, setLocation] = useState(data.location || 'Manila, Philippines');
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -18,9 +25,20 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [productName, setProductName] = useState(data.name || 'Floral Wrap Mini Dress');
-  const [description, setDescription] = useState(data.description || 'Stay effortlessly stylish with this floral wrap mini dress.');
+  const [description, setDescription] = useState(data.description || data.descriptions?.generic || 'Stay effortlessly stylish with this floral wrap mini dress.');
+  const [carousellDescription, setCarousellDescription] = useState(data.descriptions?.carousell || data.description || '');
+  const [facebookDescription, setFacebookDescription] = useState(data.descriptions?.facebook || data.description || '');
+  const [carousellHashtags, setCarousellHashtags] = useState(data.platformData?.carousell?.hashtags || []);
+  const [carousellMeetupLocations, setCarousellMeetupLocations] = useState(data.platformData?.carousell?.meetupLocations || []);
+  const [carousellPrice, setCarousellPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
+  const [facebookPrice, setFacebookPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
+  const [facebookShipping, setFacebookShipping] = useState(data.platformData?.facebook?.shippingAvailable || true);
   const [price, setPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
   const [tempValue, setTempValue] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState({
+    carousell: true,
+    facebook: true,
+  });
 
   const categories = [
     { name: 'Electronics', icon: 'phone-portrait-outline' },
@@ -52,14 +70,52 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     setEditingField(field);
     if (field === 'title') setTempValue(productName);
     if (field === 'description') setTempValue(description);
+    if (field === 'carousell') setTempValue(carousellDescription);
+    if (field === 'facebook') setTempValue(facebookDescription);
+    if (field === 'carousellHashtags') setTempValue(carousellHashtags.join(', '));
+    if (field === 'carousellMeetup') setTempValue(carousellMeetupLocations.join(', '));
+    if (field === 'carousellPrice') setTempValue(carousellPrice);
+    if (field === 'facebookPrice') setTempValue(facebookPrice);
+    if (field === 'facebookLocation') setTempValue(location);
     if (field === 'price') setTempValue(price);
+    if (field === 'carousellCategory' || field === 'carousellCondition' || field === 'facebookCategory' || field === 'facebookCondition') {
+      setEditModalVisible(true);
+      return;
+    }
     setEditModalVisible(true);
   };
 
   const handleSaveEdit = () => {
     if (editingField === 'title') setProductName(tempValue);
     if (editingField === 'description') setDescription(tempValue);
+    if (editingField === 'carousell') setCarousellDescription(tempValue);
+    if (editingField === 'facebook') setFacebookDescription(tempValue);
+    if (editingField === 'carousellHashtags') {
+      const tags = tempValue.split(',').map(tag => tag.trim()).filter(tag => tag);
+      setCarousellHashtags(tags);
+    }
+    if (editingField === 'carousellMeetup') {
+      const locations = tempValue.split(',').map(loc => loc.trim()).filter(loc => loc);
+      setCarousellMeetupLocations(locations);
+    }
+    if (editingField === 'carousellPrice') setCarousellPrice(tempValue);
+    if (editingField === 'facebookPrice') setFacebookPrice(tempValue);
+    if (editingField === 'facebookLocation') setLocation(tempValue);
     if (editingField === 'price') setPrice(tempValue);
+    setEditModalVisible(false);
+    setEditingField(null);
+  };
+
+  const handleCategorySelect = (category) => {
+    if (editingField === 'carousellCategory') setCarousellCategory(category);
+    if (editingField === 'facebookCategory') setFacebookCategory(category);
+    setEditModalVisible(false);
+    setEditingField(null);
+  };
+
+  const handleConditionSelect = (condition) => {
+    if (editingField === 'carousellCondition') setCarousellCondition(condition);
+    if (editingField === 'facebookCondition') setFacebookCondition(condition);
     setEditModalVisible(false);
     setEditingField(null);
   };
@@ -73,17 +129,84 @@ export const ListingEditorScreen = ({ navigation, route }) => {
 
 
   const handleAddToCart = async () => {
-    await addListing({
+    if (!selectedPlatforms.carousell && !selectedPlatforms.facebook) {
+      Alert.alert('Select Platform', 'Please select at least one platform to publish to.');
+      return;
+    }
+
+    // Show publishing progress
+    Alert.alert(
+      'Publishing',
+      'Publishing your listing to selected platforms...',
+      [],
+      { cancelable: false }
+    );
+
+    const listingData = {
       name: productName,
       brand: data.brand,
       price: parseFloat(price),
       description: description,
+      descriptions: {
+        carousell: carousellDescription,
+        facebook: facebookDescription,
+        generic: description,
+      },
       category: selectedCategory,
       condition: selectedCondition,
       imageUri: data.imageUri,
       location: location,
-    });
-    navigation.replace('ListingSuccess', { productName: productName });
+      selectedPlatforms: selectedPlatforms,
+      platformData: {
+        carousell: {
+          hashtags: carousellHashtags,
+          meetupLocations: carousellMeetupLocations,
+          price: parseFloat(carousellPrice),
+          category: carousellCategory,
+          condition: carousellCondition,
+        },
+        facebook: {
+          category: facebookCategory,
+          shippingAvailable: facebookShipping,
+          price: parseFloat(facebookPrice),
+          condition: facebookCondition,
+          location: location,
+        },
+      },
+    };
+
+    try {
+      // Publish to selected platforms
+      const publishResults = await platformService.publishListing(
+        listingData,
+        selectedPlatforms,
+        user.id
+      );
+
+      // Add listing to local storage
+      const newListing = await addListing({
+        ...listingData,
+        publishResults: publishResults,
+        publishedPlatforms: {
+          carousell: publishResults.carousell?.success || false,
+          facebook: publishResults.facebook?.success || false,
+        },
+      });
+
+      // Navigate to success screen
+      navigation.replace('ListingSuccess', { 
+        productName: productName,
+        selectedPlatforms: selectedPlatforms,
+        publishResults: publishResults,
+      });
+    } catch (error) {
+      console.error('Publishing error:', error);
+      Alert.alert(
+        'Publishing Error',
+        'There was an error publishing your listing. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -145,17 +268,6 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Description */}
-          <View style={styles.descriptionSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.descriptionTitle}>Description</Text>
-              <TouchableOpacity style={styles.editIcon} onPress={() => handleEditPress('description')}>
-                <Ionicons name="pencil" size={16} color="#999" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.descriptionText}>{description}</Text>
-          </View>
-
           {/* Price */}
           <View style={styles.priceSection}>
             <View style={styles.sectionHeader}>
@@ -170,109 +282,273 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* Category Selector */}
-          <View style={styles.fieldSection}>
-            <Text style={styles.fieldLabel}>Category</Text>
+          {/* Platform Selection */}
+          <View style={styles.platformSelectionSection}>
+            <Text style={styles.sectionTitle}>Publish To</Text>
+            <Text style={styles.sectionSubtitle}>Select which platforms to publish your listing</Text>
+            
             <TouchableOpacity 
-              style={styles.cardButton}
-              onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              style={styles.platformCheckbox}
+              onPress={() => setSelectedPlatforms({...selectedPlatforms, carousell: !selectedPlatforms.carousell})}
             >
-              <View style={styles.cardIconContainer}>
-                <Ionicons name="grid-outline" size={22} color="#FF6B35" />
+              <View style={styles.platformCheckboxLeft}>
+                <View style={[styles.checkbox, selectedPlatforms.carousell && styles.checkboxChecked]}>
+                  {selectedPlatforms.carousell && (
+                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                  )}
+                </View>
+                <View style={[styles.platformIconSmall, { backgroundColor: '#D32F2F' }]}>
+                  <Ionicons name="cart-outline" size={20} color="#FFF" />
+                </View>
+                <Text style={styles.platformCheckboxText}>Carousell</Text>
               </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{selectedCategory}</Text>
-                <Text style={styles.cardSubtitle}>Product category</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>
-            {showCategoryDropdown && (
-              <View style={styles.dropdownList}>
-                {categories.map((category) => (
-                  <TouchableOpacity
-                    key={category.name}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setSelectedCategory(category.name);
-                      setShowCategoryDropdown(false);
-                    }}
-                  >
-                    <View style={styles.dropdownItemLeft}>
-                      <Ionicons name={category.icon} size={20} color="#666" style={styles.dropdownItemIcon} />
-                      <Text style={[
-                        styles.dropdownItemText,
-                        selectedCategory === category.name && styles.dropdownItemTextSelected
-                      ]}>
-                        {category.name}
-                      </Text>
-                    </View>
-                    {selectedCategory === category.name && (
-                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+
+            <TouchableOpacity 
+              style={styles.platformCheckbox}
+              onPress={() => setSelectedPlatforms({...selectedPlatforms, facebook: !selectedPlatforms.facebook})}
+            >
+              <View style={styles.platformCheckboxLeft}>
+                <View style={[styles.checkbox, selectedPlatforms.facebook && styles.checkboxChecked]}>
+                  {selectedPlatforms.facebook && (
+                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                  )}
+                </View>
+                <View style={[styles.platformIconSmall, { backgroundColor: '#1877F2' }]}>
+                  <Ionicons name="logo-facebook" size={20} color="#FFF" />
+                </View>
+                <Text style={styles.platformCheckboxText}>Facebook Marketplace</Text>
               </View>
-            )}
+            </TouchableOpacity>
           </View>
 
-          {/* Condition Selector */}
-          <View style={styles.fieldSection}>
-            <Text style={styles.fieldLabel}>Condition</Text>
-            <TouchableOpacity 
-              style={styles.cardButton}
-              onPress={() => setShowConditionDropdown(!showConditionDropdown)}
-            >
-              <View style={styles.cardIconContainer}>
-                <Ionicons name="star-outline" size={22} color="#FF6B35" />
+          {/* Description */}
+          <View style={styles.descriptionSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.descriptionTitle}>Listing Details</Text>
+            </View>
+            
+            {/* Carousell Description */}
+            {selectedPlatforms.carousell && (
+            <View style={styles.platformDescriptionCard}>
+              <View style={styles.platformDescriptionHeader}>
+                <View style={styles.platformBadge}>
+                  <Ionicons name="cart-outline" size={16} color="#D32F2F" />
+                  <Text style={styles.platformBadgeText}>Carousell</Text>
+                </View>
               </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{selectedCondition}</Text>
-                <Text style={styles.cardSubtitle}>Item condition</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-            {showConditionDropdown && (
-              <View style={styles.dropdownList}>
-                {conditions.map((condition) => (
-                  <TouchableOpacity
-                    key={condition.name}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setSelectedCondition(condition.name);
-                      setShowConditionDropdown(false);
-                    }}
+              
+              {/* Description */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Description</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('carousell')}
                   >
-                    <View style={styles.dropdownItemLeft}>
-                      <Ionicons name={condition.icon} size={20} color="#666" style={styles.dropdownItemIcon} />
-                      <Text style={[
-                        styles.dropdownItemText,
-                        selectedCondition === condition.name && styles.dropdownItemTextSelected
-                      ]}>
-                        {condition.name}
-                      </Text>
-                    </View>
-                    {selectedCondition === condition.name && (
-                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
-                    )}
+                    <Ionicons name="pencil" size={14} color="#999" />
                   </TouchableOpacity>
-                ))}
+                </View>
+                <Text style={styles.descriptionText}>{carousellDescription}</Text>
               </View>
-            )}
-          </View>
+              
+              {/* Price */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Price</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('carousellPrice')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.platformPrice}>₱{carousellPrice}</Text>
+              </View>
 
-          {/* Location Input */}
-          <View style={styles.fieldSection}>
-            <Text style={styles.fieldLabel}>Location</Text>
-            <TouchableOpacity style={styles.cardButton}>
-              <View style={styles.cardIconContainer}>
-                <Ionicons name="location-outline" size={22} color="#FF6B35" />
+              {/* Category */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Category</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('carousellCategory')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="grid-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{carousellCategory}</Text>
+                </View>
               </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{location}</Text>
-                <Text style={styles.cardSubtitle}>Pickup location</Text>
+
+              {/* Condition */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Condition</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('carousellCondition')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="star-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{carousellCondition}</Text>
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
+
+              {/* Hashtags */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Hashtags</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('carousellHashtags')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.hashtagsContainer}>
+                  {carousellHashtags.map((tag, index) => (
+                    <View key={index} style={styles.hashtagChip}>
+                      <Text style={styles.hashtagText}>#{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Meetup Locations */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Meetup Locations</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('carousellMeetup')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="location-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>
+                    {carousellMeetupLocations.join(', ')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            )}
+
+            {/* Facebook Description */}
+            {selectedPlatforms.facebook && (
+            <View style={styles.platformDescriptionCard}>
+              <View style={styles.platformDescriptionHeader}>
+                <View style={styles.platformBadge}>
+                  <Ionicons name="logo-facebook" size={16} color="#1877F2" />
+                  <Text style={styles.platformBadgeText}>Facebook Marketplace</Text>
+                </View>
+              </View>
+              
+              {/* Description */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Description</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('facebook')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.descriptionText}>{facebookDescription}</Text>
+              </View>
+              
+              {/* Price */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Price</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('facebookPrice')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.platformPrice}>₱{facebookPrice}</Text>
+              </View>
+
+              {/* Category */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Category</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('facebookCategory')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="pricetag-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{facebookCategory}</Text>
+                </View>
+              </View>
+
+              {/* Condition */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Condition</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('facebookCondition')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="star-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{facebookCondition}</Text>
+                </View>
+              </View>
+
+              {/* Location */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Location</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('facebookLocation')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="location-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{location}</Text>
+                </View>
+              </View>
+
+              {/* Shipping */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Shipping</Text>
+                  <TouchableOpacity 
+                    style={styles.toggleButton}
+                    onPress={() => setFacebookShipping(!facebookShipping)}
+                  >
+                    <View style={[styles.toggleTrack, facebookShipping && styles.toggleTrackActive]}>
+                      <View style={[styles.toggleThumb, facebookShipping && styles.toggleThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.platformFieldText}>
+                  {facebookShipping ? 'Available' : 'Meetup only'}
+                </Text>
+              </View>
+            </View>
+            )}
           </View>
           </ScrollView>
 
@@ -300,6 +576,17 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               <Text style={styles.editModalTitle}>
                 {editingField === 'title' && 'Edit Product Name'}
                 {editingField === 'description' && 'Edit Description'}
+                {editingField === 'carousell' && 'Edit Carousell Description'}
+                {editingField === 'facebook' && 'Edit Facebook Description'}
+                {editingField === 'carousellHashtags' && 'Edit Hashtags'}
+                {editingField === 'carousellMeetup' && 'Edit Meetup Locations'}
+                {editingField === 'carousellCategory' && 'Edit Carousell Category'}
+                {editingField === 'carousellCondition' && 'Edit Carousell Condition'}
+                {editingField === 'carousellPrice' && 'Edit Carousell Price'}
+                {editingField === 'facebookCategory' && 'Edit Facebook Category'}
+                {editingField === 'facebookCondition' && 'Edit Facebook Condition'}
+                {editingField === 'facebookPrice' && 'Edit Facebook Price'}
+                {editingField === 'facebookLocation' && 'Edit Location'}
                 {editingField === 'price' && 'Edit Price'}
               </Text>
               <TouchableOpacity onPress={handleCancelEdit}>
@@ -308,7 +595,81 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.editModalBody}>
-              {editingField === 'description' ? (
+              {(editingField === 'carousellCategory' || editingField === 'facebookCategory') && (
+                <ScrollView style={styles.dropdownScrollView}>
+                  {categories.map((category) => (
+                    <TouchableOpacity
+                      key={category.name}
+                      style={styles.dropdownItem}
+                      onPress={() => handleCategorySelect(category.name)}
+                    >
+                      <View style={styles.dropdownItemLeft}>
+                        <Ionicons name={category.icon} size={20} color="#666" style={styles.dropdownItemIcon} />
+                        <Text style={[
+                          styles.dropdownItemText,
+                          (editingField === 'carousellCategory' && carousellCategory === category.name) && styles.dropdownItemTextSelected,
+                          (editingField === 'facebookCategory' && facebookCategory === category.name) && styles.dropdownItemTextSelected,
+                        ]}>{category.name}</Text>
+                      </View>
+                      {((editingField === 'carousellCategory' && carousellCategory === category.name) || 
+                        (editingField === 'facebookCategory' && facebookCategory === category.name)) && (
+                        <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+              {(editingField === 'carousellCondition' || editingField === 'facebookCondition') && (
+                <ScrollView style={styles.dropdownScrollView}>
+                  {conditions.map((condition) => (
+                    <TouchableOpacity
+                      key={condition.name}
+                      style={styles.dropdownItem}
+                      onPress={() => handleConditionSelect(condition.name)}
+                    >
+                      <View style={styles.dropdownItemLeft}>
+                        <Ionicons name={condition.icon} size={20} color="#666" style={styles.dropdownItemIcon} />
+                        <Text style={[
+                          styles.dropdownItemText,
+                          (editingField === 'carousellCondition' && carousellCondition === condition.name) && styles.dropdownItemTextSelected,
+                          (editingField === 'facebookCondition' && facebookCondition === condition.name) && styles.dropdownItemTextSelected,
+                        ]}>{condition.name}</Text>
+                      </View>
+                      {((editingField === 'carousellCondition' && carousellCondition === condition.name) || 
+                        (editingField === 'facebookCondition' && facebookCondition === condition.name)) && (
+                        <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+              {editingField === 'carousellHashtags' && (
+                <View>
+                  <Text style={styles.editHintText}>Separate hashtags with commas (e.g., Nike, Sneakers, Authentic)</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={tempValue}
+                    onChangeText={setTempValue}
+                    placeholder="Nike, Sneakers, Authentic"
+                    placeholderTextColor="#999"
+                    autoFocus
+                  />
+                </View>
+              )}
+              {editingField === 'carousellMeetup' && (
+                <View>
+                  <Text style={styles.editHintText}>Separate locations with commas (e.g., Makati, BGC, Ortigas)</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={tempValue}
+                    onChangeText={setTempValue}
+                    placeholder="Makati, BGC, Ortigas"
+                    placeholderTextColor="#999"
+                    autoFocus
+                  />
+                </View>
+              )}
+              {(editingField === 'description' || editingField === 'carousell' || editingField === 'facebook') && (
                 <TextInput
                   style={styles.editTextArea}
                   value={tempValue}
@@ -320,29 +681,32 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                   textAlignVertical="top"
                   autoFocus
                 />
-              ) : (
+              )}
+              {(editingField === 'title' || editingField === 'price' || editingField === 'carousellPrice' || editingField === 'facebookPrice' || editingField === 'facebookLocation') && (
                 <TextInput
                   style={styles.editInput}
                   value={tempValue}
                   onChangeText={setTempValue}
-                  placeholder={editingField === 'price' ? '0.00' : 'Enter text'}
+                  placeholder={editingField.includes('price') || editingField.includes('Price') ? '0.00' : 'Enter text'}
                   placeholderTextColor="#999"
-                  keyboardType={editingField === 'price' ? 'decimal-pad' : 'default'}
+                  keyboardType={editingField.includes('price') || editingField.includes('Price') ? 'decimal-pad' : 'default'}
                   autoFocus
                 />
               )}
             </View>
 
-            <View style={styles.editModalFooter}>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
-                <View style={styles.solidSaveButton}>
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+            {!(editingField === 'carousellCategory' || editingField === 'facebookCategory' || editingField === 'carousellCondition' || editingField === 'facebookCondition') && (
+              <View style={styles.editModalFooter}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
+                  <View style={styles.solidSaveButton}>
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -583,6 +947,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
+  dropdownScrollView: {
+    maxHeight: 400,
+  },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -616,11 +983,149 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     fontFamily: 'Montserrat_700Bold',
+    marginBottom: 16,
+  },
+  platformDescriptionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  platformDescriptionHeader: {
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  platformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8F9FC',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  platformBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  platformFieldSection: {
+    marginBottom: 16,
+  },
+  platformFieldHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  platformFieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  platformFieldValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  platformFieldText: {
+    fontSize: 14,
+    color: '#333',
+    fontFamily: 'Montserrat_400Regular',
+    flex: 1,
+  },
+  editIconSmall: {
+    padding: 4,
+  },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  hashtagChip: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  hashtagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2E7D32',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  meetupContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  meetupText: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'Montserrat_400Regular',
+    flex: 1,
+  },
+  fbMetaContainer: {
+    marginTop: 12,
+    gap: 6,
+  },
+  fbMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  fbMetaText: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'Montserrat_400Regular',
+  },
+  platformPrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    fontFamily: 'Montserrat_700Bold',
+  },
+  toggleButton: {
+    padding: 4,
+  },
+  toggleTrack: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleTrackActive: {
+    backgroundColor: '#10B981',
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
   },
   descriptionText: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 22,
+    lineHeight: 20,
     fontFamily: 'Montserrat_400Regular',
   },
   buttonContainer: {
@@ -683,6 +1188,12 @@ const styles = StyleSheet.create({
   },
   editModalBody: {
     padding: 20,
+  },
+  editHintText: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 12,
+    fontFamily: 'Montserrat_400Regular',
   },
   editInput: {
     fontSize: 16,
@@ -747,5 +1258,65 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFF',
     fontFamily: 'Montserrat_700Bold',
+  },
+  platformSelectionSection: {
+    marginBottom: 24,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    fontFamily: 'Montserrat_700Bold',
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    fontFamily: 'Montserrat_400Regular',
+    marginBottom: 16,
+  },
+  platformCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8F9FC',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  platformCheckboxLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D0D0D0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  checkboxChecked: {
+    backgroundColor: '#FF6B35',
+    borderColor: '#FF6B35',
+  },
+  platformIconSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  platformCheckboxText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+    fontFamily: 'Montserrat_600SemiBold',
   },
 });

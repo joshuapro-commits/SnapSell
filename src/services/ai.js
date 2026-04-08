@@ -42,7 +42,7 @@ export const aiService = {
 
   async analyzeImage(imageUri) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
       // Convert image URI to base64
       const imageResponse = await fetch(imageUri);
@@ -57,53 +57,30 @@ export const aiService = {
         reader.readAsDataURL(blob);
       });
 
-      const prompt = `Analyze this product image and provide detailed information in JSON format with the following structure:
+      const prompt = `Analyze this product image and return JSON:
 {
   "name": "product name",
-  "brand": "brand name - IMPORTANT: Look carefully for any visible brand logos, text, or distinctive design elements. Check packaging, labels, product markings. If you can identify the brand with reasonable confidence, provide it. Only use 'Unknown' if absolutely no brand indicators are visible.",
-  "category": "one of: electronics, clothing, furniture, books, sporting, toys, home, automotive, beauty, jewelry, art, musical, pet, office, other",
-  "condition": "one of: new, like-new, good, fair, poor",
-  "description": "Write a first-person description as if I'm the seller. Use 'I' and describe what I'm selling. Example: 'I'm selling this iPhone in excellent condition. It has been well maintained and comes with the original box.' Keep it 2-3 sentences, natural and conversational.",
-  "suggestedPrice": estimated price in Philippine Peso (PHP) as a number based on current market value in the Philippines,
-  "attributes": {
-    "key relevant attributes like color, size, model, year, etc."
-  }
-}
-
-IMPORTANT INSTRUCTIONS:
-1. BRAND RECOGNITION: Examine the image very carefully for:
-   - Visible logos (Apple, Nike, Samsung, Sony, etc.)
-   - Brand text on product or packaging
-   - Distinctive design patterns (Adidas stripes, Nike swoosh, etc.)
-   - Product model numbers that indicate brand
-   - Packaging colors and styles associated with specific brands
-   Only use 'Unknown' if you genuinely cannot identify any brand markers.
-
-2. PRICING IN PHILIPPINE PESO (PHP):
-   - Research current market prices in the Philippines
-   - Consider the condition when pricing
-   - Factor in depreciation for used items
-   - Compare with similar items on Philippine marketplaces (Lazada, Shopee, Carousell)
-   - New items: Use current retail price in PHP
-   - Used items: Reduce by 20-50% depending on condition
-   - Example: iPhone 13 Pro (good condition) = ₱35,000-45,000 PHP
-
-3. CATEGORY SELECTION - Be very accurate:
-   - Electronics: phones, laptops, tablets, cameras, headphones, gaming consoles, TVs, smart devices
-   - Clothing: shirts, pants, shoes, bags, hats, jackets, dresses, accessories
-   - Furniture: chairs, tables, sofas, beds, desks, cabinets, shelves
-   - Books: books, magazines, comics, textbooks, novels
-   - Sporting: exercise equipment, sports gear, bikes, outdoor equipment
-   - Toys: children's toys, board games, video games, puzzles, action figures
-   - Home: kitchen items, decor, appliances, tools, lighting, bedding
-   - Automotive: car parts, accessories, tools, maintenance items
-   - Beauty: makeup, skincare, haircare, fragrances, grooming products
-   - Jewelry: rings, necklaces, bracelets, watches, earrings
-   - Art: paintings, sculptures, prints, crafts, collectibles
-   - Musical: guitars, keyboards, drums, DJ equipment, audio gear
-   - Pet: pet food, toys, accessories, cages, grooming supplies
-   - Office: desk supplies, organizers, printers, paper, filing
-   - Other: anything that doesn't fit the above categories`;
+  "brand": "brand name (check logos, text, packaging; use 'Unknown' only if no brand visible)",
+  "category": "electronics|clothing|furniture|books|sporting|toys|home|automotive|beauty|jewelry|art|musical|pet|office|other",
+  "condition": "new|like-new|good|fair|poor",
+  "descriptions": {
+    "carousell": "Casual 2-3 sentences with emojis. Start 'Selling my...' Example: 'Selling my iPhone 13 Pro! 🔥 95% battery, no scratches. Comes with box and charger! 📦'",
+    "facebook": "Professional with line breaks. Example: 'iPhone 13 Pro - Excellent\\n\\n- 95% battery\\n- No scratches\\n- Original box included\\n\\nMeetup: BGC'",
+    "generic": "Balanced 2-3 sentences. Example: 'iPhone 13 Pro in excellent condition. 95% battery health, no scratches. Includes original box.'"
+  },
+  "suggestedPrice": PHP price number (research PH market: new=retail, like-new=80-90%, good=60-75%, fair=40-55%, poor=20-35%),
+  "platformData": {
+    "carousell": {
+      "hashtags": ["3-5 terms without #: brand, category, condition"],
+      "meetupLocations": ["2-3 Metro Manila areas: Makati, BGC, QC, Ortigas, Manila"]
+    },
+    "facebook": {
+      "category": "Vehicles|Property Rentals|Apparel|Electronics|Entertainment|Home Goods|Musical Instruments|Office Supplies|Pet Supplies|Sporting Goods|Toys & Games|Other",
+      "shippingAvailable": true|false
+    }
+  },
+  "attributes": {"color": "", "size": "", "model": ""}
+}`;
 
       const result = await model.generateContent([
         prompt,
@@ -118,13 +95,52 @@ IMPORTANT INSTRUCTIONS:
       const response = await result.response;
       const text = response.text();
       
+      // Clean the text before parsing
+      let cleanedText = text
+        .replace(/[\u0000-\u001F]/g, '') // Remove control characters
+        .replace(/```json/g, '') // Remove markdown code blocks
+        .replace(/```/g, '')
+        .trim();
+      
       // Extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('Failed to parse AI response');
+        console.error('AI Response (no JSON found):', text);
+        throw new Error('Failed to parse AI response - no JSON found');
       }
 
-      const productData = JSON.parse(jsonMatch[0]);
+      let productData;
+      try {
+        productData = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.error('Attempted to parse:', jsonMatch[0]);
+        throw new Error('Failed to parse AI response JSON: ' + parseError.message);
+      }
+
+      // Ensure descriptions object exists with fallback
+      if (!productData.descriptions) {
+        const fallbackDesc = productData.description || 'Product in good condition.';
+        productData.descriptions = {
+          carousell: fallbackDesc,
+          facebook: fallbackDesc,
+          generic: fallbackDesc,
+        };
+      }
+
+      // Ensure platformData exists with fallback
+      if (!productData.platformData) {
+        productData.platformData = {
+          carousell: {
+            hashtags: [productData.brand || 'Item', productData.category || 'ForSale'],
+            meetupLocations: ['Makati', 'BGC', 'Quezon City'],
+          },
+          facebook: {
+            category: 'Other',
+            shippingAvailable: true,
+          },
+        };
+      }
 
       // Enhance image quality
       const enhancementResult = await this.enhanceImage(imageUri);
@@ -132,7 +148,14 @@ IMPORTANT INSTRUCTIONS:
       return {
         success: true,
         data: {
-          ...productData,
+          name: productData.name,
+          brand: productData.brand,
+          category: productData.category,
+          condition: productData.condition,
+          descriptions: productData.descriptions,
+          suggestedPrice: productData.suggestedPrice,
+          platformData: productData.platformData,
+          attributes: productData.attributes,
           imageUri: enhancementResult.enhancedImage,
           originalImageUri: imageUri,
           imageEnhanced: enhancementResult.success,
@@ -154,15 +177,7 @@ IMPORTANT INSTRUCTIONS:
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-      const prompt = `Generate a compelling first-person product description for my marketplace listing:
-Product: ${productInfo.name}
-Brand: ${productInfo.brand}
-Category: ${productInfo.category}
-Condition: ${productInfo.condition}
-
-Write as if I'm the seller using first-person perspective (use 'I', 'my', etc.). Make it natural and conversational, like I'm personally describing what I'm selling. Example: "I'm selling my gently used MacBook Pro. It's been my daily driver for work and runs perfectly. Comes with the original charger."
-
-Write 2-3 sentences that are personal, honest, and persuasive. Don't use third-person or formal language.`;
+      const prompt = `Write 2-3 first-person sentences for: ${productInfo.brand} ${productInfo.name} (${productInfo.condition}). Use 'I', 'my'. Example: "I'm selling my MacBook Pro. Runs perfectly, comes with charger."`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -177,39 +192,9 @@ Write 2-3 sentences that are personal, honest, and persuasive. Don't use third-p
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-      const prompt = `Suggest a fair market price in Philippine Peso (PHP) for this product:
-Product: ${productInfo.name}
-Brand: ${productInfo.brand}
-Category: ${productInfo.category}
-Condition: ${productInfo.condition}
-
-IMPORTANT: 
-- Research current market prices in the Philippines (Lazada, Shopee, Carousell prices)
-- Price must be in Philippine Peso (PHP)
-- Consider the condition and apply appropriate depreciation
-- New items: Current retail price in PHP
-- Like-new: 80-90% of retail
-- Good: 60-75% of retail
-- Fair: 40-55% of retail
-- Poor: 20-35% of retail
-
-Provide ONLY a JSON response with this exact structure:
-{
-  "suggestedPrice": number in PHP,
-  "priceRange": {
-    "min": number in PHP,
-    "max": number in PHP
-  }
-}
-
-Example: For iPhone 13 Pro in good condition:
-{
-  "suggestedPrice": 40000,
-  "priceRange": {
-    "min": 35000,
-    "max": 45000
-  }
-}`;
+      const prompt = `PHP price for ${productInfo.brand} ${productInfo.name} (${productInfo.condition}). Return JSON only:
+{"suggestedPrice": number, "priceRange": {"min": number, "max": number}}
+Condition multipliers: new=100%, like-new=85%, good=70%, fair=50%, poor=30%`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;

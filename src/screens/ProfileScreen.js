@@ -185,6 +185,19 @@ export const ProfileScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={20} color="#CCC" />
         </TouchableOpacity>
 
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ConnectPlatforms')}
+        >
+          <View style={styles.menuItemLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#FFF0E8' }]}>
+              <Ionicons name="link-outline" size={20} color="#FF6B35" />
+            </View>
+            <Text style={styles.menuItemText}>Connected Platforms</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#CCC" />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
             <View style={[styles.menuIconCircle, { backgroundColor: '#F5F5F5' }]}>

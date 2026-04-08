@@ -173,6 +173,24 @@ export const MyListingsScreen = ({ navigation }) => {
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.cardPrice}>₱{item.price.toLocaleString()}</Text>
+          
+          {/* Platform Badges */}
+          {(item.publishedPlatforms || item.selectedPlatforms) && (
+            <View style={styles.platformBadges}>
+              {(item.publishedPlatforms?.carousell || item.selectedPlatforms?.carousell) && (
+                <View style={[styles.platformBadge, { backgroundColor: '#FFE8E8' }]}>
+                  <Ionicons name="cart-outline" size={12} color="#D32F2F" />
+                  <Text style={[styles.platformBadgeText, { color: '#D32F2F' }]}>Carousell</Text>
+                </View>
+              )}
+              {(item.publishedPlatforms?.facebook || item.selectedPlatforms?.facebook) && (
+                <View style={[styles.platformBadge, { backgroundColor: '#E8F0FE' }]}>
+                  <Ionicons name="logo-facebook" size={12} color="#1877F2" />
+                  <Text style={[styles.platformBadgeText, { color: '#1877F2' }]}>Facebook</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
       <TouchableOpacity 
@@ -525,6 +543,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#000',
+    fontFamily: 'Montserrat_600SemiBold',
+    marginBottom: 8,
+  },
+  platformBadges: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  platformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  platformBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
     fontFamily: 'Montserrat_600SemiBold',
   },
   cardMenu: {
