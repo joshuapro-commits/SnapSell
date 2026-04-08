@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
 
 export const ListingSuccessScreen = ({ navigation, route }) => {
   const { productName } = route.params || {};
+  const animationRef = useRef(null);
+
+  useEffect(() => {
+    animationRef.current?.play();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -14,13 +20,15 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
       <View style={[styles.shape, styles.shape3]} />
       <View style={[styles.shape, styles.shape4]} />
 
-      {/* Success Icon */}
+      {/* Success Animation */}
       <View style={styles.iconContainer}>
-        <View style={styles.iconCircle}>
-          <View style={styles.iconInner}>
-            <Ionicons name="checkmark" size={60} color="#00D9A5" />
-          </View>
-        </View>
+        <LottieView
+          ref={animationRef}
+          source={require('../../assets/Success.json')}
+          autoPlay
+          loop={false}
+          style={styles.lottieAnimation}
+        />
       </View>
 
       {/* Title */}
@@ -133,25 +141,15 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
   },
   iconContainer: {
-    marginBottom: 32,
-  },
-  iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#F0F0F0',
+    marginBottom: 16,
+    width: 200,
+    height: 200,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#00D9A5',
+  lottieAnimation: {
+    width: 200,
+    height: 200,
   },
   title: {
     fontSize: 32,

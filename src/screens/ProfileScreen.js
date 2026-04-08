@@ -1,20 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Modal,
+  Animated,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useListings } from '../contexts/ListingsContext';
+import { FAB, TabBar } from '../components';
+import * as ImagePicker from 'expo-image-picker';
 
 export const ProfileScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const { myListings } = useListings();
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const slideAnim = React.useRef(new Animated.Value(300)).current;
 
   const monthlyData = [
     { month: 'JAN', amount: 5000 },
@@ -27,41 +34,78 @@ export const ProfileScreen = ({ navigation }) => {
 
   const maxAmount = Math.max(...monthlyData.map(d => d.amount));
 
+  const handleOpenImagePicker = async () => {
+    setShowImagePicker(true);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const handleCloseImagePicker = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowImagePicker(false);
+    });
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      setShowImagePicker(false);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AnalyzingScreen', { 
+          imageUri: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Camera is not available on iOS Simulator. Please use a physical device.');
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    try {
+      setShowImagePicker(false);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AnalyzingScreen', { 
+          imageUri: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', 'Failed to open photo library: ' + error.message);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
-          <Ionicons name="menu" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.logo}>SnapSell</Text>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Profile Section */}
-      <View style={styles.profileSection}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color="#FFF" />
-          </View>
-          <View style={styles.levelBadge}>
-            <Ionicons name="star" size={12} color="#FFF" />
-            <Text style={styles.levelText}>Level 3 Seller</Text>
-          </View>
-        </View>
-        <Text style={styles.userName}>Alex Reyes</Text>
-        <Text style={styles.userHandle}>@alexreyes_de</Text>
-      </View>
-
       {/* Earnings Summary */}
       <View style={styles.earningsSection}>
-        <View style={styles.earningsHeader}>
-          <Text style={styles.earningsTitle}>Earnings Summary</Text>
-          <Text style={styles.earningsPeriod}>Last 30 Days</Text>
-        </View>
+        <Text style={styles.earningsTitle}>Earnings</Text>
+        <Text style={styles.earningsSubtitle}>Track your sales performance and revenue growth.</Text>
+        
         <View style={styles.balanceContainer}>
           <Text style={styles.balanceLabel}>Total Balance</Text>
           <Text style={styles.balanceAmount}>₱42,580</Text>
@@ -91,7 +135,10 @@ export const ProfileScreen = ({ navigation }) => {
       </View>
 
       {/* Premium Card */}
-      <TouchableOpacity style={styles.premiumCardWrapper}>
+      <TouchableOpacity 
+        style={styles.premiumCardWrapper}
+        onPress={() => navigation.navigate('Paywall')}
+      >
         <LinearGradient
           colors={['#7C3AED', '#FF6B35']}
           start={{ x: 0, y: 0 }}
@@ -101,9 +148,9 @@ export const ProfileScreen = ({ navigation }) => {
           <View style={styles.premiumContent}>
             <Text style={styles.premiumTitle}>SnapSell Premium</Text>
             <Text style={styles.premiumSubtitle}>Boost your sales with{"\n"}Unlimited listings & AI Pro{"\n"}selling tools.</Text>
-            <TouchableOpacity style={styles.upgradeButton}>
+            <View style={styles.upgradeButton}>
               <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
-            </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.premiumDecoration}>
             <View style={[styles.star, { top: 20, right: 30 }]} />
@@ -162,35 +209,78 @@ export const ProfileScreen = ({ navigation }) => {
       <Text style={styles.footer}>v1.2.0 - BUILT FOR THE PINOY SELLER.</Text>
       </ScrollView>
 
+      {/* Floating Action Button */}
+      <FAB onPress={handleOpenImagePicker} />
+
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <TabBar navigation={navigation} activeTab="Profile" />
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseImagePicker}
+      >
         <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={handleCloseImagePicker}
         >
-          <Ionicons name="home-outline" size={20} color="#666" />
-          <Text style={styles.navLabel}>Home</Text>
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              {
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              <View style={styles.modalHandle} />
+              
+              <Text style={styles.modalTitle}>Add Product Photo</Text>
+              <Text style={styles.modalSubtitle}>Choose how you'd like to add your product image</Text>
+              
+              <View style={styles.optionsContainer}>
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleTakePhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0F9FF' }]}>
+                    <Ionicons name="camera" size={28} color="#0EA5E9" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Take a Picture</Text>
+                    <Text style={styles.optionDescription}>Use your camera to capture the product</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleUploadPhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="images" size={28} color="#10B981" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Upload Photo</Text>
+                    <Text style={styles.optionDescription}>Choose from your photo library</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={handleCloseImagePicker}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Sell')}
-        >
-          <View style={styles.sellButton}>
-            <Ionicons name="add" size={28} color="#FFF" />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('My Listings')}
-        >
-          <Ionicons name="list-outline" size={20} color="#666" />
-          <Text style={styles.navLabel}>My Listings</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="person" size={20} color="#000" />
-          <Text style={styles.navLabelActive}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -198,7 +288,7 @@ export const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F5F5F5',
   },
   scrollView: {
     flex: 1,
@@ -279,21 +369,31 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_400Regular',
   },
   earningsSection: {
-    backgroundColor: '#FFF',
-    marginTop: 12,
-    padding: 20,
+    backgroundColor: 'transparent',
+    marginTop: 0,
+    marginHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  earningsTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  earningsSubtitle: {
+    fontSize: 13,
+    color: '#999',
+    lineHeight: 18,
+    marginBottom: 16,
+    fontFamily: 'Montserrat_400Regular',
   },
   earningsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-  },
-  earningsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
-    fontFamily: 'Montserrat_700Bold',
   },
   earningsPeriod: {
     fontSize: 12,
@@ -302,6 +402,7 @@ const styles = StyleSheet.create({
   },
   balanceContainer: {
     marginBottom: 20,
+    marginTop: 8,
   },
   balanceLabel: {
     fontSize: 12,
@@ -356,7 +457,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_600SemiBold',
   },
   premiumCardWrapper: {
-    marginTop: 12,
+    marginTop: 16,
     marginHorizontal: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -414,8 +515,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   menuSection: {
-    backgroundColor: '#FFF',
-    marginTop: 12,
+    backgroundColor: 'transparent',
+    marginTop: 16,
+    marginHorizontal: 16,
     paddingVertical: 8,
   },
   menuItem: {
@@ -461,46 +563,87 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     fontFamily: 'Montserrat_400Regular',
   },
-  bottomNav: {
-    flexDirection: 'row',
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
     backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    paddingBottom: 20,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    minHeight: 320,
   },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
-  sellButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#7704F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
-  },
-  navLabel: {
-    fontSize: 10,
-    color: '#666',
-    fontWeight: '500',
-    fontFamily: 'Montserrat_500Medium',
-  },
-  navLabelActive: {
-    fontSize: 10,
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
     color: '#000',
+    marginBottom: 8,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 28,
+    fontFamily: 'Montserrat_400Regular',
+  },
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  optionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  optionTextContainer: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
     fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Montserrat_400Regular',
+  },
+  cancelButton: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#475569',
     fontFamily: 'Montserrat_600SemiBold',
   },
 });

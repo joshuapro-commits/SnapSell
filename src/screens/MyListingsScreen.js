@@ -9,17 +9,27 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  Modal,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { FAB, TabBar } from '../components';
 import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
+import * as ImagePicker from 'expo-image-picker';
 
 export const MyListingsScreen = ({ navigation }) => {
   const { myListings, loading, deleteListing, refreshListings } = useListings();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('Active');
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const slideAnim = React.useRef(new Animated.Value(300)).current;
+  const menuSlideAnim = React.useRef(new Animated.Value(300)).current;
 
   const tabs = ['Active (5)', 'Sold (2)', 'Drafts (3)'];
 
@@ -29,23 +39,115 @@ export const MyListingsScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleProductPress = (listing) => {
-    navigation.navigate('ProductDetail', { listing });
+  const handleOpenImagePicker = async () => {
+    setShowImagePicker(true);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
   };
 
-  const handleDeleteListing = (id, name) => {
-    Alert.alert(
-      'Delete Listing',
-      `Are you sure you want to delete "${name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteListing(id),
-        },
-      ]
-    );
+  const handleCloseImagePicker = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowImagePicker(false);
+    });
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      setShowImagePicker(false);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AnalyzingScreen', { 
+          imageUri: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Camera is not available on iOS Simulator. Please use a physical device.');
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    try {
+      setShowImagePicker(false);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AnalyzingScreen', { 
+          imageUri: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', 'Failed to open photo library: ' + error.message);
+    }
+  };
+
+  const handleOpenMenu = (listing) => {
+    setSelectedListing(listing);
+    setShowMenuModal(true);
+    Animated.spring(menuSlideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const handleCloseMenu = () => {
+    Animated.timing(menuSlideAnim, {
+      toValue: 300,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMenuModal(false);
+      setSelectedListing(null);
+    });
+  };
+
+  const handleEditListing = () => {
+    handleCloseMenu();
+    setTimeout(() => {
+      navigation.navigate('ListingEditor', { listing: selectedListing });
+    }, 300);
+  };
+
+  const handleDeleteListing = () => {
+    handleCloseMenu();
+    setTimeout(() => {
+      Alert.alert(
+        'Delete Listing',
+        `Are you sure you want to delete "${selectedListing.name}"? This action cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => deleteListing(selectedListing.id),
+          },
+        ]
+      );
+    }, 300);
   };
 
   if (loading) {
@@ -53,71 +155,37 @@ export const MyListingsScreen = ({ navigation }) => {
   }
 
   const renderListingCard = ({ item, index }) => (
-    <View style={styles.card}>
-      <View style={styles.cardImageContainer}>
-        {item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.cardImage} />
-        ) : (
-          <View style={styles.cardImagePlaceholder}>
-            <Ionicons name="image-outline" size={40} color="#CCC" />
-          </View>
-        )}
-        <View style={styles.soldOutBadge}>
-          <Text style={styles.soldOutText}>SOLD OUT</Text>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={() => navigation.navigate('ListingEditor', { listing: item })}
+      activeOpacity={0.7}
+    >
+      <View style={styles.cardLeft}>
+        <View style={styles.cardImageContainer}>
+          {item.imageUri ? (
+            <Image source={{ uri: item.imageUri }} style={styles.cardImage} />
+          ) : (
+            <View style={styles.cardImagePlaceholder}>
+              <Ionicons name="image-outline" size={24} color="#CCC" />
+            </View>
+          )}
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.cardPrice}>₱{item.price.toLocaleString()}</Text>
         </View>
       </View>
-      
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.name}</Text>
-          <TouchableOpacity>
-            <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-        
-        <Text style={styles.cardPrice}>₱{item.price.toLocaleString()}</Text>
-        
-        <View style={styles.cardStats}>
-          <View style={styles.statItem}>
-            <Ionicons name="eye-outline" size={14} color="#666" />
-            <Text style={styles.statText}>0 views</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="heart-outline" size={14} color="#666" />
-            <Text style={styles.statText}>0 likes</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.markSoldButton}>
-            <Text style={styles.markSoldText}>Mark as Sold</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit Listing</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.boostButton}>
-          <Ionicons name="flash" size={16} color="#FF6B35" />
-          <Text style={styles.boostButtonText}>BOOST LISTING</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      <TouchableOpacity 
+        style={styles.cardMenu}
+        onPress={() => handleOpenMenu(item)}
+      >
+        <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+      </TouchableOpacity>
+    </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
-          <Ionicons name="menu" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.logo}>SnapSell</Text>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Title Section */}
       <View style={styles.titleSection}>
         <Text style={styles.title}>My Listings</Text>
@@ -125,30 +193,34 @@ export const MyListingsScreen = ({ navigation }) => {
       </View>
 
       {/* Filter Tabs */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabContainer}
-        contentContainerStyle={styles.tabContent}
-      >
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab,
-              selectedTab === tab.split(' ')[0] && styles.tabActive
-            ]}
-            onPress={() => setSelectedTab(tab.split(' ')[0])}
-          >
-            <Text style={[
-              styles.tabText,
-              selectedTab === tab.split(' ')[0] && styles.tabTextActive
-            ]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.tabContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabContent}
+        >
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab,
+                selectedTab === tab.split(' ')[0] && styles.tabActive
+              ]}
+              onPress={() => setSelectedTab(tab.split(' ')[0])}
+            >
+              <Text 
+                style={[
+                  styles.tabText,
+                  selectedTab === tab.split(' ')[0] && styles.tabTextActive
+                ]}
+                numberOfLines={1}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Listings */}
       <FlatList
@@ -181,43 +253,147 @@ export const MyListingsScreen = ({ navigation }) => {
       />
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => navigation.navigate('Sell')}
-      >
-        <Ionicons name="add" size={28} color="#FFF" />
-      </TouchableOpacity>
+      <FAB onPress={handleOpenImagePicker} />
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <TabBar navigation={navigation} activeTab="My Listings" />
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseImagePicker}
+      >
         <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={handleCloseImagePicker}
         >
-          <Ionicons name="home-outline" size={20} color="#666" />
-          <Text style={styles.navLabel}>Home</Text>
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              {
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              <View style={styles.modalHandle} />
+              
+              <Text style={styles.modalTitle}>Add Product Photo</Text>
+              <Text style={styles.modalSubtitle}>Choose how you'd like to add your product image</Text>
+              
+              <View style={styles.optionsContainer}>
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleTakePhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0F9FF' }]}>
+                    <Ionicons name="camera" size={28} color="#0EA5E9" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Take a Picture</Text>
+                    <Text style={styles.optionDescription}>Use your camera to capture the product</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleUploadPhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="images" size={28} color="#10B981" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Upload Photo</Text>
+                    <Text style={styles.optionDescription}>Choose from your photo library</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={handleCloseImagePicker}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={showMenuModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseMenu}
+      >
         <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Sell')}
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={handleCloseMenu}
         >
-          <View style={styles.sellButton}>
-            <Ionicons name="add" size={28} color="#FFF" />
-          </View>
+          <Animated.View 
+            style={[
+              styles.menuModalContent,
+              {
+                transform: [{ translateY: menuSlideAnim }]
+              }
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              <View style={styles.modalHandle} />
+              
+              <Text style={styles.menuModalTitle}>Listing Options</Text>
+              {selectedListing && (
+                <Text style={styles.menuModalSubtitle}>{selectedListing.name}</Text>
+              )}
+              
+              <View style={styles.menuOptionsContainer}>
+                <TouchableOpacity 
+                  style={styles.menuOptionButton}
+                  onPress={handleEditListing}
+                >
+                  <View style={[styles.menuOptionIconContainer, { backgroundColor: '#F0F9FF' }]}>
+                    <Ionicons name="pencil" size={24} color="#0EA5E9" />
+                  </View>
+                  <View style={styles.menuOptionTextContainer}>
+                    <Text style={styles.menuOptionTitle}>Edit Listing</Text>
+                    <Text style={styles.menuOptionDescription}>Update details and pricing</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.menuOptionButton}
+                  onPress={handleDeleteListing}
+                >
+                  <View style={[styles.menuOptionIconContainer, { backgroundColor: '#FEF2F2' }]}>
+                    <Ionicons name="trash" size={24} color="#EF4444" />
+                  </View>
+                  <View style={styles.menuOptionTextContainer}>
+                    <Text style={[styles.menuOptionTitle, { color: '#EF4444' }]}>Delete Listing</Text>
+                    <Text style={styles.menuOptionDescription}>Remove from marketplace</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={handleCloseMenu}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="list" size={20} color="#000" />
-          <Text style={styles.navLabelActive}>My Listings</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Profile')}
-        >
-          <Ionicons name="person-outline" size={20} color="#666" />
-          <Text style={styles.navLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
@@ -233,7 +409,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FAFAFA',
   },
   menuButton: {
     width: 40,
@@ -255,8 +431,9 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFF',
+    paddingTop: 16,
+    paddingBottom: 16,
+    backgroundColor: '#FAFAFA',
   },
   title: {
     fontSize: 24,
@@ -272,16 +449,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_400Regular',
   },
   tabContainer: {
-    backgroundColor: '#FFF',
-    maxHeight: 60,
+    backgroundColor: '#FAFAFA',
+    paddingVertical: 12,
   },
   tabContent: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    flexDirection: 'row',
   },
   tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: '#F5F5F5',
     marginRight: 8,
@@ -303,130 +480,55 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   card: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#FFF',
+    padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  cardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   cardImageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: 200,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginRight: 12,
+    backgroundColor: '#F5F5F5',
   },
   cardImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F5F5F5',
   },
   cardImagePlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  soldOutBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: '#FF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  soldOutText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    fontFamily: 'Montserrat_700Bold',
-  },
   cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    flex: 1,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#000',
-    flex: 1,
-    fontFamily: 'Montserrat_700Bold',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
   },
   cardPrice: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FF6B35',
-    marginBottom: 12,
-    fontFamily: 'Montserrat_700Bold',
-  },
-  cardStats: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 12,
-    color: '#666',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  markSoldButton: {
-    flex: 1,
-    backgroundColor: '#00D9A5',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  markSoldText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFF',
-    fontFamily: 'Montserrat_700Bold',
-  },
-  editButton: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  editButtonText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#000',
     fontFamily: 'Montserrat_600SemiBold',
   },
-  boostButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#FFF4ED',
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFE8E0',
-  },
-  boostButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FF6B35',
-    letterSpacing: 0.5,
-    fontFamily: 'Montserrat_700Bold',
+  cardMenu: {
+    padding: 4,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -461,62 +563,145 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontFamily: 'Montserrat_600SemiBold',
   },
-  fab: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    minHeight: 320,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 28,
+    fontFamily: 'Montserrat_400Regular',
+  },
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  optionIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FF6B35',
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    marginRight: 16,
   },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    paddingBottom: 20,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  optionTextContainer: {
+    flex: 1,
   },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  sellButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#7704F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
-  },
-  navLabel: {
-    fontSize: 10,
-    color: '#666',
-    fontWeight: '500',
-    fontFamily: 'Montserrat_500Medium',
-  },
-  navLabelActive: {
-    fontSize: 10,
-    color: '#000',
+  optionTitle: {
+    fontSize: 16,
     fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
     fontFamily: 'Montserrat_600SemiBold',
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Montserrat_400Regular',
+  },
+  cancelButton: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#475569',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  menuModalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    minHeight: 320,
+  },
+  menuModalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  menuModalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 28,
+    fontFamily: 'Montserrat_400Regular',
+  },
+  menuOptionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  menuOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  menuOptionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  menuOptionTextContainer: {
+    flex: 1,
+  },
+  menuOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  menuOptionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Montserrat_400Regular',
   },
 });

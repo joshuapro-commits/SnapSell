@@ -9,6 +9,7 @@ import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { ListingEditorScreen } from '../screens/ListingEditorScreen';
 import { ListingSuccessScreen } from '../screens/ListingSuccessScreen';
 import { AnalyzingScreen } from '../screens/AnalyzingScreen';
+import { PaywallScreen } from '../screens/PaywallScreen';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
 
@@ -40,8 +41,7 @@ export const AppNavigator = () => {
           },
           headerTintColor: COLORS.primary,
           headerShadowVisible: false,
-          animation: 'fade_from_bottom',
-          animationDuration: 300,
+          animation: 'ios_from_right',
         }}
       >
         {!user ? (
@@ -82,6 +82,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="AnalyzingScreen"
               component={AnalyzingScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Paywall"
+              component={PaywallScreen}
               options={{ headerShown: false }}
             />
           </>

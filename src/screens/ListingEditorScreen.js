@@ -6,19 +6,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useListings } from '../contexts/ListingsContext';
 
 export const ListingEditorScreen = ({ navigation, route }) => {
-  const { productData } = route.params;
+  const { productData, listing } = route.params;
+  const data = productData || listing;
   const { addListing } = useListings();
-  const [selectedCategory, setSelectedCategory] = useState(productData.category || 'Electronics');
-  const [selectedCondition, setSelectedCondition] = useState(productData.condition || 'Like New');
-  const [location, setLocation] = useState('Manila, Philippines');
+  const [selectedCategory, setSelectedCategory] = useState(data.category || 'Electronics');
+  const [selectedCondition, setSelectedCondition] = useState(data.condition || 'Like New');
+  const [location, setLocation] = useState(data.location || 'Manila, Philippines');
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
-  const [productName, setProductName] = useState(productData.name || 'Floral Wrap Mini Dress');
-  const [description, setDescription] = useState(productData.description || 'Stay effortlessly stylish with this floral wrap mini dress.');
-  const [price, setPrice] = useState(productData.suggestedPrice?.toString() || '490.50');
+  const [productName, setProductName] = useState(data.name || 'Floral Wrap Mini Dress');
+  const [description, setDescription] = useState(data.description || 'Stay effortlessly stylish with this floral wrap mini dress.');
+  const [price, setPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
   const [tempValue, setTempValue] = useState('');
 
   const categories = [
@@ -42,9 +43,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     { name: 'Fair', icon: 'remove-circle-outline' },
   ];
   const thumbnails = [
-    { color: '#FFD700', image: productData.imageUri },
-    { color: '#90EE90', image: productData.imageUri },
-    { color: '#FFB6C1', image: productData.imageUri },
+    { image: data.imageUri },
+    { image: data.imageUri },
+    { image: data.imageUri },
   ];
 
   const handleEditPress = (field) => {
@@ -74,12 +75,12 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const handleAddToCart = async () => {
     await addListing({
       name: productName,
-      brand: productData.brand,
+      brand: data.brand,
       price: parseFloat(price),
       description: description,
       category: selectedCategory,
       condition: selectedCondition,
-      imageUri: productData.imageUri,
+      imageUri: data.imageUri,
       location: location,
     });
     navigation.replace('ListingSuccess', { productName: productName });
@@ -105,23 +106,6 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-
-        {/* Thumbnail Images - Positioned on right side */}
-        <View style={styles.thumbnailContainer}>
-          {thumbnails.map((thumb, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.thumbnail,
-                { backgroundColor: thumb.color },
-                selectedThumbnail === index && styles.thumbnailSelected
-              ]}
-              onPress={() => setSelectedThumbnail(index)}
-            >
-              <Image source={{ uri: thumb.image }} style={styles.thumbnailImage} />
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       {/* Bottom Sheet Modal */}
@@ -135,6 +119,25 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.sheetContent}
             showsVerticalScrollIndicator={false}
           >
+          {/* Gallery Section */}
+          <View style={styles.gallerySection}>
+            <Text style={styles.galleryTitle}>Gallery</Text>
+            <View style={styles.thumbnailRow}>
+              {thumbnails.map((thumb, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.thumbnailItem,
+                    selectedThumbnail === index && styles.thumbnailItemSelected
+                  ]}
+                  onPress={() => setSelectedThumbnail(index)}
+                >
+                  <Image source={{ uri: thumb.image }} style={styles.thumbnailItemImage} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.titleRow}>
             <Text style={styles.productTitle}>{productName}</Text>
             <TouchableOpacity style={styles.editIcon} onPress={() => handleEditPress('title')}>
@@ -175,7 +178,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
             >
               <View style={styles.cardIconContainer}>
-                <Ionicons name="grid-outline" size={22} color="#7704F4" />
+                <Ionicons name="grid-outline" size={22} color="#FF6B35" />
               </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{selectedCategory}</Text>
@@ -204,7 +207,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                       </Text>
                     </View>
                     {selectedCategory === category.name && (
-                      <Ionicons name="checkmark" size={20} color="#7704F4" />
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -220,7 +223,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               onPress={() => setShowConditionDropdown(!showConditionDropdown)}
             >
               <View style={styles.cardIconContainer}>
-                <Ionicons name="star-outline" size={22} color="#7704F4" />
+                <Ionicons name="star-outline" size={22} color="#FF6B35" />
               </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{selectedCondition}</Text>
@@ -249,7 +252,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                       </Text>
                     </View>
                     {selectedCondition === condition.name && (
-                      <Ionicons name="checkmark" size={20} color="#7704F4" />
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -262,7 +265,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             <Text style={styles.fieldLabel}>Location</Text>
             <TouchableOpacity style={styles.cardButton}>
               <View style={styles.cardIconContainer}>
-                <Ionicons name="location-outline" size={22} color="#7704F4" />
+                <Ionicons name="location-outline" size={22} color="#FF6B35" />
               </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{location}</Text>
@@ -276,14 +279,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
           {/* Publish Now Button - Fixed at bottom */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.publishButton} onPress={handleAddToCart}>
-              <LinearGradient
-                colors={['#7C3AED', '#FF7A2F']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
-              >
+              <View style={styles.solidButton}>
                 <Text style={styles.publishButtonText}>Publish Now</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -340,14 +338,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
-                <LinearGradient
-                  colors={['#7C3AED', '#FF7A2F']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.saveButtonGradient}
-                >
+                <View style={styles.solidSaveButton}>
                   <Text style={styles.saveButtonText}>Save</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -370,7 +363,7 @@ const styles = StyleSheet.create({
   mainImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'contain',
+    resizeMode: 'cover',
   },
   floatingHeader: {
     position: 'absolute',
@@ -456,6 +449,37 @@ const styles = StyleSheet.create({
   sheetContent: {
     padding: 20,
     paddingBottom: 100,
+  },
+  gallerySection: {
+    marginBottom: 24,
+  },
+  galleryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 12,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  thumbnailRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  thumbnailItem: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+  },
+  thumbnailItemSelected: {
+    borderColor: '#FF6B35',
+    borderWidth: 3,
+  },
+  thumbnailItemImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   titleRow: {
     flexDirection: 'row',
@@ -581,7 +605,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_500Medium',
   },
   dropdownItemTextSelected: {
-    color: '#7704F4',
+    color: '#FF6B35',
     fontFamily: 'Montserrat_600SemiBold',
   },
   descriptionSection: {
@@ -609,6 +633,11 @@ const styles = StyleSheet.create({
   publishButton: {
     borderRadius: 30,
     overflow: 'hidden',
+  },
+  solidButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    backgroundColor: '#FF6B35',
   },
   gradientButton: {
     paddingVertical: 16,
@@ -703,6 +732,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  solidSaveButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#FF6B35',
   },
   saveButtonGradient: {
     paddingVertical: 12,

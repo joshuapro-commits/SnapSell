@@ -1,16 +1,108 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { useAuth } from '../contexts/AuthContext';
+import * as ImagePicker from 'expo-image-picker';
 import Svg, { Circle, Path, Rect, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
 export const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
   const userName = user?.name?.split(' ')[0] || 'User';
   const floatAnim = React.useRef(new Animated.Value(0)).current;
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const [selectedListing, setSelectedListing] = React.useState(null);
+  const [imagePickerVisible, setImagePickerVisible] = React.useState(false);
+  const slideAnim = React.useRef(new Animated.Value(300)).current;
+
+  const handleMenuPress = (listingId) => {
+    setSelectedListing(listingId);
+    setMenuVisible(true);
+  };
+
+  const handleFABPress = () => {
+    setImagePickerVisible(true);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const handleCloseImagePicker = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setImagePickerVisible(false);
+    });
+  };
+
+  const handleTakePicture = async () => {
+    setImagePickerVisible(false);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera permission is required to take photos');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    setImagePickerVisible(false);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Photo library permission is required');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+    }
+  };
+
+  const handleEdit = () => {
+    setMenuVisible(false);
+    // Navigate to edit screen
+    Alert.alert('Edit', 'Edit functionality coming soon');
+  };
+
+  const handleDelete = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      'Delete Listing',
+      'Are you sure you want to delete this listing?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => {
+          Alert.alert('Deleted', 'Listing has been deleted');
+        }}
+      ]
+    );
+  };
 
   React.useEffect(() => {
     Animated.loop(
@@ -97,7 +189,7 @@ export const HomeScreen = ({ navigation }) => {
                 <Text style={styles.reminderSubtitle}>Just snap a photo of your item and the AI will do the rest.</Text>
                 <TouchableOpacity 
                   style={styles.setNowButton}
-                  onPress={() => navigation.navigate('Sell')}
+                  onPress={handleFABPress}
                 >
                   <View style={styles.setNowButtonWhite}>
                     <Ionicons name="camera" size={16} color="#7704F4" />
@@ -123,47 +215,20 @@ export const HomeScreen = ({ navigation }) => {
             end={{ x: 0, y: 1 }}
             style={styles.statCardLarge}
           >
-            <View style={styles.statCardHeader}>
-              <View style={styles.statCardIcon}>
-                <Ionicons name="cash-outline" size={24} color="#000" />
-              </View>
-              <TouchableOpacity style={styles.statCardButton}>
-                <Ionicons name="ellipse" size={20} color="#000" />
-              </TouchableOpacity>
-            </View>
             <Text style={styles.statCardTitle}>Total Earnings</Text>
             <Text style={styles.statCardValue}>₱0</Text>
-            <View style={styles.decorativeIconContainer}>
-              <Ionicons name="wallet-outline" size={70} color="rgba(0,0,0,0.08)" />
-            </View>
           </LinearGradient>
 
           {/* Right Cards Stack */}
           <View style={styles.statsRightColumn}>
             {/* Active Listings */}
             <View style={[styles.statCardSmall, { backgroundColor: '#FFF5F5' }]}>
-              <View style={styles.statCardHeader}>
-                <View style={styles.statCardIcon}>
-                  <Ionicons name="pricetag-outline" size={20} color="#000" />
-                </View>
-                <TouchableOpacity style={styles.statCardButton}>
-                  <Ionicons name="checkmark-circle" size={20} color="#000" />
-                </TouchableOpacity>
-              </View>
               <Text style={styles.statCardTitleSmall}>Active Listings</Text>
               <Text style={styles.statCardValueSmall}>0</Text>
             </View>
 
             {/* Items Sold */}
             <View style={[styles.statCardSmall, { backgroundColor: '#FFF9F5' }]}>
-              <View style={styles.statCardHeader}>
-                <View style={styles.statCardIcon}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#000" />
-                </View>
-                <TouchableOpacity style={styles.statCardButton}>
-                  <Ionicons name="alarm-outline" size={20} color="#000" />
-                </TouchableOpacity>
-              </View>
               <Text style={styles.statCardTitleSmall}>Items Sold</Text>
               <Text style={styles.statCardValueSmall}>0</Text>
             </View>
@@ -180,98 +245,178 @@ export const HomeScreen = ({ navigation }) => {
           </View>
 
           {/* Listing Item 1 */}
-          <View style={styles.listingItem}>
+          <TouchableOpacity 
+            style={styles.listingItem}
+            activeOpacity={0.7}
+          >
             <View style={styles.listingLeft}>
-              <View style={[styles.listingIconCircle, { backgroundColor: '#FFE8D6' }]}>
-                <Ionicons name="laptop-outline" size={20} color="#FF8C42" />
-              </View>
-              <View style={styles.listingTextContainer}>
-                <Text style={styles.listingItemTitle}>MacBook Pro 2021</Text>
-                <View style={styles.listingSubtextRow}>
-                  <Text style={styles.listingPrice}>₱45,000</Text>
-                  <View style={styles.platformLogos}>
-                    <View style={styles.fbLogo}>
-                      <Ionicons name="logo-facebook" size={12} color="#1877F2" />
-                    </View>
-                  </View>
+              <View style={styles.listingImageContainer}>
+                <View style={[styles.listingIconCircle, { backgroundColor: '#FFE8D6' }]}>
+                  <Ionicons name="laptop-outline" size={20} color="#FF8C42" />
                 </View>
               </View>
-            </View>
-            <View style={styles.listingRight}>
-              <View style={[styles.listingCheckCircle, { backgroundColor: '#4CAF50' }]}>
-                <Ionicons name="checkmark" size={16} color="#FFF" />
+              <View style={styles.listingTextContainer}>
+                <Text style={styles.listingItemTitle} numberOfLines={1}>MacBook Pro 2021</Text>
+                <Text style={styles.listingPrice}>₱45,000</Text>
               </View>
             </View>
-          </View>
+            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(1)}>
+              <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+            </TouchableOpacity>
+          </TouchableOpacity>
 
           {/* Listing Item 2 */}
-          <View style={styles.listingItem}>
+          <TouchableOpacity 
+            style={styles.listingItem}
+            activeOpacity={0.7}
+          >
             <View style={styles.listingLeft}>
-              <View style={[styles.listingIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="shirt-outline" size={20} color="#66BB6A" />
-              </View>
-              <View style={styles.listingTextContainer}>
-                <Text style={styles.listingItemTitle}>Nike Air Jordan 1</Text>
-                <View style={styles.listingSubtextRow}>
-                  <Text style={styles.listingPrice}>₱8,500</Text>
-                  <View style={styles.platformLogos}>
-                    <View style={styles.carousellLogo}>
-                      <Ionicons name="bag-handle" size={12} color="#FF4444" />
-                    </View>
-                  </View>
+              <View style={styles.listingImageContainer}>
+                <View style={[styles.listingIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                  <Ionicons name="shirt-outline" size={20} color="#66BB6A" />
                 </View>
               </View>
-            </View>
-            <View style={styles.listingRight}>
-              <View style={[styles.listingCheckCircle, { backgroundColor: '#4CAF50' }]}>
-                <Ionicons name="checkmark" size={16} color="#FFF" />
+              <View style={styles.listingTextContainer}>
+                <Text style={styles.listingItemTitle} numberOfLines={1}>Nike Air Jordan 1</Text>
+                <Text style={styles.listingPrice}>₱8,500</Text>
               </View>
             </View>
-          </View>
+            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(2)}>
+              <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+            </TouchableOpacity>
+          </TouchableOpacity>
 
           {/* Listing Item 3 */}
-          <View style={styles.listingItem}>
+          <TouchableOpacity 
+            style={styles.listingItem}
+            activeOpacity={0.7}
+          >
             <View style={styles.listingLeft}>
-              <View style={[styles.listingIconCircle, { backgroundColor: '#F3E5F5' }]}>
-                <Ionicons name="watch-outline" size={20} color="#AB47BC" />
-              </View>
-              <View style={styles.listingTextContainer}>
-                <Text style={styles.listingItemTitle}>Apple Watch Series 7</Text>
-                <View style={styles.listingSubtextRow}>
-                  <Text style={styles.listingPrice}>₱18,000</Text>
-                  <View style={styles.platformLogos}>
-                    <View style={styles.fbLogo}>
-                      <Ionicons name="logo-facebook" size={12} color="#1877F2" />
-                    </View>
-                    <View style={styles.carousellLogo}>
-                      <Ionicons name="bag-handle" size={12} color="#FF4444" />
-                    </View>
-                  </View>
+              <View style={styles.listingImageContainer}>
+                <View style={[styles.listingIconCircle, { backgroundColor: '#F3E5F5' }]}>
+                  <Ionicons name="watch-outline" size={20} color="#AB47BC" />
                 </View>
               </View>
+              <View style={styles.listingTextContainer}>
+                <Text style={styles.listingItemTitle} numberOfLines={1}>Apple Watch Series 7</Text>
+                <Text style={styles.listingPrice}>₱18,000</Text>
+              </View>
             </View>
-            <View style={styles.listingRight}>
-              <View style={[styles.listingCheckCircle, styles.listingCheckCircleEmpty]} />
-            </View>
-          </View>
+            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(3)}>
+              <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+            </TouchableOpacity>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.menuModal}>
+            <TouchableOpacity style={styles.menuOption} onPress={handleEdit}>
+              <Ionicons name="create-outline" size={22} color="#000" />
+              <Text style={styles.menuOptionText}>Edit Listing</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
+            <TouchableOpacity style={styles.menuOption} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+              <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={imagePickerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseImagePicker}
+      >
+        <TouchableOpacity 
+          style={styles.imagePickerOverlay}
+          activeOpacity={1}
+          onPress={handleCloseImagePicker}
+        >
+          <Animated.View 
+            style={[
+              styles.imagePickerSheet,
+              {
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              <View style={styles.sheetHandle} />
+              
+              <Text style={styles.sheetTitle}>Add Product Photo</Text>
+              <Text style={styles.sheetSubtitle}>Choose how you'd like to add your product image</Text>
+              
+              <View style={styles.optionsContainer}>
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleTakePicture}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0F9FF' }]}>
+                    <Ionicons name="camera" size={28} color="#0EA5E9" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Take a Picture</Text>
+                    <Text style={styles.optionDescription}>Use your camera to capture the product</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleUploadPhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="images" size={28} color="#10B981" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Upload Photo</Text>
+                    <Text style={styles.optionDescription}>Choose from your photo library</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={handleCloseImagePicker}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* FAB Button */}
+      <TouchableOpacity 
+        style={styles.fabButton}
+        onPress={handleFABPress}
+      >
+        <Ionicons name="add" size={28} color="#FFF" />
+      </TouchableOpacity>
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem}>
           <Ionicons name="home" size={20} color="#000" />
           <Text style={styles.navLabelActive}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Sell')}
-        >
-          <View style={styles.sellButton}>
-            <Ionicons name="add" size={28} color="#FFF" />
-          </View>
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.navItem}
@@ -439,6 +584,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     minHeight: 200,
+    justifyContent: 'center',
   },
   statsRightColumn: {
     flex: 1,
@@ -449,26 +595,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 16,
-  },
-  statCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  statCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statCardButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   statCardTitle: {
     fontSize: 18,
@@ -482,11 +609,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     fontFamily: 'Montserrat_700Bold',
-  },
-  decorativeIconContainer: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
   },
   statCardTitleSmall: {
     fontSize: 14,
@@ -538,13 +660,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  listingIconCircle: {
+  listingImageContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    overflow: 'hidden',
+    marginRight: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  listingIconCircle: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   listingTextContainer: {
     flex: 1,
@@ -556,59 +684,159 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontFamily: 'Montserrat_600SemiBold',
   },
-  listingSubtextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   listingPrice: {
     fontSize: 13,
     fontWeight: '600',
     color: '#000',
     fontFamily: 'Montserrat_600SemiBold',
   },
-  platformLogos: {
+  menuButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    width: 240,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  menuOption: {
     flexDirection: 'row',
-    gap: 6,
-  },
-  fbLogo: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#E7F3FF',
-    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 12,
   },
-  carousellLogo: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFE8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
+  menuOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000',
+    fontFamily: 'Montserrat_500Medium',
   },
-  listingRight: {
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+  },
+  imagePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  imagePickerSheet: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    minHeight: 320,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  sheetTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  sheetSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 28,
+    fontFamily: 'Montserrat_400Regular',
+  },
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  listingCheckCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  optionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
   },
-  listingCheckCircleEmpty: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+  optionTextContainer: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Montserrat_400Regular',
+  },
+  cancelButton: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#475569',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF6B35',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
   },
   bottomNav: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    paddingBottom: 20,
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    paddingBottom: 28,
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopLeftRadius: 24,
@@ -618,20 +846,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-  },
-  sellButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#7704F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
   },
   navLabel: {
     fontSize: 10,
