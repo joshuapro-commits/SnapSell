@@ -66,6 +66,7 @@ export const aiService = {
   "descriptions": {
     "carousell": "Casual 2-3 sentences with emojis. Start 'Selling my...' Example: 'Selling my iPhone 13 Pro! 🔥 95% battery, no scratches. Comes with box and charger! 📦'",
     "facebook": "Professional with line breaks. Example: 'iPhone 13 Pro - Excellent\\n\\n- 95% battery\\n- No scratches\\n- Original box included\\n\\nMeetup: BGC'",
+    "shopee": "E-commerce style with bullet points. Highlight features and benefits. Example: '✨ iPhone 13 Pro - Premium Condition\\n\\n📱 Product Highlights:\\n• 95% Battery Health\\n• Zero Scratches or Dents\\n• Complete with Original Box & Charger\\n• Fully Tested & Working\\n\\n🚚 Fast Shipping Available\\n💯 100% Authentic'",
     "generic": "Balanced 2-3 sentences. Example: 'iPhone 13 Pro in excellent condition. 95% battery health, no scratches. Includes original box.'"
   },
   "suggestedPrice": PHP price number (research PH market: new=retail, like-new=80-90%, good=60-75%, fair=40-55%, poor=20-35%),
@@ -77,6 +78,11 @@ export const aiService = {
     "facebook": {
       "category": "Vehicles|Property Rentals|Apparel|Electronics|Entertainment|Home Goods|Musical Instruments|Office Supplies|Pet Supplies|Sporting Goods|Toys & Games|Other",
       "shippingAvailable": true|false
+    },
+    "shopee": {
+      "category": "Electronics|Fashion|Home & Living|Health & Beauty|Sports & Outdoors|Toys & Games|Automotive|Books & Media|Other",
+      "shippingOptions": ["Standard", "Express"],
+      "freeShipping": true|false based on item value
     }
   },
   "attributes": {"color": "", "size": "", "model": ""}

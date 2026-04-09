@@ -189,6 +189,12 @@ export const MyListingsScreen = ({ navigation }) => {
                   <Text style={[styles.platformBadgeText, { color: '#1877F2' }]}>Facebook</Text>
                 </View>
               )}
+              {(item.publishedPlatforms?.shopee || item.selectedPlatforms?.shopee) && (
+                <View style={[styles.platformBadge, { backgroundColor: '#FFF0ED' }]}>
+                  <Ionicons name="bag-handle" size={12} color="#EE4D2D" />
+                  <Text style={[styles.platformBadgeText, { color: '#EE4D2D' }]}>Shopee</Text>
+                </View>
+              )}
             </View>
           )}
         </View>

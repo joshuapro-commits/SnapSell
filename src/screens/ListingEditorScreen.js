@@ -28,16 +28,22 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const [description, setDescription] = useState(data.description || data.descriptions?.generic || 'Stay effortlessly stylish with this floral wrap mini dress.');
   const [carousellDescription, setCarousellDescription] = useState(data.descriptions?.carousell || data.description || '');
   const [facebookDescription, setFacebookDescription] = useState(data.descriptions?.facebook || data.description || '');
+  const [shopeeDescription, setShopeeDescription] = useState(data.descriptions?.shopee || data.description || '');
   const [carousellHashtags, setCarousellHashtags] = useState(data.platformData?.carousell?.hashtags || []);
   const [carousellMeetupLocations, setCarousellMeetupLocations] = useState(data.platformData?.carousell?.meetupLocations || []);
   const [carousellPrice, setCarousellPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
   const [facebookPrice, setFacebookPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
   const [facebookShipping, setFacebookShipping] = useState(data.platformData?.facebook?.shippingAvailable || true);
+  const [shopeeCategory, setShopeeCategory] = useState(data.platformData?.shopee?.category || 'Electronics');
+  const [shopeeCondition, setShopeeCondition] = useState(data.condition || 'Like New');
+  const [shopeePrice, setShopeePrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
+  const [shopeeFreeShipping, setShopeeFreeShipping] = useState(data.platformData?.shopee?.freeShipping || false);
   const [price, setPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
   const [tempValue, setTempValue] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState({
     carousell: true,
     facebook: true,
+    shopee: true,
   });
 
   const categories = [
@@ -72,13 +78,15 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     if (field === 'description') setTempValue(description);
     if (field === 'carousell') setTempValue(carousellDescription);
     if (field === 'facebook') setTempValue(facebookDescription);
+    if (field === 'shopee') setTempValue(shopeeDescription);
     if (field === 'carousellHashtags') setTempValue(carousellHashtags.join(', '));
     if (field === 'carousellMeetup') setTempValue(carousellMeetupLocations.join(', '));
     if (field === 'carousellPrice') setTempValue(carousellPrice);
     if (field === 'facebookPrice') setTempValue(facebookPrice);
+    if (field === 'shopeePrice') setTempValue(shopeePrice);
     if (field === 'facebookLocation') setTempValue(location);
     if (field === 'price') setTempValue(price);
-    if (field === 'carousellCategory' || field === 'carousellCondition' || field === 'facebookCategory' || field === 'facebookCondition') {
+    if (field === 'carousellCategory' || field === 'carousellCondition' || field === 'facebookCategory' || field === 'facebookCondition' || field === 'shopeeCategory' || field === 'shopeeCondition') {
       setEditModalVisible(true);
       return;
     }
@@ -90,6 +98,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     if (editingField === 'description') setDescription(tempValue);
     if (editingField === 'carousell') setCarousellDescription(tempValue);
     if (editingField === 'facebook') setFacebookDescription(tempValue);
+    if (editingField === 'shopee') setShopeeDescription(tempValue);
     if (editingField === 'carousellHashtags') {
       const tags = tempValue.split(',').map(tag => tag.trim()).filter(tag => tag);
       setCarousellHashtags(tags);
@@ -100,6 +109,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     }
     if (editingField === 'carousellPrice') setCarousellPrice(tempValue);
     if (editingField === 'facebookPrice') setFacebookPrice(tempValue);
+    if (editingField === 'shopeePrice') setShopeePrice(tempValue);
     if (editingField === 'facebookLocation') setLocation(tempValue);
     if (editingField === 'price') setPrice(tempValue);
     setEditModalVisible(false);
@@ -109,6 +119,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const handleCategorySelect = (category) => {
     if (editingField === 'carousellCategory') setCarousellCategory(category);
     if (editingField === 'facebookCategory') setFacebookCategory(category);
+    if (editingField === 'shopeeCategory') setShopeeCategory(category);
     setEditModalVisible(false);
     setEditingField(null);
   };
@@ -116,6 +127,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const handleConditionSelect = (condition) => {
     if (editingField === 'carousellCondition') setCarousellCondition(condition);
     if (editingField === 'facebookCondition') setFacebookCondition(condition);
+    if (editingField === 'shopeeCondition') setShopeeCondition(condition);
     setEditModalVisible(false);
     setEditingField(null);
   };
@@ -129,7 +141,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
 
 
   const handleAddToCart = async () => {
-    if (!selectedPlatforms.carousell && !selectedPlatforms.facebook) {
+    if (!selectedPlatforms.carousell && !selectedPlatforms.facebook && !selectedPlatforms.shopee) {
       Alert.alert('Select Platform', 'Please select at least one platform to publish to.');
       return;
     }
@@ -150,6 +162,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       descriptions: {
         carousell: carousellDescription,
         facebook: facebookDescription,
+        shopee: shopeeDescription,
         generic: description,
       },
       category: selectedCategory,
@@ -172,6 +185,12 @@ export const ListingEditorScreen = ({ navigation, route }) => {
           condition: facebookCondition,
           location: location,
         },
+        shopee: {
+          category: shopeeCategory,
+          freeShipping: shopeeFreeShipping,
+          price: parseFloat(shopeePrice),
+          condition: shopeeCondition,
+        },
       },
     };
 
@@ -190,6 +209,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
         publishedPlatforms: {
           carousell: publishResults.carousell?.success || false,
           facebook: publishResults.facebook?.success || false,
+          shopee: publishResults.shopee?.success || false,
         },
       });
 
@@ -318,6 +338,23 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                   <Ionicons name="logo-facebook" size={20} color="#FFF" />
                 </View>
                 <Text style={styles.platformCheckboxText}>Facebook Marketplace</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.platformCheckbox}
+              onPress={() => setSelectedPlatforms({...selectedPlatforms, shopee: !selectedPlatforms.shopee})}
+            >
+              <View style={styles.platformCheckboxLeft}>
+                <View style={[styles.checkbox, selectedPlatforms.shopee && styles.checkboxChecked]}>
+                  {selectedPlatforms.shopee && (
+                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                  )}
+                </View>
+                <View style={[styles.platformIconSmall, { backgroundColor: '#EE4D2D' }]}>
+                  <Ionicons name="bag-handle" size={20} color="#FFF" />
+                </View>
+                <Text style={styles.platformCheckboxText}>Shopee</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -549,6 +586,98 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               </View>
             </View>
             )}
+
+            {/* Shopee Description */}
+            {selectedPlatforms.shopee && (
+            <View style={styles.platformDescriptionCard}>
+              <View style={styles.platformDescriptionHeader}>
+                <View style={styles.platformBadge}>
+                  <Ionicons name="bag-handle" size={16} color="#EE4D2D" />
+                  <Text style={styles.platformBadgeText}>Shopee</Text>
+                </View>
+              </View>
+              
+              {/* Description */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Description</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('shopee')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.descriptionText}>{shopeeDescription}</Text>
+              </View>
+              
+              {/* Price */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Price</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('shopeePrice')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.platformPrice}>₱{shopeePrice}</Text>
+              </View>
+
+              {/* Category */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Category</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('shopeeCategory')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="pricetag-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{shopeeCategory}</Text>
+                </View>
+              </View>
+
+              {/* Condition */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Condition</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('shopeeCondition')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.platformFieldValue}>
+                  <Ionicons name="star-outline" size={16} color="#666" />
+                  <Text style={styles.platformFieldText}>{shopeeCondition}</Text>
+                </View>
+              </View>
+
+              {/* Free Shipping */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Free Shipping</Text>
+                  <TouchableOpacity 
+                    style={styles.toggleButton}
+                    onPress={() => setShopeeFreeShipping(!shopeeFreeShipping)}
+                  >
+                    <View style={[styles.toggleTrack, shopeeFreeShipping && styles.toggleTrackActive]}>
+                      <View style={[styles.toggleThumb, shopeeFreeShipping && styles.toggleThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.platformFieldText}>
+                  {shopeeFreeShipping ? 'Enabled' : 'Disabled'}
+                </Text>
+              </View>
+            </View>
+            )}
           </View>
           </ScrollView>
 
@@ -578,6 +707,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 {editingField === 'description' && 'Edit Description'}
                 {editingField === 'carousell' && 'Edit Carousell Description'}
                 {editingField === 'facebook' && 'Edit Facebook Description'}
+                {editingField === 'shopee' && 'Edit Shopee Description'}
                 {editingField === 'carousellHashtags' && 'Edit Hashtags'}
                 {editingField === 'carousellMeetup' && 'Edit Meetup Locations'}
                 {editingField === 'carousellCategory' && 'Edit Carousell Category'}
@@ -587,6 +717,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 {editingField === 'facebookCondition' && 'Edit Facebook Condition'}
                 {editingField === 'facebookPrice' && 'Edit Facebook Price'}
                 {editingField === 'facebookLocation' && 'Edit Location'}
+                {editingField === 'shopeeCategory' && 'Edit Shopee Category'}
+                {editingField === 'shopeeCondition' && 'Edit Shopee Condition'}
+                {editingField === 'shopeePrice' && 'Edit Shopee Price'}
                 {editingField === 'price' && 'Edit Price'}
               </Text>
               <TouchableOpacity onPress={handleCancelEdit}>
@@ -595,7 +728,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.editModalBody}>
-              {(editingField === 'carousellCategory' || editingField === 'facebookCategory') && (
+              {(editingField === 'carousellCategory' || editingField === 'facebookCategory' || editingField === 'shopeeCategory') && (
                 <ScrollView style={styles.dropdownScrollView}>
                   {categories.map((category) => (
                     <TouchableOpacity
@@ -609,17 +742,19 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                           styles.dropdownItemText,
                           (editingField === 'carousellCategory' && carousellCategory === category.name) && styles.dropdownItemTextSelected,
                           (editingField === 'facebookCategory' && facebookCategory === category.name) && styles.dropdownItemTextSelected,
+                          (editingField === 'shopeeCategory' && shopeeCategory === category.name) && styles.dropdownItemTextSelected,
                         ]}>{category.name}</Text>
                       </View>
                       {((editingField === 'carousellCategory' && carousellCategory === category.name) || 
-                        (editingField === 'facebookCategory' && facebookCategory === category.name)) && (
+                        (editingField === 'facebookCategory' && facebookCategory === category.name) ||
+                        (editingField === 'shopeeCategory' && shopeeCategory === category.name)) && (
                         <Ionicons name="checkmark" size={20} color="#FF6B35" />
                       )}
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
               )}
-              {(editingField === 'carousellCondition' || editingField === 'facebookCondition') && (
+              {(editingField === 'carousellCondition' || editingField === 'facebookCondition' || editingField === 'shopeeCondition') && (
                 <ScrollView style={styles.dropdownScrollView}>
                   {conditions.map((condition) => (
                     <TouchableOpacity
@@ -633,10 +768,12 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                           styles.dropdownItemText,
                           (editingField === 'carousellCondition' && carousellCondition === condition.name) && styles.dropdownItemTextSelected,
                           (editingField === 'facebookCondition' && facebookCondition === condition.name) && styles.dropdownItemTextSelected,
+                          (editingField === 'shopeeCondition' && shopeeCondition === condition.name) && styles.dropdownItemTextSelected,
                         ]}>{condition.name}</Text>
                       </View>
                       {((editingField === 'carousellCondition' && carousellCondition === condition.name) || 
-                        (editingField === 'facebookCondition' && facebookCondition === condition.name)) && (
+                        (editingField === 'facebookCondition' && facebookCondition === condition.name) ||
+                        (editingField === 'shopeeCondition' && shopeeCondition === condition.name)) && (
                         <Ionicons name="checkmark" size={20} color="#FF6B35" />
                       )}
                     </TouchableOpacity>
@@ -669,7 +806,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                   />
                 </View>
               )}
-              {(editingField === 'description' || editingField === 'carousell' || editingField === 'facebook') && (
+              {(editingField === 'description' || editingField === 'carousell' || editingField === 'facebook' || editingField === 'shopee') && (
                 <TextInput
                   style={styles.editTextArea}
                   value={tempValue}
@@ -682,7 +819,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                   autoFocus
                 />
               )}
-              {(editingField === 'title' || editingField === 'price' || editingField === 'carousellPrice' || editingField === 'facebookPrice' || editingField === 'facebookLocation') && (
+              {(editingField === 'title' || editingField === 'price' || editingField === 'carousellPrice' || editingField === 'facebookPrice' || editingField === 'shopeePrice' || editingField === 'facebookLocation') && (
                 <TextInput
                   style={styles.editInput}
                   value={tempValue}
@@ -695,7 +832,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               )}
             </View>
 
-            {!(editingField === 'carousellCategory' || editingField === 'facebookCategory' || editingField === 'carousellCondition' || editingField === 'facebookCondition') && (
+            {!(editingField === 'carousellCategory' || editingField === 'facebookCategory' || editingField === 'shopeeCategory' || editingField === 'carousellCondition' || editingField === 'facebookCondition' || editingField === 'shopeeCondition') && (
               <View style={styles.editModalFooter}>
                 <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
                   <Text style={styles.cancelButtonText}>Cancel</Text>

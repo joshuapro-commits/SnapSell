@@ -10,6 +10,7 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
 
   const publishedToCarousell = selectedPlatforms?.carousell && publishResults?.carousell?.success;
   const publishedToFacebook = selectedPlatforms?.facebook && publishResults?.facebook?.success;
+  const publishedToShopee = selectedPlatforms?.shopee && publishResults?.shopee?.success;
   const hasErrors = publishResults?.errors && publishResults.errors.length > 0;
 
   useEffect(() => {
@@ -41,14 +42,26 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
       {/* Subtitle */}
       <Text style={styles.subtitle}>
         Your item is now live on{' '}
-        {publishedToCarousell && publishedToFacebook && (
-          <Text style={styles.bold}>Facebook & Carousell</Text>
+        {publishedToCarousell && publishedToFacebook && publishedToShopee && (
+          <Text style={styles.bold}>Carousell, Facebook & Shopee</Text>
         )}
-        {publishedToCarousell && !publishedToFacebook && (
+        {publishedToCarousell && publishedToFacebook && !publishedToShopee && (
+          <Text style={styles.bold}>Carousell & Facebook</Text>
+        )}
+        {publishedToCarousell && !publishedToFacebook && publishedToShopee && (
+          <Text style={styles.bold}>Carousell & Shopee</Text>
+        )}
+        {!publishedToCarousell && publishedToFacebook && publishedToShopee && (
+          <Text style={styles.bold}>Facebook & Shopee</Text>
+        )}
+        {publishedToCarousell && !publishedToFacebook && !publishedToShopee && (
           <Text style={styles.bold}>Carousell</Text>
         )}
-        {!publishedToCarousell && publishedToFacebook && (
+        {!publishedToCarousell && publishedToFacebook && !publishedToShopee && (
           <Text style={styles.bold}>Facebook Marketplace</Text>
+        )}
+        {!publishedToCarousell && !publishedToFacebook && publishedToShopee && (
+          <Text style={styles.bold}>Shopee</Text>
         )}
         .{' '}Good luck with the sale!
       </Text>
@@ -97,6 +110,25 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
                 </View>
               </View>
               <Text style={styles.platformName}>View Post on Carousell</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#CCC" />
+          </TouchableOpacity>
+        )}
+
+        {publishedToShopee && (
+          <TouchableOpacity style={styles.platformCard}>
+            <View style={[styles.platformIconCircle, { backgroundColor: '#FFF0ED' }]}>
+              <Ionicons name="bag-handle" size={24} color="#EE4D2D" />
+            </View>
+            <View style={styles.platformTextContainer}>
+              <View style={styles.platformHeader}>
+                <Text style={styles.platformLabel}>SHOPEE</Text>
+                <View style={styles.successBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                  <Text style={styles.successText}>Published</Text>
+                </View>
+              </View>
+              <Text style={styles.platformName}>View Post on Shopee</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#CCC" />
           </TouchableOpacity>

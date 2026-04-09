@@ -17,12 +17,14 @@ export const platformService = {
       return {
         carousell: !!tokens.carousell,
         facebook: !!tokens.facebook,
+        shopee: !!tokens.shopee,
       };
     } catch (error) {
       console.error('Error getting connected platforms:', error);
       return {
         carousell: false,
         facebook: false,
+        shopee: false,
       };
     }
   },
@@ -52,6 +54,39 @@ export const platformService = {
       };
     } catch (error) {
       console.error('Error connecting Carousell:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+
+  /**
+   * Connect Shopee account
+   * Phase 1: Mock authentication
+   * Phase 2: Real OAuth flow
+   */
+  async connectShopee(userId) {
+    try {
+      // Mock authentication - simulate OAuth success
+      const mockToken = {
+        accessToken: `shopee_mock_token_${Date.now()}`,
+        refreshToken: `shopee_refresh_${Date.now()}`,
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        userId: 'mock_shopee_user_id',
+        userName: 'Mock Shopee User',
+        shopId: 'mock_shop_id',
+      };
+
+      // Save token
+      await storageService.savePlatformToken(userId, 'shopee', mockToken);
+
+      return {
+        success: true,
+        message: 'Shopee connected successfully',
+      };
+    } catch (error) {
+      console.error('Error connecting Shopee:', error);
       return {
         success: false,
         error: error.message,
@@ -120,6 +155,7 @@ export const platformService = {
     const results = {
       carousell: null,
       facebook: null,
+      shopee: null,
       errors: [],
     };
 
@@ -184,6 +220,35 @@ export const platformService = {
       }
     }
 
+    // Publish to Shopee
+    if (selectedPlatforms.shopee) {
+      if (!tokens.shopee) {
+        results.errors.push({
+          platform: 'shopee',
+          error: 'Shopee account not connected',
+        });
+      } else {
+        try {
+          // Mock API call - simulate network delay
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+
+          // Mock successful response
+          results.shopee = {
+            success: true,
+            listingId: `shopee_${Date.now()}`,
+            listingUrl: `https://shopee.ph/product/mock-shop/${Date.now()}`,
+            platform: 'shopee',
+            publishedAt: new Date().toISOString(),
+          };
+        } catch (error) {
+          results.errors.push({
+            platform: 'shopee',
+            error: error.message,
+          });
+        }
+      }
+    }
+
     return results;
   },
 
@@ -198,12 +263,14 @@ export const platformService = {
       return {
         carousell: tokens.carousell && tokens.carousell.expiresAt > now,
         facebook: tokens.facebook && tokens.facebook.expiresAt > now,
+        shopee: tokens.shopee && tokens.shopee.expiresAt > now,
       };
     } catch (error) {
       console.error('Error validating tokens:', error);
       return {
         carousell: false,
         facebook: false,
+        shopee: false,
       };
     }
   },

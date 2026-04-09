@@ -112,10 +112,14 @@ expo start --clear      # Start with cleared cache
 - **Expo CLI**: Development tooling
 - **Expo Go**: Mobile app for testing (iOS/Android)
 
-## API Integrations (Planned)
-- **Gemini 2.5 Flash**: AI image analysis (SDK installed, awaiting API key)
-- **Carousell API**: Marketplace integration (mock implementation)
-- **Facebook Graph API**: Marketplace integration (mock implementation)
+## API Integrations
+- **Gemini 2.5 Flash**: AI image analysis (fully integrated with optimized prompts)
+  - Image analysis with product identification
+  - Platform-specific description generation
+  - Price suggestions in Philippine Peso
+  - Hashtag and location generation
+- **Carousell API**: Marketplace integration (mock implementation ready for OAuth)
+- **Facebook Graph API**: Marketplace integration (mock implementation ready for OAuth)
 
 ## Storage Strategy
 - **Current**: AsyncStorage for local persistence

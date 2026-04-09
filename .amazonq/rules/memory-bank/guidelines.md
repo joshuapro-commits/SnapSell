@@ -367,6 +367,57 @@ const mockToken = {
 
 ## Common Code Idioms
 
+### Platform Selection Pattern
+```javascript
+const [selectedPlatforms, setSelectedPlatforms] = useState({
+  carousell: true,
+  facebook: true,
+});
+
+// Toggle platform selection
+<TouchableOpacity 
+  onPress={() => setSelectedPlatforms({...selectedPlatforms, carousell: !selectedPlatforms.carousell})}
+>
+  <View style={[styles.checkbox, selectedPlatforms.carousell && styles.checkboxChecked]}>
+    {selectedPlatforms.carousell && (
+      <Ionicons name="checkmark" size={16} color="#FFF" />
+    )}
+  </View>
+</TouchableOpacity>
+```
+
+### Platform Badge Display
+```javascript
+{(item.publishedPlatforms?.carousell || item.selectedPlatforms?.carousell) && (
+  <View style={[styles.platformBadge, { backgroundColor: '#FFE8E8' }]}>
+    <Ionicons name="cart-outline" size={12} color="#D32F2F" />
+    <Text style={[styles.platformBadgeText, { color: '#D32F2F' }]}>Carousell</Text>
+  </View>
+)}
+```
+
+### Multi-Platform Publishing
+```javascript
+const handlePublish = async () => {
+  if (!selectedPlatforms.carousell && !selectedPlatforms.facebook) {
+    Alert.alert('Select Platform', 'Please select at least one platform to publish to.');
+    return;
+  }
+
+  const publishResults = await platformService.publishListing(
+    listingData,
+    selectedPlatforms,
+    user.id
+  );
+
+  navigation.replace('ListingSuccess', { 
+    productName,
+    selectedPlatforms,
+    publishResults,
+  });
+};
+```
+
 ### Conditional Rendering
 ```javascript
 {connectedPlatforms.carousell && (
@@ -426,6 +477,19 @@ const handleConnect = async () => {
 - Use semantic component names
 - Provide meaningful text for screen readers
 - Use appropriate touch target sizes (minimum 44x44)
+
+### AI Integration
+- Gemini 2.5 Flash integrated with optimized, concise prompts
+- Platform-specific content generation (Carousell casual, Facebook structured)
+- Price suggestions in Philippine Peso with market research
+- Hashtag and location generation for local marketplaces
+
+### Multi-Platform Publishing
+- Platform selection with checkboxes before publishing
+- Validation to ensure at least one platform is selected
+- Separate editing interfaces for each platform's requirements
+- Real-time publishing with success/error feedback
+- Platform badges throughout the app (listings, details)
 
 ### Code Organization
 - Keep components focused and single-purpose

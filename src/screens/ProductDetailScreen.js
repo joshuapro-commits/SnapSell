@@ -174,6 +174,12 @@ export const ProductDetailScreen = ({ route, navigation }) => {
                   <Text style={[styles.platformBadgeText, { color: '#1877F2' }]}>Facebook</Text>
                 </View>
               )}
+              {(listing.publishedPlatforms?.shopee || listing.selectedPlatforms?.shopee) && (
+                <View style={[styles.platformBadge, { backgroundColor: '#FFF0ED' }]}>
+                  <Ionicons name="bag-handle" size={14} color="#EE4D2D" />
+                  <Text style={[styles.platformBadgeText, { color: '#EE4D2D' }]}>Shopee</Text>
+                </View>
+              )}
             </View>
           </View>
         )}

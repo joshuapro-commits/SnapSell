@@ -115,7 +115,12 @@ LoginScreen/SignupScreen → AuthContext → auth.js → storage.js
 
 ### Listing Creation Flow
 ```
-CameraScreen → ai.js → ListingEditorScreen → ListingsContext → storage.js
+CameraScreen → ai.js (Gemini 2.5 Flash) → AnalyzingScreen → ListingEditorScreen → platformService.publishListing() → ListingsContext → storage.js → ListingSuccessScreen
+```
+
+### Multi-Platform Publishing Flow
+```
+ListingEditorScreen (platform selection) → platformService.publishListing(selectedPlatforms) → Carousell API + Facebook API (mock) → Success/Error Results → ListingSuccessScreen
 ```
 
 ### Platform Connection Flow
@@ -125,7 +130,12 @@ ConnectPlatformsScreen → platforms.js → storage.js
 
 ### Marketplace Browsing Flow
 ```
-HomeScreen → ListingsContext → ProductDetailScreen
+HomeScreen → ListingsContext → ProductDetailScreen (with platform badges)
+```
+
+### My Listings Flow
+```
+MyListingsScreen (with platform badges) → ListingEditorScreen → Update/Delete
 ```
 
 ## File Naming Conventions

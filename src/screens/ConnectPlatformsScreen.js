@@ -19,6 +19,7 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
   const [connectedPlatforms, setConnectedPlatforms] = useState({
     carousell: false,
     facebook: false,
+    shopee: false,
   });
   const [loading, setLoading] = useState(true);
 
@@ -95,10 +96,45 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
     }
   };
 
+  const handleConnectShopee = async () => {
+    try {
+      Alert.alert(
+        'Connect Shopee',
+        'This will open Shopee to authorize SnapSell to publish listings on your behalf.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              // Mock authentication for now (Phase 1)
+              // In Phase 2, this will be real Shopee OAuth
+              const result = await platformService.connectShopee(user.id);
+              
+              if (result.success) {
+                setConnectedPlatforms({ ...connectedPlatforms, shopee: true });
+                Alert.alert('Success', 'Shopee account connected!');
+              } else {
+                Alert.alert('Error', result.error || 'Failed to connect Shopee');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to connect to Shopee');
+    }
+  };
+
   const handleDisconnect = (platform) => {
+    const platformNames = {
+      carousell: 'Carousell',
+      facebook: 'Facebook Marketplace',
+      shopee: 'Shopee',
+    };
+    
     Alert.alert(
       'Disconnect Platform',
-      `Are you sure you want to disconnect ${platform === 'carousell' ? 'Carousell' : 'Facebook Marketplace'}?`,
+      `Are you sure you want to disconnect ${platformNames[platform]}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -251,6 +287,59 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
           )}
         </View>
 
+        {/* Shopee Card */}
+        <View style={styles.platformCard}>
+          <View style={styles.platformHeader}>
+            <View style={styles.platformLogoContainer}>
+              <View style={[styles.platformLogo, { backgroundColor: '#EE4D2D' }]}>
+                <Ionicons name="bag-handle-outline" size={28} color="#FFF" />
+              </View>
+            </View>
+            <View style={styles.platformInfo}>
+              <Text style={styles.platformName}>Shopee</Text>
+              <Text style={styles.platformDescription}>
+                Leading online shopping platform
+              </Text>
+            </View>
+            {connectedPlatforms.shopee && (
+              <View style={styles.connectedBadge}>
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.platformFeatures}>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark" size={16} color="#10B981" />
+              <Text style={styles.featureText}>Auto-publish listings</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark" size={16} color="#10B981" />
+              <Text style={styles.featureText}>Sync listing updates</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark" size={16} color="#10B981" />
+              <Text style={styles.featureText}>Track performance</Text>
+            </View>
+          </View>
+
+          {connectedPlatforms.shopee ? (
+            <TouchableOpacity
+              style={styles.disconnectButton}
+              onPress={() => handleDisconnect('shopee')}
+            >
+              <Text style={styles.disconnectButtonText}>Disconnect</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.connectButton}
+              onPress={handleConnectShopee}
+            >
+              <Text style={styles.connectButtonText}>Connect Shopee</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Cross-Publish Card */}
         <View style={styles.crossPublishCardWrapper}>
           <View style={styles.bestValueBadge}>
@@ -264,10 +353,13 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
               <View style={[styles.crossPublishLogo, { backgroundColor: '#D32F2F', marginLeft: -12 }]}>
                 <Ionicons name="pricetag" size={24} color="#FFF" />
               </View>
+              <View style={[styles.crossPublishLogo, { backgroundColor: '#EE4D2D', marginLeft: -12 }]}>
+                <Ionicons name="bag-handle" size={24} color="#FFF" />
+              </View>
             </View>
             <View style={styles.crossPublishContent}>
-              <Text style={styles.crossPublishTitle}>Cross-Publish to Both</Text>
-              <Text style={styles.crossPublishSubtitle}>Reach 3x more buyers instantly</Text>
+              <Text style={styles.crossPublishTitle}>Cross-Publish to All</Text>
+              <Text style={styles.crossPublishSubtitle}>Reach 5x more buyers instantly</Text>
             </View>
           </View>
         </View>
