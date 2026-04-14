@@ -24,15 +24,15 @@ export const ProfileScreen = ({ navigation }) => {
   const slideAnim = React.useRef(new Animated.Value(300)).current;
 
   const monthlyData = [
-    { month: 'JAN', amount: 5000 },
-    { month: 'FEB', amount: 8000 },
-    { month: 'MAR', amount: 15000 },
-    { month: 'APR', amount: 12000 },
-    { month: 'MAY', amount: 18000 },
-    { month: 'JUN', amount: 10000 },
+    { month: 'JAN', amount: 0 },
+    { month: 'FEB', amount: 0 },
+    { month: 'MAR', amount: 0 },
+    { month: 'APR', amount: 0 },
+    { month: 'MAY', amount: 0 },
+    { month: 'JUN', amount: 0 },
   ];
 
-  const maxAmount = Math.max(...monthlyData.map(d => d.amount));
+  const maxAmount = 1000; // Default max for empty chart
 
   const handleOpenImagePicker = async () => {
     setShowImagePicker(true);
@@ -108,10 +108,10 @@ export const ProfileScreen = ({ navigation }) => {
         
         <View style={styles.balanceContainer}>
           <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>₱42,580</Text>
+          <Text style={styles.balanceAmount}>₱0</Text>
           <View style={styles.percentageContainer}>
             <Ionicons name="trending-up" size={14} color="#00D9A5" />
-            <Text style={styles.percentageText}>+18%</Text>
+            <Text style={styles.percentageText}>+0%</Text>
           </View>
         </View>
         <View style={styles.chartContainer}>
@@ -170,7 +170,7 @@ export const ProfileScreen = ({ navigation }) => {
             <Text style={styles.menuItemText}>Invite Friends</Text>
           </View>
           <View style={styles.menuItemRight}>
-            <Text style={styles.rewardText}>Get ₱50</Text>
+            <Text style={styles.rewardText}>Get ₱0</Text>
             <Ionicons name="chevron-forward" size={20} color="#CCC" />
           </View>
         </TouchableOpacity>

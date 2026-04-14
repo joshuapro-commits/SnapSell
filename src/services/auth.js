@@ -1,65 +1,71 @@
 import { storageService } from './storage';
 
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'demo@snapsell.com',
-    password: 'demo123',
-    name: 'Joshua Sezi',
-    avatar: '👤',
-  },
-  {
-    id: '2',
-    email: 'john@example.com',
-    password: 'john123',
-    name: 'John Doe',
-    avatar: '👨',
-  },
-];
-
 export const authService = {
   async login(email, password) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const user = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password
-    );
+      const user = await storageService.findUserByEmail(email);
 
-    if (user) {
-      const { password: _, ...userWithoutPassword } = user;
-      await storageService.saveUser(userWithoutPassword);
-      return { success: true, user: userWithoutPassword };
+      if (user && user.password === password) {
+        const { password: _, ...userWithoutPassword } = user;
+        await storageService.saveUser(userWithoutPassword);
+        return { success: true, user: userWithoutPassword };
+      }
+
+      return { success: false, error: 'Invalid email or password' };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed. Please try again.' };
     }
-
-    return { success: false, error: 'Invalid email or password' };
   },
 
   async signup(email, password, name) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const existingUser = MOCK_USERS.find((u) => u.email === email);
-    if (existingUser) {
-      return { success: false, error: 'Email already exists' };
+      const existingUser = await storageService.findUserByEmail(email);
+      if (existingUser) {
+        return { success: false, error: 'Email already exists' };
+      }
+
+      const newUser = {
+        id: Date.now().toString(),
+        email,
+        name,
+        password,
+        avatar: '👤',
+        createdAt: new Date().toISOString(),
+      };
+
+      await storageService.addUser(newUser);
+      
+      const { password: _, ...userWithoutPassword } = newUser;
+      await storageService.saveUser(userWithoutPassword);
+      
+      return { success: true, user: userWithoutPassword };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: 'Signup failed. Please try again.' };
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      email,
-      name,
-      avatar: '👤',
-    };
-
-    MOCK_USERS.push({ ...newUser, password });
-    await storageService.saveUser(newUser);
-    return { success: true, user: newUser };
   },
 
   async logout() {
-    await storageService.removeUser();
-    return { success: true };
+    try {
+      await storageService.removeUser();
+      return { success: true };
+    } catch (error) {
+      console.error('Logout error:', error);
+      return { success: false, error: 'Logout failed' };
+    }
   },
 
   async getCurrentUser() {
-    return await storageService.getUser();
+    try {
+      return await storageService.getUser();
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
   },
 };

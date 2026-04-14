@@ -1,12 +1,15 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 export const ListingSuccessScreen = ({ navigation, route }) => {
   const { productName, selectedPlatforms, publishResults } = route.params || {};
   const animationRef = useRef(null);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const slideAnim = useRef(new Animated.Value(300)).current;
 
   const publishedToCarousell = selectedPlatforms?.carousell && publishResults?.carousell?.success;
   const publishedToFacebook = selectedPlatforms?.facebook && publishResults?.facebook?.success;
@@ -16,6 +19,52 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
   useEffect(() => {
     animationRef.current?.play();
   }, []);
+
+  useEffect(() => {
+    if (showImagePicker) {
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    }
+  }, [showImagePicker]);
+
+  const handleCloseImagePicker = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowImagePicker(false);
+    });
+  };
+
+  const handleTakePhoto = async () => {
+    handleCloseImagePicker();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    navigation.navigate('Camera');
+  };
+
+  const handleUploadPhoto = async () => {
+    handleCloseImagePicker();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open photo library');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -78,7 +127,34 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
       {/* Platform Cards */}
       <View style={styles.platformCards}>
         {publishedToFacebook && (
-          <TouchableOpacity style={styles.platformCard}>
+          <TouchableOpacity 
+            style={styles.platformCard}
+            onPress={async () => {
+              const url = publishResults?.facebook?.listingUrl;
+              console.log('Facebook listing URL:', url);
+              
+              if (url) {
+                // Try to open the exact listing URL
+                try {
+                  const canOpen = await Linking.canOpenURL(url);
+                  if (canOpen) {
+                    await Linking.openURL(url);
+                    return;
+                  }
+                } catch (err) {
+                  console.log('Failed to open listing URL:', err);
+                }
+              }
+              
+              // Fallback to selling page
+              const fallbackUrl = 'https://m.facebook.com/marketplace/you/selling';
+              try {
+                await Linking.openURL(fallbackUrl);
+              } catch (err) {
+                Alert.alert('Error', 'Could not open Facebook. Please check your Facebook app or browser.');
+              }
+            }}
+          >
             <View style={styles.platformIconCircle}>
               <Ionicons name="logo-facebook" size={24} color="#1877F2" />
             </View>
@@ -90,14 +166,22 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
                   <Text style={styles.successText}>Published</Text>
                 </View>
               </View>
-              <Text style={styles.platformName}>View Post on Facebook</Text>
+              <Text style={styles.platformName}>View Your Listings</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#CCC" />
           </TouchableOpacity>
         )}
 
         {publishedToCarousell && (
-          <TouchableOpacity style={styles.platformCard}>
+          <TouchableOpacity 
+            style={styles.platformCard}
+            onPress={() => {
+              const url = publishResults?.carousell?.listingUrl || 'https://www.carousell.ph/sell/';
+              Linking.openURL(url).catch(() => {
+                Alert.alert('Error', 'Could not open Carousell');
+              });
+            }}
+          >
             <View style={[styles.platformIconCircle, { backgroundColor: '#FFE8E8' }]}>
               <Ionicons name="cart-outline" size={24} color="#D32F2F" />
             </View>
@@ -116,7 +200,15 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
         )}
 
         {publishedToShopee && (
-          <TouchableOpacity style={styles.platformCard}>
+          <TouchableOpacity 
+            style={styles.platformCard}
+            onPress={() => {
+              const url = publishResults?.shopee?.listingUrl || 'https://seller.shopee.ph/portal/product/list/all';
+              Linking.openURL(url).catch(() => {
+                Alert.alert('Error', 'Could not open Shopee');
+              });
+            }}
+          >
             <View style={[styles.platformIconCircle, { backgroundColor: '#FFF0ED' }]}>
               <Ionicons name="bag-handle" size={24} color="#EE4D2D" />
             </View>
@@ -157,7 +249,7 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
       <View style={styles.actionButtons}>
         <TouchableOpacity 
           style={styles.listAnotherButton}
-          onPress={() => navigation.navigate('Camera')}
+          onPress={() => setShowImagePicker(true)}
         >
           <LinearGradient
             colors={['#7C3AED', '#FF6B35']}
@@ -178,6 +270,73 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
           <Ionicons name="grid" size={16} color="#666" />
         </TouchableOpacity>
       </View>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseImagePicker}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={handleCloseImagePicker}
+        >
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              {
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <TouchableOpacity activeOpacity={1}>
+              <View style={styles.modalHandle} />
+              
+              <Text style={styles.modalTitle}>Add Product Photo</Text>
+              <Text style={styles.modalSubtitle}>Choose how you'd like to add your product image</Text>
+              
+              <View style={styles.optionsContainer}>
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleTakePhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0F9FF' }]}>
+                    <Ionicons name="camera" size={28} color="#0EA5E9" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Take a Picture</Text>
+                    <Text style={styles.optionDescription}>Use your camera to capture the product</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optionButton}
+                  onPress={handleUploadPhoto}
+                >
+                  <View style={[styles.optionIconContainer, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="images" size={28} color="#10B981" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Upload Photo</Text>
+                    <Text style={styles.optionDescription}>Choose from your photo library</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={handleCloseImagePicker}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -189,6 +348,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
   },
   shape: {
     position: 'absolute',
@@ -228,36 +389,40 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
   },
   iconContainer: {
-    marginBottom: 16,
-    width: 200,
-    height: 200,
+    marginBottom: 24,
+    width: 160,
+    height: 160,
     justifyContent: 'center',
     alignItems: 'center',
   },
   lottieAnimation: {
-    width: 200,
-    height: 200,
+    width: 160,
+    height: 160,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: '#000',
-    marginBottom: 16,
+    marginBottom: 12,
+    fontFamily: 'Montserrat_700Bold',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 40,
+    lineHeight: 22,
+    marginBottom: 32,
+    paddingHorizontal: 16,
+    fontFamily: 'Montserrat_400Regular',
   },
   bold: {
     fontWeight: '700',
     color: '#000',
+    fontFamily: 'Montserrat_700Bold',
   },
   platformCards: {
     width: '100%',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   platformCard: {
     flexDirection: 'row',
@@ -285,11 +450,13 @@ const styles = StyleSheet.create({
     color: '#999',
     letterSpacing: 0.5,
     marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
   },
   platformName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#000',
+    fontFamily: 'Montserrat_600SemiBold',
   },
   platformHeader: {
     flexDirection: 'row',
@@ -310,6 +477,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#10B981',
+    fontFamily: 'Montserrat_600SemiBold',
   },
   errorBanner: {
     flexDirection: 'row',
@@ -326,6 +494,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     flex: 1,
+    fontFamily: 'Montserrat_400Regular',
   },
   platformCardError: {
     borderWidth: 1,
@@ -375,6 +544,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFF',
+    fontFamily: 'Montserrat_700Bold',
   },
   dashboardButton: {
     flexDirection: 'row',
@@ -387,5 +557,89 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#666',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    minHeight: 320,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
+    fontFamily: 'Montserrat_700Bold',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 28,
+    fontFamily: 'Montserrat_400Regular',
+  },
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  optionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  optionTextContainer: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Montserrat_400Regular',
+  },
+  cancelButton: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#475569',
+    fontFamily: 'Montserrat_600SemiBold',
   },
 });

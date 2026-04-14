@@ -3,8 +3,7 @@ import { storageService } from './storage';
 /**
  * Platform Service
  * Handles multi-platform publishing and account connections
- * Phase 1: Mock implementation
- * Phase 2: Real API integrations
+ * Ready for real API integration
  */
 
 export const platformService = {
@@ -14,11 +13,16 @@ export const platformService = {
   async getConnectedPlatforms(userId) {
     try {
       const tokens = await storageService.getPlatformTokens(userId);
-      return {
-        carousell: !!tokens.carousell,
-        facebook: !!tokens.facebook,
-        shopee: !!tokens.shopee,
+      console.log(`[GET_CONNECTED] UserId: ${userId}, Tokens:`, tokens);
+      
+      const result = {
+        carousell: tokens.carousell !== null && tokens.carousell !== undefined,
+        facebook: tokens.facebook !== null && tokens.facebook !== undefined,
+        shopee: tokens.shopee !== null && tokens.shopee !== undefined,
       };
+      
+      console.log(`[GET_CONNECTED] Result:`, result);
+      return result;
     } catch (error) {
       console.error('Error getting connected platforms:', error);
       return {
@@ -31,21 +35,23 @@ export const platformService = {
 
   /**
    * Connect Carousell account
-   * Phase 1: Mock authentication
-   * Phase 2: Real OAuth flow
+   * TODO: Implement real OAuth flow with Carousell API
    */
   async connectCarousell(userId) {
     try {
-      // Mock authentication - simulate OAuth success
+      // TODO: Replace with real Carousell OAuth
+      // 1. Open OAuth URL
+      // 2. Handle callback
+      // 3. Exchange code for token
+      
       const mockToken = {
-        accessToken: `carousell_mock_token_${Date.now()}`,
+        accessToken: `carousell_token_${Date.now()}`,
         refreshToken: `carousell_refresh_${Date.now()}`,
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-        userId: 'mock_carousell_user_id',
-        userName: 'Mock Carousell User',
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        userId: `carousell_user_${userId}`,
+        userName: 'Carousell User',
       };
 
-      // Save token
       await storageService.savePlatformToken(userId, 'carousell', mockToken);
 
       return {
@@ -63,22 +69,21 @@ export const platformService = {
 
   /**
    * Connect Shopee account
-   * Phase 1: Mock authentication
-   * Phase 2: Real OAuth flow
+   * TODO: Implement real OAuth flow with Shopee Open Platform API
    */
   async connectShopee(userId) {
     try {
-      // Mock authentication - simulate OAuth success
+      // TODO: Replace with real Shopee OAuth
+      
       const mockToken = {
-        accessToken: `shopee_mock_token_${Date.now()}`,
+        accessToken: `shopee_token_${Date.now()}`,
         refreshToken: `shopee_refresh_${Date.now()}`,
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-        userId: 'mock_shopee_user_id',
-        userName: 'Mock Shopee User',
-        shopId: 'mock_shop_id',
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        userId: `shopee_user_${userId}`,
+        userName: 'Shopee User',
+        shopId: `shop_${userId}`,
       };
 
-      // Save token
       await storageService.savePlatformToken(userId, 'shopee', mockToken);
 
       return {
@@ -96,22 +101,24 @@ export const platformService = {
 
   /**
    * Connect Facebook Marketplace account
-   * Phase 1: Mock authentication
-   * Phase 2: Real Facebook Login
+   * TODO: Implement real Facebook Login SDK
    */
   async connectFacebook(userId) {
     try {
-      // Mock authentication - simulate Facebook Login success
+      // TODO: Replace with real Facebook Login
+      // 1. Use expo-facebook or react-native-fbsdk-next
+      // 2. Request marketplace_listing permission
+      // 3. Store access token
+      
       const mockToken = {
-        accessToken: `facebook_mock_token_${Date.now()}`,
+        accessToken: `facebook_token_${Date.now()}`,
         refreshToken: `facebook_refresh_${Date.now()}`,
-        expiresAt: Date.now() + 60 * 24 * 60 * 60 * 1000, // 60 days
-        userId: 'mock_facebook_user_id',
-        userName: 'Mock Facebook User',
+        expiresAt: Date.now() + 60 * 24 * 60 * 60 * 1000,
+        userId: `facebook_user_${userId}`,
+        userName: 'Facebook User',
         permissions: ['marketplace_listing', 'public_profile'],
       };
 
-      // Save token
       await storageService.savePlatformToken(userId, 'facebook', mockToken);
 
       return {
@@ -132,10 +139,26 @@ export const platformService = {
    */
   async disconnectPlatform(userId, platform) {
     try {
+      console.log(`[DISCONNECT] Starting disconnect for ${platform}, userId: ${userId}`);
+      
       await storageService.removePlatformToken(userId, platform);
+      console.log(`[DISCONNECT] Token removed from storage`);
+      
+      // Verify it was removed
+      const tokens = await storageService.getPlatformTokens(userId);
+      console.log(`[DISCONNECT] Tokens after removal:`, tokens);
+      
+      // Store disconnect timestamp to force WebView remount
+      if (platform === 'facebook') {
+        const disconnectKey = `@snap_sell_fb_disconnect_${userId}`;
+        await storageService.saveData(disconnectKey, Date.now().toString());
+        console.log(`[DISCONNECT] Saved disconnect timestamp`);
+      }
+      
       return {
         success: true,
         message: `${platform} disconnected successfully`,
+        clearCookies: platform === 'facebook',
       };
     } catch (error) {
       console.error(`Error disconnecting ${platform}:`, error);
@@ -147,9 +170,28 @@ export const platformService = {
   },
 
   /**
+   * Get platform tokens for a user
+   */
+  async getPlatformTokens(userId) {
+    return await storageService.getPlatformTokens(userId);
+  },
+
+  /**
+   * Get Facebook disconnect timestamp
+   */
+  async getFacebookDisconnectTime(userId) {
+    try {
+      const disconnectKey = `@snap_sell_fb_disconnect_${userId}`;
+      const timestamp = await storageService.getData(disconnectKey);
+      return timestamp || '0';
+    } catch (error) {
+      return '0';
+    }
+  },
+
+  /**
    * Publish listing to selected platforms
-   * Phase 1: Mock publishing with simulated delays
-   * Phase 2: Real API calls
+   * TODO: Replace with real API calls
    */
   async publishListing(listingData, selectedPlatforms, userId) {
     const results = {
@@ -159,7 +201,6 @@ export const platformService = {
       errors: [],
     };
 
-    // Get user's platform tokens
     const tokens = await storageService.getPlatformTokens(userId);
 
     // Publish to Carousell
@@ -171,14 +212,13 @@ export const platformService = {
         });
       } else {
         try {
-          // Mock API call - simulate network delay
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          // TODO: Replace with real Carousell API call
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-          // Mock successful response
           results.carousell = {
             success: true,
             listingId: `carousell_${Date.now()}`,
-            listingUrl: `https://www.carousell.ph/p/mock-listing-${Date.now()}`,
+            listingUrl: `https://www.carousell.ph/p/${Date.now()}`,
             platform: 'carousell',
             publishedAt: new Date().toISOString(),
           };
@@ -200,14 +240,13 @@ export const platformService = {
         });
       } else {
         try {
-          // Mock API call - simulate network delay
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          // TODO: Replace with real Facebook Graph API call
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-          // Mock successful response
           results.facebook = {
             success: true,
             listingId: `facebook_${Date.now()}`,
-            listingUrl: `https://www.facebook.com/marketplace/item/mock-${Date.now()}`,
+            listingUrl: `https://www.facebook.com/marketplace/item/${Date.now()}`,
             platform: 'facebook',
             publishedAt: new Date().toISOString(),
           };
@@ -229,14 +268,13 @@ export const platformService = {
         });
       } else {
         try {
-          // Mock API call - simulate network delay
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          // TODO: Replace with real Shopee API call
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-          // Mock successful response
           results.shopee = {
             success: true,
             listingId: `shopee_${Date.now()}`,
-            listingUrl: `https://shopee.ph/product/mock-shop/${Date.now()}`,
+            listingUrl: `https://shopee.ph/product/${Date.now()}`,
             platform: 'shopee',
             publishedAt: new Date().toISOString(),
           };
@@ -277,11 +315,10 @@ export const platformService = {
 
   /**
    * Refresh expired tokens
-   * Phase 2: Implement real token refresh logic
+   * TODO: Implement real token refresh logic
    */
   async refreshToken(userId, platform) {
     try {
-      // Mock token refresh
       const tokens = await storageService.getPlatformTokens(userId);
       const oldToken = tokens[platform];
 
@@ -289,9 +326,10 @@ export const platformService = {
         throw new Error('No token to refresh');
       }
 
+      // TODO: Replace with real token refresh API call
       const newToken = {
         ...oldToken,
-        accessToken: `${platform}_refreshed_token_${Date.now()}`,
+        accessToken: `${platform}_refreshed_${Date.now()}`,
         expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
       };
 

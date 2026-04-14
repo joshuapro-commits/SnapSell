@@ -4,38 +4,9 @@ import { useAuth } from './AuthContext';
 
 const ListingsContext = createContext(null);
 
-const MOCK_LISTINGS = [
-  {
-    id: '1',
-    name: 'iPhone 13 Pro',
-    brand: 'Apple',
-    price: 699,
-    category: 'electronics',
-    condition: 'like-new',
-    description: 'Premium smartphone in excellent condition',
-    imageUri: 'https://via.placeholder.com/400x400/6366F1/FFFFFF?text=iPhone+13+Pro',
-    userId: '2',
-    userName: 'John Doe',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Nike Air Jordan 1',
-    brand: 'Nike',
-    price: 170,
-    category: 'clothing',
-    condition: 'new',
-    description: 'Brand new sneakers, never worn',
-    imageUri: 'https://via.placeholder.com/400x400/10B981/FFFFFF?text=Air+Jordan+1',
-    userId: '2',
-    userName: 'John Doe',
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 export const ListingsProvider = ({ children }) => {
   const { user } = useAuth();
-  const [allListings, setAllListings] = useState(MOCK_LISTINGS);
+  const [allListings, setAllListings] = useState([]);
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,15 +17,10 @@ export const ListingsProvider = ({ children }) => {
   const loadListings = async () => {
     try {
       const stored = await storageService.getListings();
-      const myStored = await storageService.getMyListings();
+      const myStored = user ? stored.filter(l => l.userId === user.id) : [];
       
-      if (stored.length > 0) {
-        setAllListings([...MOCK_LISTINGS, ...stored]);
-      }
-      
-      if (myStored.length > 0) {
-        setMyListings(myStored);
-      }
+      setAllListings(stored);
+      setMyListings(myStored);
     } catch (error) {
       console.error('Error loading listings:', error);
     } finally {
@@ -63,50 +29,63 @@ export const ListingsProvider = ({ children }) => {
   };
 
   const addListing = async (listing) => {
-    const newListing = {
-      ...listing,
-      id: Date.now().toString(),
-      userId: user?.id,
-      userName: user?.name,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const newListing = {
+        ...listing,
+        id: Date.now().toString(),
+        userId: user?.id,
+        userName: user?.name,
+        status: 'active', // active, sold, draft
+        createdAt: new Date().toISOString(),
+      };
 
-    const updatedAll = [newListing, ...allListings];
-    const updatedMy = [newListing, ...myListings];
+      const updatedAll = [newListing, ...allListings];
+      const updatedMy = [newListing, ...myListings];
 
-    setAllListings(updatedAll);
-    setMyListings(updatedMy);
+      setAllListings(updatedAll);
+      setMyListings(updatedMy);
 
-    await storageService.saveListings(updatedAll.filter(l => l.userId === user?.id));
-    await storageService.saveMyListings(updatedMy);
+      await storageService.saveListings(updatedAll);
 
-    return newListing;
+      return newListing;
+    } catch (error) {
+      console.error('Error adding listing:', error);
+      throw error;
+    }
   };
 
   const updateListing = async (id, updates) => {
-    const updatedAll = allListings.map((listing) =>
-      listing.id === id ? { ...listing, ...updates } : listing
-    );
-    const updatedMy = myListings.map((listing) =>
-      listing.id === id ? { ...listing, ...updates } : listing
-    );
+    try {
+      const updatedAll = allListings.map((listing) =>
+        listing.id === id ? { ...listing, ...updates, updatedAt: new Date().toISOString() } : listing
+      );
+      const updatedMy = myListings.map((listing) =>
+        listing.id === id ? { ...listing, ...updates, updatedAt: new Date().toISOString() } : listing
+      );
 
-    setAllListings(updatedAll);
-    setMyListings(updatedMy);
+      setAllListings(updatedAll);
+      setMyListings(updatedMy);
 
-    await storageService.saveListings(updatedAll.filter(l => l.userId === user?.id));
-    await storageService.saveMyListings(updatedMy);
+      await storageService.saveListings(updatedAll);
+    } catch (error) {
+      console.error('Error updating listing:', error);
+      throw error;
+    }
   };
 
   const deleteListing = async (id) => {
-    const updatedAll = allListings.filter((listing) => listing.id !== id);
-    const updatedMy = myListings.filter((listing) => listing.id !== id);
+    try {
+      const updatedAll = allListings.filter((listing) => listing.id !== id);
+      const updatedMy = myListings.filter((listing) => listing.id !== id);
 
-    setAllListings(updatedAll);
-    setMyListings(updatedMy);
+      setAllListings(updatedAll);
+      setMyListings(updatedMy);
 
-    await storageService.saveListings(updatedAll.filter(l => l.userId === user?.id));
-    await storageService.saveMyListings(updatedMy);
+      await storageService.saveListings(updatedAll);
+    } catch (error) {
+      console.error('Error deleting listing:', error);
+      throw error;
+    }
   };
 
   return (

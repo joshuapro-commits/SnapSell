@@ -1,21 +1,39 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Modal, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { useAuth } from '../contexts/AuthContext';
+import { useListings } from '../contexts/ListingsContext';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Circle, Path, Rect, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
 export const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
+  const { myListings } = useListings();
   const userName = user?.name?.split(' ')[0] || 'User';
   const floatAnim = React.useRef(new Animated.Value(0)).current;
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [selectedListing, setSelectedListing] = React.useState(null);
   const [imagePickerVisible, setImagePickerVisible] = React.useState(false);
   const slideAnim = React.useRef(new Animated.Value(300)).current;
+  
+  // Card animations
+  const card1Anim = React.useRef(new Animated.Value(0)).current;
+  const card2Anim = React.useRef(new Animated.Value(0)).current;
+  const card3Anim = React.useRef(new Animated.Value(0)).current;
+  const card4Anim = React.useRef(new Animated.Value(0)).current;
+
+  // Get 3 most recent listings
+  const recentListings = myListings.slice(0, 3);
+
+  // Calculate stats
+  const activeListingsCount = myListings.filter(l => l.status === 'active' || !l.status).length;
+  const soldListingsCount = myListings.filter(l => l.status === 'sold').length;
+  const totalEarnings = myListings
+    .filter(l => l.status === 'sold')
+    .reduce((sum, l) => sum + (l.price || 0), 0);
 
   const handleMenuPress = (listingId) => {
     setSelectedListing(listingId);
@@ -105,6 +123,7 @@ export const HomeScreen = ({ navigation }) => {
   };
 
   React.useEffect(() => {
+    // Float animation for vase icon
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
@@ -119,12 +138,113 @@ export const HomeScreen = ({ navigation }) => {
         }),
       ])
     ).start();
+
+    // Staggered card animations
+    Animated.stagger(100, [
+      Animated.spring(card1Anim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(card2Anim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(card3Anim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(card4Anim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const translateY = floatAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -20],
   });
+
+  // Card animation interpolations
+  const card1Transform = {
+    opacity: card1Anim,
+    transform: [
+      {
+        translateX: card1Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [-50, 0],
+        }),
+      },
+      {
+        scale: card1Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.8, 1],
+        }),
+      },
+    ],
+  };
+
+  const card2Transform = {
+    opacity: card2Anim,
+    transform: [
+      {
+        translateX: card2Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [50, 0],
+        }),
+      },
+      {
+        scale: card2Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.8, 1],
+        }),
+      },
+    ],
+  };
+
+  const card3Transform = {
+    opacity: card3Anim,
+    transform: [
+      {
+        translateX: card3Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [50, 0],
+        }),
+      },
+      {
+        scale: card3Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.8, 1],
+        }),
+      },
+    ],
+  };
+
+  const card4Transform = {
+    opacity: card4Anim,
+    transform: [
+      {
+        translateX: card4Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [50, 0],
+        }),
+      },
+      {
+        scale: card4Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.8, 1],
+        }),
+      },
+    ],
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -209,104 +329,74 @@ export const HomeScreen = ({ navigation }) => {
         {/* Stats Cards Grid */}
         <View style={styles.statsGrid}>
           {/* Left Card - Total Earnings */}
-          <LinearGradient
-            colors={['#F8FFF8', '#F0FFF0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.statCardLarge}
-          >
+          <Animated.View style={[styles.statCardLarge, card1Transform]}>
             <Text style={styles.statCardTitle}>Total Earnings</Text>
-            <Text style={styles.statCardValue}>₱0</Text>
-          </LinearGradient>
+            <Text style={styles.statCardValue}>₱{totalEarnings.toLocaleString()}</Text>
+          </Animated.View>
 
           {/* Right Cards Stack */}
           <View style={styles.statsRightColumn}>
             {/* Active Listings */}
-            <View style={[styles.statCardSmall, { backgroundColor: '#FFF5F5' }]}>
+            <Animated.View style={[styles.statCardSmall, card2Transform]}>
               <Text style={styles.statCardTitleSmall}>Active Listings</Text>
-              <Text style={styles.statCardValueSmall}>0</Text>
-            </View>
+              <Text style={styles.statCardValueSmall}>{activeListingsCount}</Text>
+            </Animated.View>
 
             {/* Items Sold */}
-            <View style={[styles.statCardSmall, { backgroundColor: '#FFF9F5' }]}>
+            <Animated.View style={[styles.statCardSmall, card3Transform]}>
               <Text style={styles.statCardTitleSmall}>Items Sold</Text>
-              <Text style={styles.statCardValueSmall}>0</Text>
-            </View>
+              <Text style={styles.statCardValueSmall}>{soldListingsCount}</Text>
+            </Animated.View>
           </View>
         </View>
 
         {/* Recent Listings Section */}
-        <View style={styles.recentListingsSection}>
+        <Animated.View style={[styles.recentListingsSection, card4Transform]}>
           <View style={styles.recentListingsHeader}>
             <Text style={styles.recentListingsTitle}>Recent Listings</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('My Listings')}>
               <Text style={styles.seeAllText}>See all</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Listing Item 1 */}
-          <TouchableOpacity 
-            style={styles.listingItem}
-            activeOpacity={0.7}
-          >
-            <View style={styles.listingLeft}>
-              <View style={styles.listingImageContainer}>
-                <View style={[styles.listingIconCircle, { backgroundColor: '#FFE8D6' }]}>
-                  <Ionicons name="laptop-outline" size={20} color="#FF8C42" />
+          {recentListings.length > 0 ? (
+            recentListings.map((item) => (
+              <TouchableOpacity 
+                key={item.id}
+                style={styles.listingItem}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('ListingEditor', { listing: item })}
+              >
+                <View style={styles.listingLeft}>
+                  <View style={styles.listingImageContainer}>
+                    {item.imageUri ? (
+                      <Image source={{ uri: item.imageUri }} style={styles.listingImage} />
+                    ) : (
+                      <View style={[styles.listingIconCircle, { backgroundColor: '#FFE8D6' }]}>
+                        <Ionicons name="image-outline" size={20} color="#FF8C42" />
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.listingTextContainer}>
+                    <Text style={styles.listingItemTitle} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.listingPrice}>₱{item.price?.toLocaleString()}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.listingTextContainer}>
-                <Text style={styles.listingItemTitle} numberOfLines={1}>MacBook Pro 2021</Text>
-                <Text style={styles.listingPrice}>₱45,000</Text>
-              </View>
+                <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(item.id)}>
+                  <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyListingsContainer}>
+              <Ionicons name="cube-outline" size={48} color="#CCCCCC" />
+              <Text style={styles.emptyListingsText}>No listings yet</Text>
+              <Text style={styles.emptyListingsSubtext}>
+                Start selling by taking a photo of your item
+              </Text>
             </View>
-            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(1)}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* Listing Item 2 */}
-          <TouchableOpacity 
-            style={styles.listingItem}
-            activeOpacity={0.7}
-          >
-            <View style={styles.listingLeft}>
-              <View style={styles.listingImageContainer}>
-                <View style={[styles.listingIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                  <Ionicons name="shirt-outline" size={20} color="#66BB6A" />
-                </View>
-              </View>
-              <View style={styles.listingTextContainer}>
-                <Text style={styles.listingItemTitle} numberOfLines={1}>Nike Air Jordan 1</Text>
-                <Text style={styles.listingPrice}>₱8,500</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(2)}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* Listing Item 3 */}
-          <TouchableOpacity 
-            style={styles.listingItem}
-            activeOpacity={0.7}
-          >
-            <View style={styles.listingLeft}>
-              <View style={styles.listingImageContainer}>
-                <View style={[styles.listingIconCircle, { backgroundColor: '#F3E5F5' }]}>
-                  <Ionicons name="watch-outline" size={20} color="#AB47BC" />
-                </View>
-              </View>
-              <View style={styles.listingTextContainer}>
-                <Text style={styles.listingItemTitle} numberOfLines={1}>Apple Watch Series 7</Text>
-                <Text style={styles.listingPrice}>₱18,000</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(3)}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </View>
+          )}
+        </Animated.View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -623,6 +713,28 @@ const styles = StyleSheet.create({
     color: '#000',
     fontFamily: 'Montserrat_700Bold',
   },
+  emptyListingsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+  },
+  emptyListingsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 12,
+    marginBottom: 4,
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  emptyListingsSubtext: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    fontFamily: 'Montserrat_400Regular',
+  },
 
   recentListingsSection: {
     marginHorizontal: 20,
@@ -673,6 +785,11 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  listingImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
   },
   listingTextContainer: {
     flex: 1,

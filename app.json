@@ -55,7 +55,8 @@
           "photosPermission": "Allow Snap & Sell to access your photos to select product images."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ]
   }
 }

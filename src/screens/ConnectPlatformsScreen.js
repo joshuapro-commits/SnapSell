@@ -5,14 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
+import { CustomAlert } from '../components/CustomAlert';
 
 export const ConnectPlatformsScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -22,13 +23,39 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
     shopee: false,
   });
   const [loading, setLoading] = useState(true);
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    buttons: [],
+    icon: null,
+    iconColor: null,
+    iconBackground: null,
+  });
+
+  const showAlert = (config) => {
+    setAlertConfig({ ...config, visible: true });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig({ ...alertConfig, visible: false });
+  };
 
   useEffect(() => {
     loadConnectedPlatforms();
   }, []);
 
+  // Reload when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadConnectedPlatforms();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const loadConnectedPlatforms = async () => {
     try {
+      setLoading(true);
       const platforms = await platformService.getConnectedPlatforms(user.id);
       setConnectedPlatforms(platforms);
     } catch (error) {
@@ -40,88 +67,170 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
 
   const handleConnectCarousell = async () => {
     try {
-      Alert.alert(
-        'Connect Carousell',
-        'This will open Carousell to authorize SnapSell to publish listings on your behalf.',
-        [
-          { text: 'Cancel', style: 'cancel' },
+      showAlert({
+        title: 'Connect Carousell',
+        message: 'This will open Carousell to authorize SnapSell to publish listings on your behalf.',
+        icon: 'cart-outline',
+        iconColor: '#D32F2F',
+        iconBackground: '#FFEBEE',
+        buttons: [
+          { 
+            text: 'Cancel', 
+            style: 'cancel',
+            onPress: hideAlert,
+          },
           {
             text: 'Continue',
             onPress: async () => {
-              // Mock authentication for now (Phase 1)
-              // In Phase 2, this will be real OAuth
+              hideAlert();
               const result = await platformService.connectCarousell(user.id);
               
               if (result.success) {
                 setConnectedPlatforms({ ...connectedPlatforms, carousell: true });
-                Alert.alert('Success', 'Carousell account connected!');
+                showAlert({
+                  title: 'Successfully Connected',
+                  message: 'Your Carousell account has been successfully connected. You can now publish listings directly to Carousell.',
+                  icon: 'checkmark-circle',
+                  iconColor: '#10B981',
+                  iconBackground: '#ECFDF5',
+                  buttons: [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        hideAlert();
+                        navigation.goBack();
+                      },
+                    },
+                  ],
+                });
               } else {
-                Alert.alert('Error', result.error || 'Failed to connect Carousell');
+                showAlert({
+                  title: 'Error',
+                  message: result.error || 'Failed to connect Carousell',
+                  icon: 'alert-circle',
+                  iconColor: '#EF4444',
+                  iconBackground: '#FEF2F2',
+                  buttons: [{ text: 'OK', onPress: hideAlert }],
+                });
               }
             },
           },
-        ]
-      );
+        ],
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to connect to Carousell');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to connect to Carousell',
+        icon: 'alert-circle',
+        iconColor: '#EF4444',
+        iconBackground: '#FEF2F2',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     }
   };
 
   const handleConnectFacebook = async () => {
     try {
-      Alert.alert(
-        'Connect Facebook',
-        'This will open Facebook to authorize SnapSell to publish to Marketplace on your behalf.',
-        [
-          { text: 'Cancel', style: 'cancel' },
+      const platforms = await platformService.getConnectedPlatforms(user.id);
+      const isReconnecting = !platforms.facebook;
+      
+      showAlert({
+        title: 'Connect Facebook',
+        message: 'You will be redirected to Facebook to log in. Once logged in, your session will be saved for publishing listings.',
+        icon: 'logo-facebook',
+        iconColor: '#1877F2',
+        iconBackground: '#E8F0FE',
+        buttons: [
+          { 
+            text: 'Cancel', 
+            style: 'cancel',
+            onPress: hideAlert,
+          },
           {
             text: 'Continue',
-            onPress: async () => {
-              // Mock authentication for now (Phase 1)
-              // In Phase 2, this will be real Facebook Login
-              const result = await platformService.connectFacebook(user.id);
-              
-              if (result.success) {
-                setConnectedPlatforms({ ...connectedPlatforms, facebook: true });
-                Alert.alert('Success', 'Facebook Marketplace connected!');
-              } else {
-                Alert.alert('Error', result.error || 'Failed to connect Facebook');
-              }
+            onPress: () => {
+              hideAlert();
+              navigation.navigate('FacebookLoginWebView', { 
+                userId: user.id,
+                isReconnecting: isReconnecting
+              });
             },
           },
-        ]
-      );
+        ],
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to connect to Facebook');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to connect to Facebook',
+        icon: 'alert-circle',
+        iconColor: '#EF4444',
+        iconBackground: '#FEF2F2',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     }
   };
 
   const handleConnectShopee = async () => {
     try {
-      Alert.alert(
-        'Connect Shopee',
-        'This will open Shopee to authorize SnapSell to publish listings on your behalf.',
-        [
-          { text: 'Cancel', style: 'cancel' },
+      showAlert({
+        title: 'Connect Shopee',
+        message: 'This will open Shopee to authorize SnapSell to publish listings on your behalf.',
+        icon: 'bag-handle-outline',
+        iconColor: '#EE4D2D',
+        iconBackground: '#FFF0ED',
+        buttons: [
+          { 
+            text: 'Cancel', 
+            style: 'cancel',
+            onPress: hideAlert,
+          },
           {
             text: 'Continue',
             onPress: async () => {
-              // Mock authentication for now (Phase 1)
-              // In Phase 2, this will be real Shopee OAuth
+              hideAlert();
               const result = await platformService.connectShopee(user.id);
               
               if (result.success) {
                 setConnectedPlatforms({ ...connectedPlatforms, shopee: true });
-                Alert.alert('Success', 'Shopee account connected!');
+                showAlert({
+                  title: 'Successfully Connected',
+                  message: 'Your Shopee account has been successfully connected. You can now publish listings directly to Shopee.',
+                  icon: 'checkmark-circle',
+                  iconColor: '#10B981',
+                  iconBackground: '#ECFDF5',
+                  buttons: [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        hideAlert();
+                        navigation.goBack();
+                      },
+                    },
+                  ],
+                });
               } else {
-                Alert.alert('Error', result.error || 'Failed to connect Shopee');
+                showAlert({
+                  title: 'Error',
+                  message: result.error || 'Failed to connect Shopee',
+                  icon: 'alert-circle',
+                  iconColor: '#EF4444',
+                  iconBackground: '#FEF2F2',
+                  buttons: [{ text: 'OK', onPress: hideAlert }],
+                });
               }
             },
           },
-        ]
-      );
+        ],
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to connect to Shopee');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to connect to Shopee',
+        icon: 'alert-circle',
+        iconColor: '#EF4444',
+        iconBackground: '#FEF2F2',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     }
   };
 
@@ -132,28 +241,87 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
       shopee: 'Shopee',
     };
     
-    Alert.alert(
-      'Disconnect Platform',
-      `Are you sure you want to disconnect ${platformNames[platform]}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
+    const platformIcons = {
+      carousell: { icon: 'cart-outline', color: '#D32F2F', bg: '#FFEBEE' },
+      facebook: { icon: 'logo-facebook', color: '#1877F2', bg: '#E8F0FE' },
+      shopee: { icon: 'bag-handle-outline', color: '#EE4D2D', bg: '#FFF0ED' },
+    };
+    
+    showAlert({
+      title: 'Disconnect Platform',
+      message: `Are you sure you want to disconnect ${platformNames[platform]}?`,
+      icon: platformIcons[platform].icon,
+      iconColor: platformIcons[platform].color,
+      iconBackground: platformIcons[platform].bg,
+      buttons: [
+        { 
+          text: 'Cancel', 
+          style: 'cancel',
+          onPress: hideAlert,
+        },
         {
           text: 'Disconnect',
           style: 'destructive',
           onPress: async () => {
-            await platformService.disconnectPlatform(user.id, platform);
-            setConnectedPlatforms({ ...connectedPlatforms, [platform]: false });
+            hideAlert();
+            try {
+              const result = await platformService.disconnectPlatform(user.id, platform);
+              
+              if (result.success) {
+                await loadConnectedPlatforms();
+                
+                const disconnectMessage = platform === 'facebook'
+                  ? `${platformNames[platform]} has been disconnected. When you reconnect, you'll be able to log in with a different Facebook account.`
+                  : `${platformNames[platform]} has been disconnected. You can now connect a different account.`;
+                
+                showAlert({
+                  title: 'Disconnected',
+                  message: disconnectMessage,
+                  icon: 'checkmark-circle',
+                  iconColor: '#10B981',
+                  iconBackground: '#ECFDF5',
+                  buttons: [{ text: 'OK', onPress: hideAlert }],
+                });
+              } else {
+                showAlert({
+                  title: 'Error',
+                  message: result.error || 'Failed to disconnect platform.',
+                  icon: 'alert-circle',
+                  iconColor: '#EF4444',
+                  iconBackground: '#FEF2F2',
+                  buttons: [{ text: 'OK', onPress: hideAlert }],
+                });
+              }
+            } catch (error) {
+              console.error('Error disconnecting platform:', error);
+              showAlert({
+                title: 'Error',
+                message: 'Failed to disconnect platform. Please try again.',
+                icon: 'alert-circle',
+                iconColor: '#EF4444',
+                iconBackground: '#FEF2F2',
+                buttons: [{ text: 'OK', onPress: hideAlert }],
+              });
+            }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Connect Platforms</Text>
+          <View style={{ width: 24 }} />
+        </View>
         <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
+          <ActivityIndicator size="large" color="#FF6B35" />
+          <Text style={styles.loadingText}>Processing...</Text>
         </View>
       </SafeAreaView>
     );
@@ -373,6 +541,16 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
           </Text>
         </View>
       </ScrollView>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        icon={alertConfig.icon}
+        iconColor={alertConfig.iconColor}
+        iconBackground={alertConfig.iconBackground}
+      />
     </SafeAreaView>
   );
 };
@@ -386,6 +564,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    fontFamily: 'Montserrat_500Medium',
   },
   header: {
     flexDirection: 'row',

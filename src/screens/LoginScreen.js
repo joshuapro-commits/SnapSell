@@ -6,45 +6,77 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { storageService } from '../services/storage';
 
 export const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
   const animationRef = useRef(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     animationRef.current?.play();
   }, []);
 
-  const handlePhoneEmail = () => {
-    login('demo@snapsell.com', 'demo123');
+  const handlePhoneEmail = async () => {
+    // Auto-login for development
+    setLoading(true);
+    
+    // Check if any users exist
+    const users = await storageService.getAllUsers();
+    
+    if (users.length > 0) {
+      // Login with first user
+      const user = users[0];
+      const { password: _, ...userWithoutPassword } = user;
+      await storageService.saveUser(userWithoutPassword);
+      await login(user.email, user.password);
+    } else {
+      // Create a default user and login
+      const defaultUser = {
+        id: Date.now().toString(),
+        email: 'user@snapsell.com',
+        name: 'SnapSell User',
+        password: 'password123',
+        avatar: '👤',
+        createdAt: new Date().toISOString(),
+      };
+      
+      await storageService.addUser(defaultUser);
+      const { password: _, ...userWithoutPassword } = defaultUser;
+      await storageService.saveUser(userWithoutPassword);
+      await login(defaultUser.email, defaultUser.password);
+    }
+    
+    setLoading(false);
   };
 
-  const handleGoogleSignup = () => {
-    login('demo@snapsell.com', 'demo123');
+  const handleGoogleSignup = async () => {
+    await handlePhoneEmail();
   };
 
-  const handleFacebookSignup = () => {
-    login('demo@snapsell.com', 'demo123');
+  const handleFacebookSignup = async () => {
+    await handlePhoneEmail();
   };
 
-  const handleAppleSignup = () => {
-    login('demo@snapsell.com', 'demo123');
+  const handleAppleSignup = async () => {
+    await handlePhoneEmail();
   };
 
-  const handleCreateAccount = () => {
-    login('demo@snapsell.com', 'demo123');
+  const handleCreateAccount = async () => {
+    await handlePhoneEmail();
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.content}>
         {/* Lottie Animation */}
         <LottieView
           ref={animationRef}
@@ -74,21 +106,23 @@ export const LoginScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Divider */}
-        <Text style={styles.dividerText}>or  Log in with</Text>
+        <Text style={styles.dividerText}>or Log in with</Text>
 
         {/* Phone/Email Button */}
-        <TouchableOpacity style={styles.primaryButton} onPress={handlePhoneEmail}>
-          <Text style={styles.primaryButtonText}>Phone Number/Email</Text>
+        <TouchableOpacity 
+          style={styles.primaryButton} 
+          onPress={handlePhoneEmail}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.primaryButtonText}>Phone Number/Email</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Create Account */}
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>New to Leafboard? </Text>
-          <TouchableOpacity onPress={handleCreateAccount}>
-            <Text style={styles.signupLink}>Create Account</Text>
-          </TouchableOpacity>
+
         </View>
-      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -98,24 +132,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
   },
-  scrollContent: {
-    flexGrow: 1,
+  content: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 40,
+    justifyContent: 'center',
   },
   animation: {
-    width: 280,
-    height: 280,
+    width: 220,
+    height: 220,
     alignSelf: 'center',
     marginBottom: 10,
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '600',
     color: '#1A1D1F',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
     fontFamily: 'Montserrat_600SemiBold',
   },
   socialButton: {
@@ -123,9 +156,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFF',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E8ECF4',
     gap: 12,
@@ -140,15 +173,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6A707C',
     textAlign: 'center',
-    marginVertical: 32,
+    marginVertical: 20,
     fontFamily: 'Montserrat_400Regular',
   },
   primaryButton: {
     backgroundColor: '#FF6B35',
-    paddingVertical: 18,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 24,
   },
   primaryButtonText: {
     fontSize: 16,
@@ -156,20 +188,5 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontFamily: 'Montserrat_600SemiBold',
   },
-  signupContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signupText: {
-    fontSize: 15,
-    color: '#1A1D1F',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  signupLink: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1D1F',
-    fontFamily: 'Montserrat_700Bold',
-  },
+
 });

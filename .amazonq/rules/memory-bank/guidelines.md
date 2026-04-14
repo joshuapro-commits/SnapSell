@@ -210,6 +210,23 @@ if (loading) {
 }
 ```
 
+#### Success Screens with Lottie Animations
+```javascript
+const animationRef = useRef(null);
+
+useEffect(() => {
+  animationRef.current?.play();
+}, []);
+
+<LottieView
+  ref={animationRef}
+  source={require('../../assets/Success.json')}
+  autoPlay
+  loop={false}
+  style={styles.lottieAnimation}
+/>
+```
+
 ### Animation Patterns
 
 #### Animated Values
@@ -234,14 +251,48 @@ useEffect(() => {
 }, []);
 ```
 
-#### Spring Animations for Modals
+#### Spring Animations for Modals and Cards
 ```javascript
+// Modal slide-up animation
 Animated.spring(slideAnim, {
   toValue: 0,
   useNativeDriver: true,
   tension: 65,
   friction: 11,
 }).start();
+
+// Card stagger animation (iOS-style)
+const cardAnims = [0, 1, 2, 3].map(() => useRef(new Animated.Value(0)).current);
+
+useEffect(() => {
+  const animations = cardAnims.map((anim, index) => 
+    Animated.spring(anim, {
+      toValue: 1,
+      delay: index * 100,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    })
+  );
+  Animated.parallel(animations).start();
+}, []);
+```
+
+#### Onboarding Scroll Animations
+```javascript
+const scrollX = useRef(new Animated.Value(0)).current;
+
+const opacity = scrollX.interpolate({
+  inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+  outputRange: [0, 1, 0],
+  extrapolate: 'clamp',
+});
+
+const scale = scrollX.interpolate({
+  inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+  outputRange: [0.8, 1, 0.8],
+  extrapolate: 'clamp',
+});
 ```
 
 ### Styling Patterns
@@ -320,11 +371,23 @@ const tokens = await storageService.getPlatformTokens(userId);
 await storageService.removePlatformToken(userId, platform);
 ```
 
+#### AsyncStorage Keys
+- `@snap_sell_user`: Current logged-in user
+- `@snap_sell_users`: All registered users array
+- `@snap_sell_listings`: All marketplace listings
+- `@snap_sell_platform_tokens_{userId}`: Platform OAuth tokens per user
+- `@snap_sell_onboarding_complete`: Onboarding completion status
+
 #### Context + Storage Sync
 Context providers sync state with AsyncStorage:
 ```javascript
 const addListing = async (listing) => {
-  const newListing = { ...listing, id: Date.now().toString() };
+  const newListing = { 
+    ...listing, 
+    id: Date.now().toString(),
+    status: 'active', // active, sold, or draft
+    createdAt: new Date().toISOString(),
+  };
   const updatedAll = [newListing, ...allListings];
   
   setAllListings(updatedAll);
@@ -394,12 +457,24 @@ const [selectedPlatforms, setSelectedPlatforms] = useState({
     <Text style={[styles.platformBadgeText, { color: '#D32F2F' }]}>Carousell</Text>
   </View>
 )}
+{(item.publishedPlatforms?.facebook || item.selectedPlatforms?.facebook) && (
+  <View style={[styles.platformBadge, { backgroundColor: '#E8F0FE' }]}>
+    <Ionicons name="logo-facebook" size={12} color="#1877F2" />
+    <Text style={[styles.platformBadgeText, { color: '#1877F2' }]}>Facebook</Text>
+  </View>
+)}
+{(item.publishedPlatforms?.shopee || item.selectedPlatforms?.shopee) && (
+  <View style={[styles.platformBadge, { backgroundColor: '#FFF0ED' }]}>
+    <Ionicons name="bag-handle" size={12} color="#EE4D2D" />
+    <Text style={[styles.platformBadgeText, { color: '#EE4D2D' }]}>Shopee</Text>
+  </View>
+)}
 ```
 
 ### Multi-Platform Publishing
 ```javascript
 const handlePublish = async () => {
-  if (!selectedPlatforms.carousell && !selectedPlatforms.facebook) {
+  if (!selectedPlatforms.carousell && !selectedPlatforms.facebook && !selectedPlatforms.shopee) {
     Alert.alert('Select Platform', 'Please select at least one platform to publish to.');
     return;
   }
@@ -423,6 +498,15 @@ const handlePublish = async () => {
 {connectedPlatforms.carousell && (
   <View style={styles.connectedBadge}>
     <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+  </View>
+)}
+
+{hasErrors && (
+  <View style={styles.errorBanner}>
+    <Ionicons name="warning" size={20} color="#FF6B35" />
+    <Text style={styles.errorText}>
+      Some platforms failed to publish. Check details below.
+    </Text>
   </View>
 )}
 ```
@@ -468,10 +552,18 @@ const handleConnect = async () => {
 ## Best Practices
 
 ### Performance
-- Use `useNativeDriver: true` for animations
+- Use `useNativeDriver: true` for animations (60fps)
 - Memoize expensive computations with useMemo
 - Use `showsVerticalScrollIndicator={false}` for cleaner UI
 - Implement loading states to prevent UI blocking
+- Stagger animations with delays for professional feel (100-150ms intervals)
+
+### Animations
+- Spring physics for iOS-style feel: `tension: 50, friction: 7`
+- Staggered card animations with 100ms delays
+- Scroll-based interpolations for onboarding screens
+- Modal slide-up animations with spring physics
+- Always use `useNativeDriver: true` for transform and opacity animations
 
 ### Accessibility
 - Use semantic component names
@@ -479,17 +571,34 @@ const handleConnect = async () => {
 - Use appropriate touch target sizes (minimum 44x44)
 
 ### AI Integration
-- Gemini 2.5 Flash integrated with optimized, concise prompts
-- Platform-specific content generation (Carousell casual, Facebook structured)
-- Price suggestions in Philippine Peso with market research
-- Hashtag and location generation for local marketplaces
+- Gemini 2.5 Flash Lite integrated with optimized, concise prompts
+- Platform-specific content generation:
+  - Carousell: Casual 2-3 sentences with emojis, first-person style
+  - Facebook: Professional with line breaks and structured format
+  - Shopee: E-commerce style with bullet points and feature highlights
+- Price suggestions in Philippine Peso with market research and condition multipliers:
+  - New: 100% of retail
+  - Like-new: 80-90%
+  - Good: 60-75%
+  - Fair: 40-55%
+  - Poor: 20-35%
+- Hashtag generation for Carousell (3-5 terms without # symbol)
+- Meetup location generation for Metro Manila (Makati, BGC, QC, Ortigas, Manila)
+- Category classification with 15+ categories
+- Image enhancement mock service ready for production API integration
+- Fallback error handling with graceful degradation
 
 ### Multi-Platform Publishing
-- Platform selection with checkboxes before publishing
+- Platform selection with checkboxes before publishing (Carousell, Facebook, Shopee)
 - Validation to ensure at least one platform is selected
 - Separate editing interfaces for each platform's requirements
-- Real-time publishing with success/error feedback
-- Platform badges throughout the app (listings, details)
+- Real-time publishing with per-platform success/error feedback
+- Platform badges throughout the app (listings, details, success screen)
+- Platform connection management screen with OAuth flows (mock)
+- Disconnect functionality for each platform
+- Token validation and refresh logic
+- Cross-publish card highlighting "Best Value" for publishing to all platforms
+- Error handling with detailed error messages per platform
 
 ### Code Organization
 - Keep components focused and single-purpose

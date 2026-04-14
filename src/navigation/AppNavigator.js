@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginScreen } from '../screens/LoginScreen';
+import { LoginFormScreen } from '../screens/LoginFormScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { ListingEditorScreen } from '../screens/ListingEditorScreen';
@@ -11,6 +12,8 @@ import { ListingSuccessScreen } from '../screens/ListingSuccessScreen';
 import { AnalyzingScreen } from '../screens/AnalyzingScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
 import { ConnectPlatformsScreen } from '../screens/ConnectPlatformsScreen';
+import { FacebookWebViewScreen } from '../screens/FacebookWebViewScreen';
+import { FacebookLoginWebView } from '../screens/FacebookLoginWebView';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
 
@@ -50,6 +53,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Login"
               component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="LoginForm"
+              component={LoginFormScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen
@@ -94,6 +102,19 @@ export const AppNavigator = () => {
               name="ConnectPlatforms"
               component={ConnectPlatformsScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="FacebookWebView"
+              component={FacebookWebViewScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="FacebookLoginWebView"
+              component={FacebookLoginWebView}
+              options={{ 
+                headerShown: false,
+                unmountOnBlur: false,
+              }}
             />
           </>
         )}

@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,63 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-export const OnboardingScreen2 = () => {
+export const OnboardingScreen2 = ({ onNext, currentIndex, isActive }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const card1Anim = useRef(new Animated.Value(0)).current;
+  const card2Anim = useRef(new Animated.Value(0)).current;
+  const textAnim = useRef(new Animated.Value(50)).current;
+
+  const indicator1Width = useRef(new Animated.Value(currentIndex === 0 ? 32 : 8)).current;
+  const indicator2Width = useRef(new Animated.Value(currentIndex === 1 ? 32 : 8)).current;
+  const indicator3Width = useRef(new Animated.Value(currentIndex === 2 ? 32 : 8)).current;
+
+  useEffect(() => {
+    if (isActive) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(card1Anim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+          delay: 100,
+        }),
+        Animated.spring(card2Anim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+          delay: 200,
+        }),
+        Animated.spring(textAnim, {
+          toValue: 0,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+          delay: 300,
+        }),
+      ]).start();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    Animated.timing(indicator1Width, {
+      toValue: currentIndex === 0 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(indicator2Width, {
+      toValue: currentIndex === 1 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(indicator3Width, {
+      toValue: currentIndex === 2 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [currentIndex]);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Header */}
@@ -22,7 +78,23 @@ export const OnboardingScreen2 = () => {
         {/* Two Containers Side by Side */}
         <View style={styles.cardsContainer}>
           {/* Left Container - Plain Image */}
-          <View style={styles.card}>
+          <Animated.View 
+            style={[
+              styles.card,
+              {
+                opacity: card1Anim,
+                transform: [
+                  { scale: card1Anim },
+                  {
+                    translateX: card1Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <Image
               source={{ uri: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400' }}
               style={styles.cardImage}
@@ -38,10 +110,26 @@ export const OnboardingScreen2 = () => {
             <View style={styles.beforeBadge}>
               <Text style={styles.beforeText}>BEFORE</Text>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Right Container - Image with Details Overlay */}
-          <View style={styles.card}>
+          <Animated.View 
+            style={[
+              styles.card,
+              {
+                opacity: card2Anim,
+                transform: [
+                  { scale: card2Anim },
+                  {
+                    translateX: card2Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <Image
               source={{ uri: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400' }}
               style={styles.cardImage}
@@ -73,11 +161,19 @@ export const OnboardingScreen2 = () => {
                 </View>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </View>
 
         {/* Text Content */}
-        <View style={styles.textContent}>
+        <Animated.View 
+          style={[
+            styles.textContent,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: textAnim }],
+            },
+          ]}
+        >
           <View style={styles.titleContainer}>
             <Text style={styles.titleWhite}>AI Does the{' '}</Text>
             <MaskedView
@@ -97,18 +193,18 @@ export const OnboardingScreen2 = () => {
           <Text style={styles.description}>
             Our AI analyzes your photo and instantly creates a complete listing
           </Text>
-        </View>
+        </Animated.View>
 
         <View style={styles.pagination}>
-          <View style={styles.inactiveDot} />
-          <View style={styles.activeDot} />
-          <View style={styles.inactiveDot} />
+          <Animated.View style={[styles.dot, { width: indicator1Width, backgroundColor: currentIndex === 0 ? '#FF7A2F' : '#CBD5E1' }]} />
+          <Animated.View style={[styles.dot, { width: indicator2Width, backgroundColor: currentIndex === 1 ? '#FF7A2F' : '#CBD5E1' }]} />
+          <Animated.View style={[styles.dot, { width: indicator3Width, backgroundColor: currentIndex === 2 ? '#FF7A2F' : '#CBD5E1' }]} />
         </View>
       </View>
 
       {/* Footer */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity activeOpacity={0.9}>
+        <TouchableOpacity activeOpacity={0.9} onPress={onNext}>
           <LinearGradient
             colors={['#D493FF', '#7704F4', '#FD7B3B']}
             start={{ x: 0, y: 0 }}
@@ -334,17 +430,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  activeDot: {
-    width: 32,
+  dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF7A2F',
-  },
-  inactiveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#CBD5E1',
   },
   buttonContainer: {
     padding: 24,

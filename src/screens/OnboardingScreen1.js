@@ -1,11 +1,85 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaskedView from '@react-native-masked-view/masked-view';
 
-export const OnboardingScreen1 = () => {
+export const OnboardingScreen1 = ({ onNext, currentIndex, isActive }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  
+  // Circle animations
+  const circle1 = useRef(new Animated.Value(0)).current;
+  const circle2 = useRef(new Animated.Value(0)).current;
+  const circle3 = useRef(new Animated.Value(0)).current;
+  const circle4 = useRef(new Animated.Value(0)).current;
+  const circle5 = useRef(new Animated.Value(0)).current;
+  const circle6 = useRef(new Animated.Value(0)).current;
+  const circle7 = useRef(new Animated.Value(0)).current;
+  const circle8 = useRef(new Animated.Value(0)).current;
+  const circle9 = useRef(new Animated.Value(0)).current;
+
+  // Page indicator animation
+  const indicator1Width = useRef(new Animated.Value(currentIndex === 0 ? 32 : 8)).current;
+  const indicator2Width = useRef(new Animated.Value(currentIndex === 1 ? 32 : 8)).current;
+  const indicator3Width = useRef(new Animated.Value(currentIndex === 2 ? 32 : 8)).current;
+
+  useEffect(() => {
+    if (isActive) {
+      // Staggered circle animations
+      Animated.stagger(80, [
+        Animated.spring(circle1, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle2, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle3, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle4, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle5, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle6, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle7, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle8, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(circle9, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+      ]).start();
+
+      // Text animations
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    Animated.timing(indicator1Width, {
+      toValue: currentIndex === 0 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(indicator2Width, {
+      toValue: currentIndex === 1 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(indicator3Width, {
+      toValue: currentIndex === 2 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [currentIndex]);
+
+  const circles = [
+    { anim: circle1, uri: 'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=200' },
+    { anim: circle2, uri: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=200' },
+    { anim: circle3, uri: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200' },
+    { anim: circle4, uri: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200' },
+    { anim: circle5, uri: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300' },
+    { anim: circle6, uri: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=200' },
+    { anim: circle7, uri: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200' },
+    { anim: circle8, uri: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=200' },
+    { anim: circle9, uri: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200' },
+  ];
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -17,81 +91,101 @@ export const OnboardingScreen1 = () => {
       <View style={styles.content}>
         <View style={styles.imageGrid}>
           <View style={styles.topRow}>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
+            {[0, 1, 2].map((i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.circleSmall,
+                  {
+                    opacity: circles[i].anim,
+                    transform: [
+                      { scale: circles[i].anim },
+                      {
+                        translateY: circles[i].anim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [30, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Image source={{ uri: circles[i].uri }} style={styles.circleImage} resizeMode="cover" />
+              </Animated.View>
+            ))}
           </View>
           <View style={styles.middleRow}>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.circleLarge}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
+            <Animated.View
+              style={[
+                styles.circleSmall,
+                {
+                  opacity: circles[3].anim,
+                  transform: [{ scale: circles[3].anim }],
+                },
+              ]}
+            >
+              <Image source={{ uri: circles[3].uri }} style={styles.circleImage} resizeMode="cover" />
+            </Animated.View>
+            <Animated.View
+              style={[
+                styles.circleLarge,
+                {
+                  opacity: circles[4].anim,
+                  transform: [{ scale: circles[4].anim }],
+                },
+              ]}
+            >
+              <Image source={{ uri: circles[4].uri }} style={styles.circleImage} resizeMode="cover" />
+            </Animated.View>
+            <Animated.View
+              style={[
+                styles.circleSmall,
+                {
+                  opacity: circles[5].anim,
+                  transform: [{ scale: circles[5].anim }],
+                },
+              ]}
+            >
+              <Image source={{ uri: circles[5].uri }} style={styles.circleImage} resizeMode="cover" />
+            </Animated.View>
           </View>
           <View style={styles.bottomRow}>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.circleSmall}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200' }}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
-            </View>
+            {[6, 7, 8].map((i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.circleSmall,
+                  {
+                    opacity: circles[i].anim,
+                    transform: [
+                      { scale: circles[i].anim },
+                      {
+                        translateY: circles[i].anim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-30, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Image source={{ uri: circles[i].uri }} style={styles.circleImage} resizeMode="cover" />
+              </Animated.View>
+            ))}
           </View>
         </View>
 
-        <View style={styles.titleContainer}>
+        <Animated.View 
+          style={[
+            styles.titleContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+            },
+          ]}
+        >
           <Text style={styles.title}>Snap </Text>
-          <MaskedView
-            maskElement={<Text style={styles.title}>Once.</Text>}
-          >
+          <MaskedView maskElement={<Text style={styles.title}>Once.</Text>}>
             <LinearGradient
               colors={['#D493FF', '#7704F4', '#FD7B3B']}
               start={{ x: 0, y: 0 }}
@@ -101,16 +195,21 @@ export const OnboardingScreen1 = () => {
               <Text style={[styles.title, { opacity: 0 }]}>Once</Text>
             </LinearGradient>
           </MaskedView>
-        </View>
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.description}>
-            Take a quick photo of your item. Our AI
-          </Text>
+        </Animated.View>
+        
+        <Animated.View 
+          style={[
+            styles.descriptionContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.description}>Take a quick photo of your item. Our AI</Text>
           <View style={styles.descriptionRow}>
             <Text style={styles.description}>automatically </Text>
-            <MaskedView
-              maskElement={<Text style={styles.enhancedText}>enhances</Text>}
-            >
+            <MaskedView maskElement={<Text style={styles.enhancedText}>enhances</Text>}>
               <LinearGradient
                 colors={['#D493FF', '#7704F4', '#FD7B3B']}
                 start={{ x: 0, y: 0 }}
@@ -122,17 +221,17 @@ export const OnboardingScreen1 = () => {
             </MaskedView>
             <Text style={styles.description}> the image for you.</Text>
           </View>
-        </View>
+        </Animated.View>
 
         <View style={styles.pagination}>
-          <View style={styles.activeDot} />
-          <View style={styles.inactiveDot} />
-          <View style={styles.inactiveDot} />
+          <Animated.View style={[styles.dot, { width: indicator1Width, backgroundColor: currentIndex === 0 ? '#FF7A2F' : '#CBD5E1' }]} />
+          <Animated.View style={[styles.dot, { width: indicator2Width, backgroundColor: currentIndex === 1 ? '#FF7A2F' : '#CBD5E1' }]} />
+          <Animated.View style={[styles.dot, { width: indicator3Width, backgroundColor: currentIndex === 2 ? '#FF7A2F' : '#CBD5E1' }]} />
         </View>
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity activeOpacity={0.9}>
+        <TouchableOpacity activeOpacity={0.9} onPress={onNext}>
           <LinearGradient
             colors={['#D493FF', '#7704F4', '#FD7B3B']}
             start={{ x: 0, y: 0 }}
@@ -259,17 +358,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  activeDot: {
-    width: 32,
+  dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF7A2F',
-  },
-  inactiveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#CBD5E1',
   },
   buttonContainer: {
     padding: 24,

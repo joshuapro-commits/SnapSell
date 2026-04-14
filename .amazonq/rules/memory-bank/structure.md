@@ -36,12 +36,13 @@ Reusable UI building blocks used across screens:
 
 ### Screens (`src/screens/`)
 Full-screen views representing app pages:
-- **Authentication**: LoginScreen, SignupScreen
-- **Onboarding**: OnboardingContainer, OnboardingScreen1-3, SplashScreen
-- **Core Features**: HomeScreen, CameraScreen, ListingEditorScreen
-- **Management**: MyListingsScreen, ProductDetailScreen, ProfileScreen
-- **Platform Integration**: ConnectPlatformsScreen
-- **Feedback**: AnalyzingScreen, ListingSuccessScreen, PaywallScreen
+- **Authentication**: LoginScreen (with auto-login for development), SignupScreen
+- **Onboarding**: OnboardingContainer (scroll-based animations), OnboardingScreen1-3 (staggered animations), SplashScreen
+- **Core Features**: HomeScreen (real-time stats, staggered card animations), CameraScreen (image picker modal), ListingEditorScreen
+- **Management**: MyListingsScreen (status-based filtering: active/sold/draft), ProductDetailScreen, ProfileScreen
+- **Platform Integration**: ConnectPlatformsScreen (manage Carousell, Facebook, Shopee connections)
+- **Feedback**: AnalyzingScreen, ListingSuccessScreen (optimized sizing, per-platform results), PaywallScreen
+- **Premium**: PaywallScreen (SnapSell Premium upgrade flow)
 
 ### Navigation (`src/navigation/`)
 Navigation structure and routing:
@@ -51,15 +52,30 @@ Navigation structure and routing:
 
 ### Contexts (`src/contexts/`)
 Global state management using React Context API:
-- **AuthContext.js**: User authentication state and methods
-- **ListingsContext.js**: Marketplace listings state and CRUD operations
+- **AuthContext.js**: User authentication state and methods (login, signup, logout, auto-login)
+- **ListingsContext.js**: Marketplace listings state and CRUD operations with status tracking (active/sold/draft)
 
 ### Services (`src/services/`)
 Business logic and external integrations:
-- **ai.js**: AI image analysis service (mock implementation, ready for Gemini 2.5 Flash)
-- **auth.js**: Authentication service with user management
+- **ai.js**: AI image analysis service (Gemini 2.5 Flash Lite integrated)
+  - analyzeImage: Product identification with platform-specific descriptions
+  - enhanceImage: Mock image enhancement (ready for Cloudinary/DeepAI integration)
+  - generateDescription: AI-powered description generation
+  - suggestPrice: Philippine Peso price suggestions with market research
+- **auth.js**: Authentication service with user management (no mock data, AsyncStorage-based)
 - **storage.js**: AsyncStorage wrapper for data persistence
-- **platforms.js**: Platform connection service (Carousell, Facebook Marketplace)
+  - User management: getAllUsers, addUser, findUserByEmail
+  - Listings: saveListings, getListings
+  - Platform tokens: savePlatformToken, getPlatformTokens, removePlatformToken
+  - Onboarding: setOnboardingComplete, getOnboardingComplete
+  - Utility: clearAll for data reset
+- **platforms.js**: Platform connection service (Carousell, Facebook, Shopee)
+  - getConnectedPlatforms: Check connection status
+  - connectCarousell/connectFacebook/connectShopee: OAuth flows (mock)
+  - disconnectPlatform: Remove platform connection
+  - publishListing: Multi-platform publishing with error handling
+  - validateTokens: Check token expiration
+  - refreshToken: Token refresh logic
 
 ### Constants (`src/constants/`)
 App-wide configuration and theming:
@@ -115,17 +131,17 @@ LoginScreen/SignupScreen → AuthContext → auth.js → storage.js
 
 ### Listing Creation Flow
 ```
-CameraScreen → ai.js (Gemini 2.5 Flash) → AnalyzingScreen → ListingEditorScreen → platformService.publishListing() → ListingsContext → storage.js → ListingSuccessScreen
+CameraScreen → ai.js (Gemini 2.5 Flash Lite) → AnalyzingScreen → ListingEditorScreen → platformService.publishListing() → ListingsContext → storage.js → ListingSuccessScreen (with per-platform results)
 ```
 
 ### Multi-Platform Publishing Flow
 ```
-ListingEditorScreen (platform selection) → platformService.publishListing(selectedPlatforms) → Carousell API + Facebook API (mock) → Success/Error Results → ListingSuccessScreen
+ListingEditorScreen (platform selection: Carousell/Facebook/Shopee) → platformService.publishListing(selectedPlatforms) → Carousell API + Facebook API + Shopee API (mock) → Success/Error Results per platform → ListingSuccessScreen
 ```
 
 ### Platform Connection Flow
 ```
-ConnectPlatformsScreen → platforms.js → storage.js
+ProfileScreen → ConnectPlatformsScreen → platforms.js (OAuth mock) → storage.js → Connection Status Display
 ```
 
 ### Marketplace Browsing Flow

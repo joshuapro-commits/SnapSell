@@ -1,12 +1,69 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-export const OnboardingScreen3 = ({ onGetStarted }) => {
+export const OnboardingScreen3 = ({ onGetStarted, currentIndex, isActive }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const gridAnim = useRef(new Animated.Value(0)).current;
+  const logoAnim = useRef(new Animated.Value(0)).current;
+  const textAnim = useRef(new Animated.Value(50)).current;
+
+  const indicator1Width = useRef(new Animated.Value(currentIndex === 0 ? 32 : 8)).current;
+  const indicator2Width = useRef(new Animated.Value(currentIndex === 1 ? 32 : 8)).current;
+  const indicator3Width = useRef(new Animated.Value(currentIndex === 2 ? 32 : 8)).current;
+
+  useEffect(() => {
+    if (isActive) {
+      Animated.sequence([
+        Animated.spring(gridAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.spring(logoAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(textAnim, {
+          toValue: 0,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+          delay: 400,
+        }),
+      ]).start();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    Animated.timing(indicator1Width, {
+      toValue: currentIndex === 0 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(indicator2Width, {
+      toValue: currentIndex === 1 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(indicator3Width, {
+      toValue: currentIndex === 2 ? 32 : 8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [currentIndex]);
+
   return (
     <View style={styles.container}>
       {/* Top Header */}
@@ -21,7 +78,23 @@ export const OnboardingScreen3 = ({ onGetStarted }) => {
       {/* Main Visual Section */}
       <View style={styles.visualContainer}>
         {/* Product Images Grid at Top */}
-        <View style={styles.platformGrid}>
+        <Animated.View 
+          style={[
+            styles.platformGrid,
+            {
+              opacity: gridAnim,
+              transform: [
+                { scale: gridAnim },
+                {
+                  translateY: gridAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <View style={styles.platformRow}>
             <View style={styles.productImageBox}>
               <Image
@@ -82,21 +155,45 @@ export const OnboardingScreen3 = ({ onGetStarted }) => {
               />
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Platform Logos - Facebook and Carousell */}
-        <View style={styles.platformLogosContainer}>
+        <Animated.View 
+          style={[
+            styles.platformLogosContainer,
+            {
+              opacity: logoAnim,
+              transform: [
+                { scale: logoAnim },
+                {
+                  translateY: logoAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-30, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <View style={styles.facebookLogoBox}>
             <Ionicons name="logo-facebook" size={32} color="#FFFFFF" />
           </View>
           <View style={styles.carousellLogoBox}>
             <Ionicons name="bag-handle" size={40} color="#FF4444" />
           </View>
-        </View>
+        </Animated.View>
       </View>
 
       {/* Text Content */}
-      <View style={styles.textContent}>
+      <Animated.View 
+        style={[
+          styles.textContent,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: textAnim }],
+          },
+        ]}
+      >
         <View>
           <Text style={styles.title}>Sell Faster,</Text>
           <MaskedView
@@ -121,7 +218,7 @@ export const OnboardingScreen3 = ({ onGetStarted }) => {
         <Text style={styles.description}>
           One tap to publish on Facebook Marketplace and Carousell. Clean photos, better listings, faster sales.
         </Text>
-      </View>
+      </Animated.View>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -138,14 +235,9 @@ export const OnboardingScreen3 = ({ onGetStarted }) => {
 
         {/* Pagination */}
         <View style={styles.pagination}>
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <LinearGradient
-            colors={['#7C3AED', '#FF7A2F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.activeDot}
-          />
+          <Animated.View style={[styles.dot, { width: indicator1Width, backgroundColor: currentIndex === 0 ? '#FF7A2F' : '#D0D0D0' }]} />
+          <Animated.View style={[styles.dot, { width: indicator2Width, backgroundColor: currentIndex === 1 ? '#FF7A2F' : '#D0D0D0' }]} />
+          <Animated.View style={[styles.dot, { width: indicator3Width, backgroundColor: currentIndex === 2 ? '#FF7A2F' : '#D0D0D0' }]} />
         </View>
       </View>
     </View>
@@ -305,13 +397,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#D0D0D0',
-  },
-  activeDot: {
-    width: 32,
     height: 8,
     borderRadius: 4,
   },

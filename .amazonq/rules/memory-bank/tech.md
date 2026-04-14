@@ -113,16 +113,29 @@ expo start --clear      # Start with cleared cache
 - **Expo Go**: Mobile app for testing (iOS/Android)
 
 ## API Integrations
-- **Gemini 2.5 Flash**: AI image analysis (fully integrated with optimized prompts)
+- **Gemini 2.5 Flash Lite**: AI image analysis (fully integrated with optimized prompts)
   - Image analysis with product identification
-  - Platform-specific description generation
-  - Price suggestions in Philippine Peso
-  - Hashtag and location generation
-- **Carousell API**: Marketplace integration (mock implementation ready for OAuth)
-- **Facebook Graph API**: Marketplace integration (mock implementation ready for OAuth)
+  - Platform-specific description generation (Carousell casual, Facebook professional, Shopee e-commerce)
+  - Price suggestions in Philippine Peso with market research
+  - Hashtag generation for Carousell
+  - Meetup location suggestions for Metro Manila
+  - Category classification (15+ categories)
+  - Condition assessment with pricing multipliers
+- **Image Enhancement**: Mock implementation ready for production APIs
+  - Cloudinary AI Enhancement
+  - DeepAI Image Enhancement
+  - Let's Enhance API
+  - Adobe Photoshop API
+- **Carousell API**: Marketplace integration (mock OAuth implementation ready for production)
+- **Facebook Graph API**: Marketplace integration (mock OAuth implementation ready for production)
+- **Shopee Open Platform API**: E-commerce integration (mock OAuth implementation ready for production)
 
 ## Storage Strategy
-- **Current**: AsyncStorage for local persistence
+- **Current**: AsyncStorage for local persistence (NO MOCK DATA)
+  - Keys: @snap_sell_user, @snap_sell_users, @snap_sell_listings, @snap_sell_platform_tokens_{userId}, @snap_sell_onboarding_complete
+  - User authentication: Real registration and login
+  - Listings: Full CRUD with status tracking (active/sold/draft)
+  - Auto-login: Development feature that creates default user if none exists
 - **Production Ready For**:
   - Firebase Firestore
   - AWS Amplify
@@ -133,3 +146,5 @@ expo start --clear      # Start with cleared cache
 - **App Version**: 1.0.0
 - **Package Name**: com.joshuaseziba.SnapSell
 - **Slug**: SnapSell
+- **Gemini Model**: gemini-2.5-flash-lite (for image analysis)
+- **Gemini Fallback**: gemini-1.5-flash (for text generation)

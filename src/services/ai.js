@@ -62,14 +62,14 @@ export const aiService = {
   "name": "product name",
   "brand": "brand name (check logos, text, packaging; use 'Unknown' only if no brand visible)",
   "category": "electronics|clothing|furniture|books|sporting|toys|home|automotive|beauty|jewelry|art|musical|pet|office|other",
-  "condition": "new|like-new|good|fair|poor",
+  "condition": "New|Used - Like New|Used - Good|Used - Fair",
   "descriptions": {
     "carousell": "Casual 2-3 sentences with emojis. Start 'Selling my...' Example: 'Selling my iPhone 13 Pro! 🔥 95% battery, no scratches. Comes with box and charger! 📦'",
     "facebook": "Professional with line breaks. Example: 'iPhone 13 Pro - Excellent\\n\\n- 95% battery\\n- No scratches\\n- Original box included\\n\\nMeetup: BGC'",
     "shopee": "E-commerce style with bullet points. Highlight features and benefits. Example: '✨ iPhone 13 Pro - Premium Condition\\n\\n📱 Product Highlights:\\n• 95% Battery Health\\n• Zero Scratches or Dents\\n• Complete with Original Box & Charger\\n• Fully Tested & Working\\n\\n🚚 Fast Shipping Available\\n💯 100% Authentic'",
     "generic": "Balanced 2-3 sentences. Example: 'iPhone 13 Pro in excellent condition. 95% battery health, no scratches. Includes original box.'"
   },
-  "suggestedPrice": PHP price number (research PH market: new=retail, like-new=80-90%, good=60-75%, fair=40-55%, poor=20-35%),
+  "suggestedPrice": PHP price number (research PH market: New=retail, Used - Like New=80-90%, Used - Good=60-75%, Used - Fair=40-55%),
   "platformData": {
     "carousell": {
       "hashtags": ["3-5 terms without #: brand, category, condition"],
@@ -181,7 +181,7 @@ export const aiService = {
 
   async generateDescription(productInfo) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
       const prompt = `Write 2-3 first-person sentences for: ${productInfo.brand} ${productInfo.name} (${productInfo.condition}). Use 'I', 'my'. Example: "I'm selling my MacBook Pro. Runs perfectly, comes with charger."`;
 
@@ -196,11 +196,11 @@ export const aiService = {
 
   async suggestPrice(productInfo) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
       const prompt = `PHP price for ${productInfo.brand} ${productInfo.name} (${productInfo.condition}). Return JSON only:
 {"suggestedPrice": number, "priceRange": {"min": number, "max": number}}
-Condition multipliers: new=100%, like-new=85%, good=70%, fair=50%, poor=30%`;
+Condition multipliers: New=100%, Used - Like New=85%, Used - Good=70%, Used - Fair=50%`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -212,7 +212,7 @@ Condition multipliers: new=100%, like-new=85%, good=70%, fair=50%, poor=30%`;
       }
 
       return JSON.parse(jsonMatch[0]);
-    } catch (error) {
+    } catch (error) { 
       console.error('Price Suggestion Error:', error);
       const basePrice = 50;
       return {

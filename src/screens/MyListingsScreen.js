@@ -31,7 +31,24 @@ export const MyListingsScreen = ({ navigation }) => {
   const slideAnim = React.useRef(new Animated.Value(300)).current;
   const menuSlideAnim = React.useRef(new Animated.Value(300)).current;
 
-  const tabs = ['Active (5)', 'Sold (2)', 'Drafts (3)'];
+  // Calculate counts dynamically
+  const activeCount = myListings.filter(l => l.status === 'active' || !l.status).length;
+  const soldCount = myListings.filter(l => l.status === 'sold').length;
+  const draftCount = myListings.filter(l => l.status === 'draft').length;
+
+  const tabs = [
+    `Active (${activeCount})`, 
+    `Sold (${soldCount})`, 
+    `Drafts (${draftCount})`
+  ];
+
+  // Filter listings based on selected tab
+  const filteredListings = myListings.filter(listing => {
+    if (selectedTab === 'Active') return listing.status === 'active' || !listing.status;
+    if (selectedTab === 'Sold') return listing.status === 'sold';
+    if (selectedTab === 'Drafts') return listing.status === 'draft';
+    return true;
+  });
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -248,7 +265,7 @@ export const MyListingsScreen = ({ navigation }) => {
 
       {/* Listings */}
       <FlatList
-        data={myListings}
+        data={filteredListings}
         keyExtractor={(item) => item.id}
         renderItem={renderListingCard}
         contentContainerStyle={styles.listContent}

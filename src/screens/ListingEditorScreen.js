@@ -17,7 +17,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const [carousellCategory, setCarousellCategory] = useState(data.category || 'Electronics');
   const [carousellCondition, setCarousellCondition] = useState(data.condition || 'Like New');
   const [facebookCategory, setFacebookCategory] = useState(data.platformData?.facebook?.category || 'Other');
-  const [facebookCondition, setFacebookCondition] = useState(data.condition || 'Like New');
+  const [facebookCondition, setFacebookCondition] = useState(data.condition || 'Used - Like New');
   const [location, setLocation] = useState(data.location || 'Manila, Philippines');
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -60,11 +60,10 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     { name: 'Other', icon: 'apps-outline' },
   ];
   const conditions = [
-    { name: 'Brand New', icon: 'star' },
-    { name: 'Like New', icon: 'star-half' },
-    { name: 'Excellent', icon: 'thumbs-up-outline' },
-    { name: 'Good', icon: 'checkmark-circle-outline' },
-    { name: 'Fair', icon: 'remove-circle-outline' },
+    { name: 'New', icon: 'star' },
+    { name: 'Used - Like New', icon: 'star-half' },
+    { name: 'Used - Good', icon: 'thumbs-up-outline' },
+    { name: 'Used - Fair', icon: 'checkmark-circle-outline' },
   ];
   const thumbnails = [
     { image: data.imageUri },
@@ -146,7 +145,72 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       return;
     }
 
-    // Show publishing progress
+    // Check if platforms are connected
+    const connectedPlatforms = await platformService.getConnectedPlatforms(user.id);
+    
+    // Check Facebook connection if selected
+    if (selectedPlatforms.facebook && !connectedPlatforms.facebook) {
+      Alert.alert(
+        'Facebook Not Connected',
+        'Please connect your Facebook account first in Settings > Connect Platforms.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Connect Now',
+            onPress: () => navigation.navigate('ConnectPlatforms'),
+          },
+        ]
+      );
+      return;
+    }
+
+    // If only Facebook is selected, go directly to WebView
+    if (selectedPlatforms.facebook && !selectedPlatforms.carousell && !selectedPlatforms.shopee) {
+      const listingData = {
+        name: productName,
+        brand: data.brand,
+        price: parseFloat(price),
+        description: description,
+        descriptions: {
+          carousell: carousellDescription,
+          facebook: facebookDescription,
+          shopee: shopeeDescription,
+          generic: description,
+        },
+        category: selectedCategory,
+        condition: selectedCondition,
+        imageUri: data.imageUri,
+        location: location,
+        selectedPlatforms: selectedPlatforms,
+        platformData: {
+          carousell: {
+            hashtags: carousellHashtags,
+            meetupLocations: carousellMeetupLocations,
+            price: parseFloat(carousellPrice),
+            category: carousellCategory,
+            condition: carousellCondition,
+          },
+          facebook: {
+            category: facebookCategory,
+            shippingAvailable: facebookShipping,
+            price: parseFloat(facebookPrice),
+            condition: facebookCondition,
+            location: location,
+          },
+          shopee: {
+            category: shopeeCategory,
+            freeShipping: shopeeFreeShipping,
+            price: parseFloat(shopeePrice),
+            condition: shopeeCondition,
+          },
+        },
+      };
+
+      navigation.navigate('FacebookWebView', { listingData, userId: user.id });
+      return;
+    }
+
+    // Show publishing progress for other platforms
     Alert.alert(
       'Publishing',
       'Publishing your listing to selected platforms...',
