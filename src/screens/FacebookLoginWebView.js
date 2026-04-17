@@ -1,481 +1,238 @@
-import React, { useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, Platform } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Text,
+  Alert,
+} from 'react-native';
+import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { platformService } from '../services/platforms';
-import { CustomAlert } from '../components/CustomAlert';
+import { useAuth } from '../contexts/AuthContext';
+import { storageService } from '../services/storage';
 
-export const FacebookLoginWebView = ({ navigation, route }) => {
-  const { userId, isReconnecting } = route.params;
+const DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+export const FacebookLoginWebView = ({ navigation }) => {
   const webViewRef = useRef(null);
-  const [showTimeout, setShowTimeout] = useState(false);
-  const hasConnected = useRef(false);
-  const hasForcedLogout = useRef(false);
-  const [isReadyForNewLogin, setIsReadyForNewLogin] = useState(false);
-  const lastUrl = useRef('');
-  const timeoutRef = useRef(null);
-  const [webViewKey, setWebViewKey] = useState(Date.now());
-  const [showConnectButton, setShowConnectButton] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
-  const loadingTimeoutRef = useRef(null);
-  const [alertConfig, setAlertConfig] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    buttons: [],
-  });
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [hasConnected, setHasConnected] = useState(false);
 
-  const showSuccessAlert = () => {
-    setAlertConfig({
-      visible: true,
-      title: 'Successfully Connected',
-      message: 'Your Facebook account has been successfully connected. You can now publish listings directly to Facebook Marketplace.',
-      icon: 'checkmark-circle',
-      iconColor: '#10B981',
-      iconBackground: '#ECFDF5',
-      buttons: [{ text: 'OK', onPress: () => setAlertConfig({ ...alertConfig, visible: false }) }],
-    });
-  };
+  const handleNavigationStateChange = async (navState) => {
+    console.log('[FB_LOGIN] Navigation URL:', navState.url);
 
-  React.useEffect(() => {
-    const setupWebView = async () => {
-      // Reset all state flags when component mounts
-      hasConnected.current = false;
-      hasForcedLogout.current = false;
-      setIsReadyForNewLogin(false);
-      lastUrl.current = '';
-      
-      // Android: Clear cache if available
-      if (Platform.OS === 'android' && webViewRef.current) {
-        try {
-          webViewRef.current.clearCache(true);
-          console.log('[WEBVIEW] Android cache cleared');
-        } catch (error) {
-          console.log('[WEBVIEW] Cache clear not available:', error.message);
-        }
-      }
-      
-      // Generate unique key to force fresh WebView instance
-      setWebViewKey(`fb-${Platform.OS}-${Date.now()}`);
-      setIsReady(true);
-      
-      console.log('[WEBVIEW] Setup complete - Platform:', Platform.OS, 'isReconnecting:', isReconnecting);
-    };
-    setupWebView();
-  }, [isReconnecting]);
+    // Success detection: URL contains facebook.com but NOT login or checkpoint
+    if (
+      navState.url.includes('facebook.com') &&
+      !navState.url.includes('login') &&
+      !navState.url.includes('checkpoint') &&
+      !hasConnected
+    ) {
+      console.log('[FB_LOGIN] Login successful detected!');
+      setHasConnected(true);
 
-  const handleNavigationStateChange = useCallback(async (navState) => {
-    const url = navState.url;
-    
-    console.log('[WEBVIEW] URL:', url);
-    console.log('[WEBVIEW] State - isReconnecting:', isReconnecting, 'hasForcedLogout:', hasForcedLogout.current, 'isReadyForNewLogin:', isReadyForNewLogin, 'hasConnected:', hasConnected.current);
-    
-    if (url === lastUrl.current) return;
-    lastUrl.current = url;
-    
-    if (hasConnected.current) return;
-    
-    // Skip logout/checkpoint/recover pages during navigation
-    if (url.includes('/logout') || url.includes('/checkpoint') || url.includes('/recover') || url.includes('/reg') || url.includes('?next=')) {
-      console.log('[WEBVIEW] Skipping auth/redirect page');
-      
-      // But if we see checkpoint or login-related pages, we're ready for new login
-      if ((url.includes('/checkpoint') || url.includes('/login')) && !isReadyForNewLogin) {
-        console.log('[WEBVIEW] STEP 2: Login-related page detected - READY FOR NEW LOGIN');
-        setIsReadyForNewLogin(true);
-        setShowLogoutPrompt(false);
-      }
-      return;
-    }
-    
-    // STEP 1: DETECT STALE SESSION (Lock the connection)
-    const isStaleSession = (url.includes('/home.php') || url === 'https://www.facebook.com/');
-    if (isReconnecting && !hasForcedLogout.current && isStaleSession) {
-      console.log('[WEBVIEW] STEP 1: STALE SESSION DETECTED - Forcing hard logout');
-      hasForcedLogout.current = true;
-      setIsReadyForNewLogin(false); // LOCK - only unlock when we see /login
-      setShowLogoutPrompt(true);
-      
-      if (webViewRef.current) {
-        // BRUTE FORCE: Manually delete all cookies and storage
-        const hardLogoutJS = `
-          (function() {
-            window.stop();
-            
-            // 1. Clear all cookies
-            const cookies = document.cookie.split(";");
-            for (let i = 0; i < cookies.length; i++) {
-              const cookie = cookies[i];
-              const eqPos = cookie.indexOf("=");
-              const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-              document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.facebook.com";
-              document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.m.facebook.com";
-              document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-            }
-            
-            // 2. Clear Local Storage and Session Storage
-            try {
-              localStorage.clear();
-              sessionStorage.clear();
-            } catch(e) {}
-            
-            // 3. Clear IndexedDB
-            try {
-              if (window.indexedDB && window.indexedDB.databases) {
-                window.indexedDB.databases().then(dbs => {
-                  dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
-                });
-              }
-            } catch(e) {}
-            
-            console.log('[WEBVIEW_JS] All cookies and storage cleared');
-            
-            // 4. Redirect to login page
-            window.location.replace('https://www.facebook.com/login/');
-          })();
-          true;
-        `;
-        webViewRef.current.injectJavaScript(hardLogoutJS);
-      }
-      return;
-    }
-    
-    // STEP 2: WAIT FOR LOGIN SCREEN (ONLY place to unlock)
-    // Accept ANY login-related page as "ready" (including save-device, checkpoint, etc.)
-    const isLoginPage = url.includes('/login') || 
-                        url.includes('/checkpoint') || 
-                        url.includes('target=account') ||
-                        url.includes('/save-device/');
-    
-    if (isLoginPage && !isReadyForNewLogin) {
-      console.log('[WEBVIEW] STEP 2: LOGIN PAGE VISIBLE - User must now type credentials');
-      setIsReadyForNewLogin(true); // UNLOCK - This is the ONLY place this becomes true
-      setShowLogoutPrompt(false);
-      return;
-    }
-    
-    // Auto-click "Not Now" on save-device screen
-    if (url.includes('/save-device/') && webViewRef.current) {
-      console.log('[WEBVIEW] Auto-clicking Save Device button...');
-      setTimeout(() => {
-        webViewRef.current?.injectJavaScript(`
-          (function() {
-            const buttons = document.querySelectorAll('button, a, [role="button"]');
-            for (let btn of buttons) {
-              const text = btn.textContent.toLowerCase();
-              if (text.includes('not now') || text.includes('ok') || text.includes('continue')) {
-                console.log('[WEBVIEW_JS] Clicking:', btn.textContent);
-                btn.click();
-                break;
-              }
-            }
-          })();
-          true;
-        `);
-      }, 800);
-    }
-    
-    // STEP 3: VALIDATE REAL FRESH LOGIN (including save-device as success)
-    const isLoggedIn = 
-      url.includes('/save-device/') || // Post-login intermediate screen = SUCCESS
-      ((url.includes('facebook.com') && !url.includes('/login')) &&
-       (url.includes('/marketplace') || url.includes('/home.php') || url === 'https://www.facebook.com/' || url.includes('/profile')));
-    
-    if (isLoggedIn) {
-      console.log('[WEBVIEW] SUCCESS PAGE DETECTED:', url);
-      
-      // Only connect if:
-      // - Not reconnecting (first time), OR
-      // - Reconnecting AND ready for new login (saw login screen)
-      const canConnect = !isReconnecting || (isReconnecting && isReadyForNewLogin);
-      
-      if (canConnect && !hasConnected.current) {
-        console.log('[WEBVIEW] STEP 3: REAL FRESH LOGIN VALIDATED - Connecting');
-        hasConnected.current = true;
-        setShowConnectButton(false);
-        setShowLogoutPrompt(false);
-        
-        // If on save-device, navigate to home before connecting
-        if (url.includes('/save-device/') && webViewRef.current) {
-          console.log('[WEBVIEW] Navigating from save-device to home...');
-          webViewRef.current.injectJavaScript(`
-            window.location.href = 'https://www.facebook.com/';
-            true;
-          `);
-        }
-        
-        const result = await platformService.connectFacebook(userId);
-        
-        if (result.success) {
-          // CRITICAL: Wait 3 seconds for iOS to flush cookies to disk
-          console.log('[WEBVIEW] Waiting for iOS to write cookies to disk...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          navigation.goBack();
-          setTimeout(showSuccessAlert, 300);
-        }
-      } else {
-        console.log('[WEBVIEW] Blocking connection - not ready for new login yet (isReadyForNewLogin:', isReadyForNewLogin, ')');
-      }
-    }
-  }, [userId, navigation, isReconnecting, isReadyForNewLogin]);
-
-  const handleManualConnect = async () => {
-    if (hasConnected.current) return;
-    
-    hasConnected.current = true;
-    setShowConnectButton(false);
-    
-    const result = await platformService.connectFacebook(userId);
-    
-    if (result.success) {
-      // Add delay to allow iOS to flush cookies to disk
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      navigation.goBack();
-      setTimeout(showSuccessAlert, 300);
-    }
-  };
-
-  const handleWebViewMessage = useCallback(async (event) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      console.log('[WEBVIEW] Message received:', data);
-      
-      // Handle RE_CHECK_LOGIN or LOGIN_CHECK with save-device URL
-      if (data.type === 'RE_CHECK_LOGIN' || data.type === 'LOGIN_CHECK') {
-        const isSaveDevicePage = data.url && data.url.includes('/save-device/');
-        const isLoggedInPage = data.isLoggedIn || isSaveDevicePage;
-        
-        console.log('[WEBVIEW] Message check - isLoggedIn:', data.isLoggedIn, 'isSaveDevice:', isSaveDevicePage);
-        
-        // If gate is open and we're logged in (or on save-device), connect!
-        if (isReadyForNewLogin && !hasConnected.current && isLoggedInPage) {
-          console.log('[WEBVIEW] MESSAGE SUCCESS: Connecting now');
-          hasConnected.current = true;
-          setShowConnectButton(false);
-          setShowLogoutPrompt(false);
-          
-          const result = await platformService.connectFacebook(userId);
-          
-          if (result.success) {
-            // Add delay to allow iOS to flush cookies to disk
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            navigation.goBack();
-            setTimeout(showSuccessAlert, 300);
-          }
-        }
-        return;
-      }
-    } catch (error) {
-      console.log('[WEBVIEW] Message error:', error);
-    }
-  }, [userId, navigation, isReconnecting, isReadyForNewLogin]);
-
-  const handleLoadEnd = useCallback(() => {
-    console.log('[WEBVIEW] Load ended');
-    setIsLoading(false);
-    
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
-    
-    if (webViewRef.current) {
-      webViewRef.current.injectJavaScript(`
+      // Inject JavaScript to grab user profile info
+      // Wait for DOM to be fully ready before extracting
+      const injectedJS = `
         (function() {
-          const currentUrl = window.location.href;
-          const isLoginPage = currentUrl.includes('/login');
-          const isSaveDevicePage = currentUrl.includes('/save-device/');
-          const hasSession = document.cookie.includes('c_user=') || 
-                            document.querySelector('[data-sigil="m-profile-header"]') !== null ||
-                            document.querySelector('[data-sigil="MTopBlueBarHeader"]') !== null;
-          
-          // Save-device page = logged in
-          if (isSaveDevicePage) {
-            console.log('[WEBVIEW_JS] On save-device page - reporting logged in');
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'LOGIN_CHECK',
-              isLoggedIn: true,
-              url: currentUrl
-            }));
-          }
-          // If on login page, DO NOT report logged in even if cookie exists (stale cookie)
-          else if (isLoginPage) {
-            console.log('[WEBVIEW_JS] On login page - reporting NOT logged in');
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'LOGIN_CHECK',
-              isLoggedIn: false
-            }));
-          } else if (hasSession) {
-            console.log('[WEBVIEW_JS] Session detected - reporting logged in');
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'LOGIN_CHECK',
-              isLoggedIn: true
-            }));
-          } else {
-            console.log('[WEBVIEW_JS] No session - reporting NOT logged in');
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'LOGIN_CHECK',
-              isLoggedIn: false
-            }));
-          }
+          // Wait for page to be fully loaded
+          const waitForElement = (selector, timeout = 10000) => {
+            return new Promise((resolve) => {
+              if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+              }
+
+              const observer = new MutationObserver(() => {
+                if (document.querySelector(selector)) {
+                  observer.disconnect();
+                  resolve(document.querySelector(selector));
+                }
+              });
+
+              observer.observe(document.body, {
+                childList: true,
+                subtree: true
+              });
+
+              setTimeout(() => {
+                observer.disconnect();
+                resolve(null);
+              }, timeout);
+            });
+          };
+
+          // Wait a bit for page to settle, then extract
+          setTimeout(async () => {
+            try {
+              let userName = '';
+              let profilePic = '';
+
+              // Wait for navigation or profile elements to appear
+              await waitForElement('[role="navigation"], [role="banner"], a[aria-label]', 5000);
+
+              // Method 1: Try to find from profile menu button
+              const profileButton = document.querySelector('div[aria-label*="Account"], div[aria-label*="Profile"]');
+              if (profileButton) {
+                userName = profileButton.getAttribute('aria-label') || '';
+              }
+
+              // Method 2: Look for profile link in navigation
+              if (!userName) {
+                const profileLinks = document.querySelectorAll('a[href*="/profile"], a[href*="/user"]');
+                for (let link of profileLinks) {
+                  const ariaLabel = link.getAttribute('aria-label');
+                  if (ariaLabel && ariaLabel.length > 0 && ariaLabel.length < 50) {
+                    userName = ariaLabel;
+                    break;
+                  }
+                }
+              }
+
+              // Method 3: Look for any text in navigation that might be the name
+              if (!userName) {
+                const navSpans = document.querySelectorAll('[role="navigation"] span, [role="banner"] span');
+                for (let span of navSpans) {
+                  const text = span.textContent?.trim();
+                  if (text && text.length > 2 && text.length < 50 && !text.includes('Facebook')) {
+                    userName = text;
+                    break;
+                  }
+                }
+              }
+
+              // Method 4: Profile picture
+              const profileImgs = document.querySelectorAll('img[alt], image[href]');
+              for (let img of profileImgs) {
+                const alt = img.getAttribute('alt') || '';
+                const href = img.getAttribute('href') || img.src || '';
+                if (alt.length > 0 && alt.length < 50 && href.includes('profile')) {
+                  profilePic = href;
+                  userName = userName || alt;
+                  break;
+                }
+              }
+
+              console.log('[FB_INJECT] Extracted - userName:', userName, 'profilePic:', profilePic);
+
+              // Send data back to React Native
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'PROFILE_DATA',
+                userName: userName.trim(),
+                profilePic: profilePic,
+              }));
+            } catch (error) {
+              console.error('[FB_INJECT] Error:', error);
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'PROFILE_ERROR',
+                error: error.message,
+              }));
+            }
+          }, 3000); // Wait 3 seconds for page to fully render
         })();
         true;
-      `);
+      `;
+
+      // Inject after navigation completes
+      setTimeout(() => {
+        webViewRef.current?.injectJavaScript(injectedJS);
+      }, 1000);
     }
-  }, []);
+  };
+
+  const handleMessage = async (event) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      console.log('[FB_LOGIN] Message received:', data);
+
+      if (data.type === 'PROFILE_DATA') {
+        // Save connection status with user profile info
+        const connectionData = {
+          connected: true,
+          connectedAt: new Date().toISOString(),
+          userName: data.userName || 'Facebook User',
+          profilePic: data.profilePic || '',
+        };
+
+        await storageService.savePlatformToken(user.id, 'facebook', connectionData);
+        
+        console.log('[FB_LOGIN] Connection saved:', connectionData);
+
+        // Show success and navigate back
+        Alert.alert(
+          'Successfully Connected',
+          `Connected as: ${connectionData.userName}\n\nYou can now publish listings to Facebook Marketplace.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else if (data.type === 'PROFILE_ERROR') {
+        console.error('[FB_LOGIN] Profile extraction error:', data.error);
+        
+        // Still save connection even if profile extraction failed
+        const connectionData = {
+          connected: true,
+          connectedAt: new Date().toISOString(),
+          userName: 'Facebook User',
+          profilePic: '',
+        };
+
+        await storageService.savePlatformToken(user.id, 'facebook', connectionData);
+
+        Alert.alert(
+          'Successfully Connected',
+          'Your Facebook account has been connected. You can now publish listings to Facebook Marketplace.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('[FB_LOGIN] Error handling message:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color="#000" />
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="close" size={28} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Connect Facebook</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 40 }} />
       </View>
 
-      {!isReady ? (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#1877F2" />
-          <Text style={styles.loadingText}>Preparing login...</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.instructionsBanner}>
-            <Ionicons name="information-circle" size={20} color="#1877F2" />
-            <Text style={styles.instructionsText}>
-              {showLogoutPrompt 
-                ? 'Clearing old session...' 
-                : 'Log in to Facebook to connect your account'}
-            </Text>
-          </View>
-        </>
-      )}
-
-      {isReady && (
-        <WebView
-          key={webViewKey}
-          ref={webViewRef}
-          source={{ uri: 'https://www.facebook.com/login/' }}
-          onNavigationStateChange={handleNavigationStateChange}
-          onMessage={handleWebViewMessage}
-          onLoadEnd={handleLoadEnd}
-          onLoadStart={() => {
-            console.log('[WEBVIEW] Load started');
-            setIsLoading(true);
-            
-            if (loadingTimeoutRef.current) {
-              clearTimeout(loadingTimeoutRef.current);
-            }
-            loadingTimeoutRef.current = setTimeout(() => {
-              console.log('[WEBVIEW] Loading timeout');
-              setShowTimeout(true);
-              setIsLoading(false);
-            }, 15000);
-          }}
-          onError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            console.log('[WEBVIEW] Error:', nativeEvent);
-            
-            // Android: If error during logout, manually navigate to login
-            if (Platform.OS === 'android' && hasForcedLogout.current && !isReadyForNewLogin) {
-              console.log('[WEBVIEW] Android error during logout - manually navigating to login');
-              setTimeout(() => {
-                if (webViewRef.current) {
-                  webViewRef.current.injectJavaScript(`
-                    window.location.href = 'https://www.facebook.com/login/';
-                    true;
-                  `);
-                }
-              }, 1000);
-              return;
-            }
-            
-            if (loadingTimeoutRef.current) {
-              clearTimeout(loadingTimeoutRef.current);
-            }
-            setShowTimeout(true);
-            setIsLoading(false);
-          }}
-          onHttpError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            console.log('[WEBVIEW] HTTP Error:', nativeEvent.statusCode, nativeEvent.url);
-            
-            // Android: Handle redirect errors during logout
-            if (Platform.OS === 'android' && hasForcedLogout.current && !isReadyForNewLogin) {
-              console.log('[WEBVIEW] Android HTTP error during logout - recovering');
-              setTimeout(() => {
-                if (webViewRef.current) {
-                  webViewRef.current.injectJavaScript(`
-                    window.location.href = 'https://www.facebook.com/login/';
-                    true;
-                  `);
-                }
-              }, 1000);
-            }
-          }}
-          startInLoadingState={false}
-          incognito={false}
-          // Android Strategy: Aggressive cache control
-          cacheEnabled={false}
-          cacheMode={Platform.OS === 'android' ? 'LOAD_NO_CACHE' : undefined}
-          // Shared props
-          sharedCookiesEnabled={true}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          thirdPartyCookiesEnabled={true}
-          setSupportMultipleWindows={false}
-          originWhitelist={['*']}
-          userAgent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-          style={styles.webview}
-          mixedContentMode="always"
-          allowsInlineMediaPlayback={true}
-        />
-      )}
-
-      {isLoading && (
+      {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#1877F2" />
           <Text style={styles.loadingText}>Loading Facebook...</Text>
         </View>
       )}
 
-      {showTimeout && (
-        <View style={styles.loadingOverlay}>
-          <Ionicons name="alert-circle" size={48} color="#FF6B35" />
-          <Text style={styles.loadingText}>Connection Issue</Text>
-          <Text style={styles.loadingSubtext}>Facebook is taking longer than usual</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={() => {
-              console.log('[WEBVIEW] Reload');
-              setShowTimeout(false);
-              setIsLoading(true);
-              webViewRef.current?.reload();
-            }}
-          >
-            <Text style={styles.retryButtonText}>Reload Page</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.retryButton, { backgroundColor: '#666', marginTop: 10 }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.retryButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <CustomAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        buttons={alertConfig.buttons}
-        icon={alertConfig.icon}
-        iconColor={alertConfig.iconColor}
-        iconBackground={alertConfig.iconBackground}
+      <WebView
+        ref={webViewRef}
+        source={{ uri: 'https://www.facebook.com/login' }}
+        userAgent={DESKTOP_USER_AGENT}
+        sharedCookiesEnabled={true}
+        thirdPartyCookiesEnabled={true}
+        domStorageEnabled={true}
+        javaScriptEnabled={true}
+        onNavigationStateChange={handleNavigationStateChange}
+        onMessage={handleMessage}
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+        style={styles.webview}
       />
     </SafeAreaView>
   );
@@ -490,106 +247,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#000',
-  },
-  instructionsBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F0FE',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 8,
-  },
-  instructionsText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1877F2',
-    fontFamily: 'Montserrat_500Medium',
-  },
-  webview: {
-    flex: 1,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#FFF',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#000',
-    fontFamily: 'Montserrat_600SemiBold',
-  },
-  loadingSubtext: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#666',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  retryButton: {
-    marginTop: 20,
-    backgroundColor: '#1877F2',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Montserrat_600SemiBold',
-  },
-  manualConnectContainer: {
-    padding: 16,
-    backgroundColor: '#F0F8FF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  manualConnectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  closeButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
+    alignItems: 'center',
   },
-  manualConnectText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '600',
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    fontFamily: 'Montserrat_700Bold',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
     fontFamily: 'Montserrat_600SemiBold',
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EF4444',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
-  },
-  logoutButtonText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: 'Montserrat_600SemiBold',
+  webview: {
+    flex: 1,
   },
 });

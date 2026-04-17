@@ -8,6 +8,8 @@ const KEYS = {
   PLATFORM_TOKENS: '@snap_sell_platform_tokens',
   ONBOARDING_COMPLETE: '@snap_sell_onboarding_complete',
   FB_DISCONNECT: '@snap_sell_fb_disconnect',
+  PUBLISH_PROGRESS: '@snap_sell_publish_progress',
+  FB_LAST_PUBLISH: '@snap_sell_fb_last_publish',
 };
 
 export const storageService = {
@@ -204,6 +206,54 @@ export const storageService = {
     } catch (error) {
       console.error('Error getting data:', error);
       return null;
+    }
+  },
+
+  // Publish progress — persists the current step and listing data so the
+  // bot can resume from the exact field if the app is killed mid-publish
+  async savePublishProgress(userId, progress) {
+    try {
+      const key = `${KEYS.PUBLISH_PROGRESS}_${userId}`;
+      await AsyncStorage.setItem(key, JSON.stringify(progress));
+    } catch (error) {
+      console.error('Error saving publish progress:', error);
+    }
+  },
+
+  async getPublishProgress(userId) {
+    try {
+      const key = `${KEYS.PUBLISH_PROGRESS}_${userId}`;
+      const data = await AsyncStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('Error getting publish progress:', error);
+      return null;
+    }
+  },
+
+  async clearPublishProgress(userId) {
+    try {
+      const key = `${KEYS.PUBLISH_PROGRESS}_${userId}`;
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error('Error clearing publish progress:', error);
+    }
+  },
+
+  async getLastPublishTime(userId) {
+    try {
+      const val = await AsyncStorage.getItem(`${KEYS.FB_LAST_PUBLISH}_${userId}`);
+      return val ? parseInt(val, 10) : 0;
+    } catch {
+      return 0;
+    }
+  },
+
+  async setLastPublishTime(userId) {
+    try {
+      await AsyncStorage.setItem(`${KEYS.FB_LAST_PUBLISH}_${userId}`, Date.now().toString());
+    } catch (error) {
+      console.error('Error saving last publish time:', error);
     }
   },
 };

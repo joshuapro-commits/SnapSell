@@ -59,6 +59,23 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     { name: 'Jewelry', icon: 'diamond-outline' },
     { name: 'Other', icon: 'apps-outline' },
   ];
+  const facebookCategories = [
+    { name: 'Electronics', icon: 'phone-portrait-outline' },
+    { name: 'Clothing & Shoes', icon: 'shirt-outline' },
+    { name: 'Furniture', icon: 'bed-outline' },
+    { name: 'Books & Magazines', icon: 'book-outline' },
+    { name: 'Sporting Goods', icon: 'basketball-outline' },
+    { name: 'Toys & Games', icon: 'game-controller-outline' },
+    { name: 'Household', icon: 'home-outline' },
+    { name: 'Garden', icon: 'leaf-outline' },
+    { name: 'Automotive', icon: 'car-outline' },
+    { name: 'Beauty & Personal Care', icon: 'sparkles-outline' },
+    { name: 'Jewelry & Accessories', icon: 'diamond-outline' },
+    { name: 'Pet Supplies', icon: 'paw-outline' },
+    { name: 'Tools', icon: 'construct-outline' },
+    { name: 'Musical Instruments', icon: 'musical-notes-outline' },
+    { name: 'Other', icon: 'apps-outline' },
+  ];
   const conditions = [
     { name: 'New', icon: 'star' },
     { name: 'Used - Like New', icon: 'star-half' },
@@ -206,7 +223,12 @@ export const ListingEditorScreen = ({ navigation, route }) => {
         },
       };
 
-      navigation.navigate('FacebookWebView', { listingData, userId: user.id });
+      // Use unified WebView in sell mode
+      navigation.navigate('FacebookUnifiedWebView', { 
+        userId: user.id,
+        mode: 'sell',
+        listingData: listingData,
+      });
       return;
     }
 
@@ -794,7 +816,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             <View style={styles.editModalBody}>
               {(editingField === 'carousellCategory' || editingField === 'facebookCategory' || editingField === 'shopeeCategory') && (
                 <ScrollView style={styles.dropdownScrollView}>
-                  {categories.map((category) => (
+                  {(editingField === 'facebookCategory' ? facebookCategories : categories).map((category) => (
                     <TouchableOpacity
                       key={category.name}
                       style={styles.dropdownItem}

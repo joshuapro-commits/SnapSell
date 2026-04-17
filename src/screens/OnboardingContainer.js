@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Dimensions, Animated } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, FlatList, Dimensions, Animated, TouchableOpacity, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingScreen1 } from './OnboardingScreen1';
 import { OnboardingScreen2 } from './OnboardingScreen2';
 import { OnboardingScreen3 } from './OnboardingScreen3';
@@ -23,13 +24,7 @@ export const OnboardingContainer = ({ onComplete }) => {
         index: currentIndex + 1,
         animated: true 
       });
-    } else {
-      onComplete();
     }
-  };
-
-  const handleSkip = () => {
-    onComplete();
   };
 
   const handleGetStarted = () => {
@@ -38,7 +33,7 @@ export const OnboardingContainer = ({ onComplete }) => {
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index);
+      setCurrentIndex(viewableItems[0].index || 0);
     }
   }).current;
 
@@ -48,76 +43,46 @@ export const OnboardingContainer = ({ onComplete }) => {
 
   const renderItem = ({ item, index }) => {
     const ScreenComponent = item.component;
-    const inputRange = [
-      (index - 1) * width,
-      index * width,
-      (index + 1) * width,
-    ];
-
-    const opacity = scrollX.interpolate({
-      inputRange,
-      outputRange: [0, 1, 0],
-      extrapolate: 'clamp',
-    });
-
-    const scale = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.8, 1, 0.8],
-      extrapolate: 'clamp',
-    });
 
     return (
-      <Animated.View 
-        style={[
-          styles.screenContainer, 
-          { 
-            backgroundColor: '#FFFFFF',
-            opacity,
-            transform: [{ scale }]
-          }
-        ]}
-      >
+      <View style={styles.screenContainer}>
         <ScreenComponent 
           onNext={handleNext}
-          onGetStarted={item.id === '3' ? handleGetStarted : undefined}
+          onGetStarted={handleGetStarted}
           currentIndex={currentIndex}
           isActive={index === currentIndex}
         />
-      </Animated.View>
+      </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.mainContent}>
-        <Animated.FlatList
-          ref={flatListRef}
-          data={screens}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: false }
-          )}
-          scrollEventThrottle={16}
-        />
-      </View>
-    </View>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <FlatList
+        ref={flatListRef}
+        data={screens}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        bounces={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  mainContent: {
-    flex: 1,
+    backgroundColor: '#F8F9FA',
   },
   screenContainer: {
     width,

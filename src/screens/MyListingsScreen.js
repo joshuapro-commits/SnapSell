@@ -15,7 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { FAB, TabBar } from '../components';
 import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
@@ -31,18 +30,16 @@ export const MyListingsScreen = ({ navigation }) => {
   const slideAnim = React.useRef(new Animated.Value(300)).current;
   const menuSlideAnim = React.useRef(new Animated.Value(300)).current;
 
-  // Calculate counts dynamically
   const activeCount = myListings.filter(l => l.status === 'active' || !l.status).length;
   const soldCount = myListings.filter(l => l.status === 'sold').length;
   const draftCount = myListings.filter(l => l.status === 'draft').length;
 
   const tabs = [
-    `Active (${activeCount})`, 
-    `Sold (${soldCount})`, 
-    `Drafts (${draftCount})`
+    { label: 'Active', count: activeCount },
+    { label: 'Sold', count: soldCount },
+    { label: 'Drafts', count: draftCount },
   ];
 
-  // Filter listings based on selected tab
   const filteredListings = myListings.filter(listing => {
     if (selectedTab === 'Active') return listing.status === 'active' || !listing.status;
     if (selectedTab === 'Sold') return listing.status === 'sold';
@@ -191,7 +188,6 @@ export const MyListingsScreen = ({ navigation }) => {
           <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.cardPrice}>₱{item.price.toLocaleString()}</Text>
           
-          {/* Platform Badges */}
           {(item.publishedPlatforms || item.selectedPlatforms) && (
             <View style={styles.platformBadges}>
               {(item.publishedPlatforms?.carousell || item.selectedPlatforms?.carousell) && (
@@ -227,43 +223,52 @@ export const MyListingsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Title Section */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.menuButton}>
+          <Ionicons name="person-circle-outline" size={26} color="#FFF" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.searchButton}>
+          <Ionicons name="search" size={22} color="#6F7787" />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.titleSection}>
-        <Text style={styles.title}>My Listings</Text>
-        <Text style={styles.subtitle}>Manage your active, sold, and draft items effortlessly.</Text>
+        <Text style={styles.title}>
+          <Text style={styles.titleRegular}>Manage Your </Text>
+          <Text style={styles.titleBold}>Listings</Text>
+        </Text>
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.tabContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabContent}
-        >
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab}
+      <View style={styles.statsContainer}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.label}
+            style={[
+              styles.statPill,
+              selectedTab === tab.label && styles.statPillActive
+            ]}
+            onPress={() => setSelectedTab(tab.label)}
+          >
+            <Text 
               style={[
-                styles.tab,
-                selectedTab === tab.split(' ')[0] && styles.tabActive
+                styles.statLabel,
+                selectedTab === tab.label && styles.statLabelActive
               ]}
-              onPress={() => setSelectedTab(tab.split(' ')[0])}
             >
-              <Text 
-                style={[
-                  styles.tabText,
-                  selectedTab === tab.split(' ')[0] && styles.tabTextActive
-                ]}
-                numberOfLines={1}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              {tab.label}
+            </Text>
+            <Text 
+              style={[
+                styles.statCount,
+                selectedTab === tab.label && styles.statCountActive
+              ]}
+            >
+              {tab.count}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Listings */}
       <FlatList
         data={filteredListings}
         keyExtractor={(item) => item.id}
@@ -279,27 +284,42 @@ export const MyListingsScreen = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={56} color="#CCCCCC" />
-            <Text style={styles.emptyText}>No listings yet</Text>
+            <Text style={styles.emptyText}>No {selectedTab.toLowerCase()} listings</Text>
             <Text style={styles.emptySubtext}>
               Start selling by taking a photo of your item
             </Text>
-            <TouchableOpacity 
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('Sell')}
-            >
-              <Text style={styles.emptyButtonText}>Create Listing</Text>
-            </TouchableOpacity>
           </View>
         }
       />
 
-      {/* Floating Action Button */}
-      <FAB onPress={handleOpenImagePicker} />
+      <TouchableOpacity 
+        style={styles.fabButton}
+        onPress={handleOpenImagePicker}
+      >
+        <Ionicons name="add" size={28} color="#FFF" />
+      </TouchableOpacity>
 
-      {/* Bottom Navigation */}
-      <TabBar navigation={navigation} activeTab="My Listings" />
+      <View style={styles.bottomNav}>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Ionicons name="home-outline" size={20} color="#666" />
+          <Text style={styles.navLabel}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="list" size={20} color="#000" />
+          <Text style={styles.navLabelActive}>My Listings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Profile')}
+        >
+          <Ionicons name="person-outline" size={20} color="#666" />
+          <Text style={styles.navLabel}>Profile</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Image Picker Modal */}
       <Modal
         visible={showImagePicker}
         transparent={true}
@@ -314,9 +334,7 @@ export const MyListingsScreen = ({ navigation }) => {
           <Animated.View 
             style={[
               styles.modalContent,
-              {
-                transform: [{ translateY: slideAnim }]
-              }
+              { transform: [{ translateY: slideAnim }] }
             ]}
           >
             <TouchableOpacity activeOpacity={1}>
@@ -366,7 +384,6 @@ export const MyListingsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Menu Modal */}
       <Modal
         visible={showMenuModal}
         transparent={true}
@@ -381,9 +398,7 @@ export const MyListingsScreen = ({ navigation }) => {
           <Animated.View 
             style={[
               styles.menuModalContent,
-              {
-                transform: [{ translateY: menuSlideAnim }]
-              }
+              { transform: [{ translateY: menuSlideAnim }] }
             ]}
           >
             <TouchableOpacity activeOpacity={1}>
@@ -441,83 +456,88 @@ export const MyListingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FC',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#FAFAFA',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   menuButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1A1D1F',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logo: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FF6B35',
-    fontFamily: 'Montserrat_700Bold',
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
+  searchButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   titleSection: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: '#FAFAFA',
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 4,
-    fontFamily: 'Montserrat_700Bold',
+    fontSize: 32,
+    lineHeight: 40,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#999',
-    lineHeight: 18,
+  titleRegular: {
     fontFamily: 'Montserrat_400Regular',
+    color: '#1A1D1F',
   },
-  tabContainer: {
-    backgroundColor: '#FAFAFA',
-    paddingVertical: 12,
+  titleBold: {
+    fontFamily: 'Montserrat_700Bold',
+    color: '#1A1D1F',
   },
-  tabContent: {
-    paddingHorizontal: 20,
+  statsContainer: {
     flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
-  tab: {
+  statPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    marginRight: 8,
+    backgroundColor: '#E8EAED',
   },
-  tabActive: {
-    backgroundColor: '#FF6B35',
+  statPillActive: {
+    backgroundColor: '#1A1D1F',
   },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
+  statLabel: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_500Medium',
+    color: '#6F7787',
+  },
+  statLabelActive: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_500Medium',
+    color: '#FFF',
+  },
+  statCount: {
+    fontSize: 14,
     fontFamily: 'Montserrat_600SemiBold',
+    color: '#1A1D1F',
   },
-  tabTextActive: {
+  statCountActive: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_600SemiBold',
     color: '#FFF',
   },
   listContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 100,
   },
   card: {
@@ -535,9 +555,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardImageContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     overflow: 'hidden',
     marginRight: 12,
     backgroundColor: '#F5F5F5',
@@ -557,16 +577,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
     fontFamily: 'Montserrat_600SemiBold',
+    color: '#1A1D1F',
+    marginBottom: 4,
   },
   cardPrice: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#000',
     fontFamily: 'Montserrat_600SemiBold',
+    color: '#1A1D1F',
     marginBottom: 8,
   },
   platformBadges: {
@@ -584,7 +602,6 @@ const styles = StyleSheet.create({
   },
   platformBadgeText: {
     fontSize: 10,
-    fontWeight: '600',
     fontFamily: 'Montserrat_600SemiBold',
   },
   cardMenu: {
@@ -598,15 +615,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#1A1D1F',
     marginTop: 16,
     marginBottom: 8,
-    fontFamily: 'Montserrat_600SemiBold',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: '#6F7787',
     textAlign: 'center',
     marginBottom: 24,
     fontFamily: 'Montserrat_400Regular',
@@ -619,8 +635,50 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
     color: '#FFF',
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF6B35',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    paddingBottom: 28,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  navLabel: {
+    fontSize: 10,
+    color: '#666',
+    fontFamily: 'Montserrat_500Medium',
+  },
+  navLabelActive: {
+    fontSize: 10,
+    color: '#000',
     fontFamily: 'Montserrat_600SemiBold',
   },
   modalOverlay: {
@@ -647,10 +705,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: 'Montserrat_700Bold',
     color: '#000',
     marginBottom: 8,
-    fontFamily: 'Montserrat_700Bold',
   },
   modalSubtitle: {
     fontSize: 14,
@@ -684,10 +741,9 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
     color: '#000',
     marginBottom: 4,
-    fontFamily: 'Montserrat_600SemiBold',
   },
   optionDescription: {
     fontSize: 13,
@@ -702,9 +758,8 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
     fontFamily: 'Montserrat_600SemiBold',
+    color: '#475569',
   },
   menuModalContent: {
     backgroundColor: '#FFF',
@@ -717,10 +772,9 @@ const styles = StyleSheet.create({
   },
   menuModalTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: 'Montserrat_700Bold',
     color: '#000',
     marginBottom: 4,
-    fontFamily: 'Montserrat_700Bold',
   },
   menuModalSubtitle: {
     fontSize: 14,
@@ -754,10 +808,9 @@ const styles = StyleSheet.create({
   },
   menuOptionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Montserrat_600SemiBold',
     color: '#000',
     marginBottom: 4,
-    fontFamily: 'Montserrat_600SemiBold',
   },
   menuOptionDescription: {
     fontSize: 13,

@@ -36,7 +36,7 @@ export const aiService = {
         originalImage: imageUri,
         enhancedImage: imageUri,
         enhancements: {},
-      };
+      }; 
     }
   },
 
@@ -76,7 +76,7 @@ export const aiService = {
       "meetupLocations": ["2-3 Metro Manila areas: Makati, BGC, QC, Ortigas, Manila"]
     },
     "facebook": {
-      "category": "Vehicles|Property Rentals|Apparel|Electronics|Entertainment|Home Goods|Musical Instruments|Office Supplies|Pet Supplies|Sporting Goods|Toys & Games|Other",
+      "category": "Electronics|Clothing & Shoes|Furniture|Garden|Household|Jewelry & Accessories|Sporting Goods|Toys & Games|Books & Magazines|Automotive|Beauty & Personal Care|Pet Supplies|Tools|Musical Instruments|Other",
       "shippingAvailable": true|false
     },
     "shopee": {

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated }
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -65,13 +66,13 @@ export const OnboardingScreen3 = ({ onGetStarted, currentIndex, isActive }) => {
   }, [currentIndex]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerPlaceholder} />
         
         <TouchableOpacity>
-          <Ionicons name="close" size={28} color="#1A1A1A" />
+          <Ionicons name="close" size={28} color="#64748B" />
         </TouchableOpacity>
       </View>
 
@@ -220,27 +221,27 @@ export const OnboardingScreen3 = ({ onGetStarted, currentIndex, isActive }) => {
         </Text>
       </Animated.View>
 
+      {/* Pagination */}
+      <View style={styles.pagination}>
+        <Animated.View style={[styles.dot, { width: indicator1Width, backgroundColor: currentIndex === 0 ? '#FF7A2F' : '#CBD5E1' }]} />
+        <Animated.View style={[styles.dot, { width: indicator2Width, backgroundColor: currentIndex === 1 ? '#FF7A2F' : '#CBD5E1' }]} />
+        <Animated.View style={[styles.dot, { width: indicator3Width, backgroundColor: currentIndex === 2 ? '#FF7A2F' : '#CBD5E1' }]} />
+      </View>
+
       {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={onGetStarted}>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity activeOpacity={0.9} onPress={onGetStarted}>
           <LinearGradient
             colors={['#7C3AED', '#FF7A2F']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.button}
+            style={styles.nextButton}
           >
-            <Text style={styles.buttonText}>Get Started</Text>
+            <Text style={styles.nextButtonText}>Get Started</Text>
           </LinearGradient>
         </TouchableOpacity>
-
-        {/* Pagination */}
-        <View style={styles.pagination}>
-          <Animated.View style={[styles.dot, { width: indicator1Width, backgroundColor: currentIndex === 0 ? '#FF7A2F' : '#D0D0D0' }]} />
-          <Animated.View style={[styles.dot, { width: indicator2Width, backgroundColor: currentIndex === 1 ? '#FF7A2F' : '#D0D0D0' }]} />
-          <Animated.View style={[styles.dot, { width: indicator3Width, backgroundColor: currentIndex === 2 ? '#FF7A2F' : '#D0D0D0' }]} />
-        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -253,9 +254,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
   headerPlaceholder: {
     flex: 1,
@@ -342,7 +342,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
     marginTop: -20,
-    marginBottom: 30,
+    marginBottom: 24,
+  },
+  pagination: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    justifyContent: 'center',
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
   },
   title: {
     fontSize: 40,
@@ -369,35 +379,24 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     fontFamily: 'Montserrat_400Regular',
   },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 24,
+  buttonContainer: {
+    padding: 24,
+    paddingBottom: 32,
   },
-  button: {
+  nextButton: {
     paddingVertical: 16,
-    borderRadius: 28,
+    borderRadius: 999,
     alignItems: 'center',
-    shadowColor: '#7C3AED',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#7704F4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: '700',
+  nextButtonText: {
     color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
     fontFamily: 'Montserrat_700Bold',
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
   },
 });

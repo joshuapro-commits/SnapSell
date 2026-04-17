@@ -129,30 +129,14 @@ export const ListingSuccessScreen = ({ navigation, route }) => {
         {publishedToFacebook && (
           <TouchableOpacity 
             style={styles.platformCard}
-            onPress={async () => {
-              const url = publishResults?.facebook?.listingUrl;
-              console.log('Facebook listing URL:', url);
-              
-              if (url) {
-                // Try to open the exact listing URL
-                try {
-                  const canOpen = await Linking.canOpenURL(url);
-                  if (canOpen) {
-                    await Linking.openURL(url);
-                    return;
-                  }
-                } catch (err) {
-                  console.log('Failed to open listing URL:', err);
-                }
-              }
-              
-              // Fallback to selling page
-              const fallbackUrl = 'https://m.facebook.com/marketplace/you/selling';
-              try {
-                await Linking.openURL(fallbackUrl);
-              } catch (err) {
-                Alert.alert('Error', 'Could not open Facebook. Please check your Facebook app or browser.');
-              }
+            onPress={() => {
+              const url = publishResults?.facebook?.listingUrl || 'https://www.facebook.com/marketplace/you/selling';
+              navigation.navigate('FacebookUnifiedWebView', {
+                mode: 'view',
+                userId: null,
+                listingData: null,
+                viewUrl: url,
+              });
             }}
           >
             <View style={styles.platformIconCircle}>

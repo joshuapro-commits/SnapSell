@@ -10,11 +10,9 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useListings } from '../contexts/ListingsContext';
-import { FAB, TabBar } from '../components';
 import * as ImagePicker from 'expo-image-picker';
 
 export const ProfileScreen = ({ navigation }) => {
@@ -23,16 +21,9 @@ export const ProfileScreen = ({ navigation }) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(300)).current;
 
-  const monthlyData = [
-    { month: 'JAN', amount: 0 },
-    { month: 'FEB', amount: 0 },
-    { month: 'MAR', amount: 0 },
-    { month: 'APR', amount: 0 },
-    { month: 'MAY', amount: 0 },
-    { month: 'JUN', amount: 0 },
-  ];
-
-  const maxAmount = 1000; // Default max for empty chart
+  const totalEarnings = myListings
+    .filter(l => l.status === 'sold')
+    .reduce((sum, l) => sum + (l.price || 0), 0);
 
   const handleOpenImagePicker = async () => {
     setShowImagePicker(true);
@@ -98,137 +89,133 @@ export const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const menuItems = [
+    {
+      id: 'premium',
+      icon: 'star',
+      iconColor: '#FFB800',
+      bgColor: '#FFF9E6',
+      label: 'SnapSell Premium',
+      description: 'Unlock unlimited listings',
+      action: () => navigation.navigate('Paywall'),
+    },
+    {
+      id: 'earnings',
+      icon: 'stats-chart',
+      iconColor: '#10B981',
+      bgColor: '#E8F9F4',
+      label: 'Track Your Earnings',
+      description: 'View sales analytics',
+      action: () => navigation.navigate('Earnings'),
+    },
+    {
+      id: 'platforms',
+      icon: 'link',
+      iconColor: '#1877F2',
+      bgColor: '#E7F3FF',
+      label: 'Connected Platforms',
+      description: 'Manage your integrations',
+      action: () => navigation.navigate('ConnectPlatforms'),
+    },
+    {
+      id: 'invite',
+      icon: 'people',
+      iconColor: '#EE4D2D',
+      bgColor: '#FFF0ED',
+      label: 'Invite Friends',
+      description: 'Earn rewards together',
+      action: () => {},
+    },
+    {
+      id: 'settings',
+      icon: 'settings-outline',
+      iconColor: '#6F7787',
+      bgColor: '#F5F5F5',
+      label: 'Settings',
+      description: 'Preferences and privacy',
+      action: () => {},
+    },
+    {
+      id: 'help',
+      icon: 'help-circle-outline',
+      iconColor: '#6F7787',
+      bgColor: '#F5F5F5',
+      label: 'Help Center',
+      description: 'Get support',
+      action: () => {},
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView}>
-      {/* Earnings Summary */}
-      <View style={styles.earningsSection}>
-        <Text style={styles.earningsTitle}>Earnings</Text>
-        <Text style={styles.earningsSubtitle}>Track your sales performance and revenue growth.</Text>
-        
-        <View style={styles.balanceContainer}>
-          <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>₱0</Text>
-          <View style={styles.percentageContainer}>
-            <Ionicons name="trending-up" size={14} color="#00D9A5" />
-            <Text style={styles.percentageText}>+0%</Text>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.menuButton}>
+          <Ionicons name="person-circle-outline" size={26} color="#FFF" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.searchButton}>
+          <Ionicons name="search" size={22} color="#6F7787" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>
+          <Text style={styles.titleRegular}>Your </Text>
+          <Text style={styles.titleBold}>Profile</Text>
+          <Text style={styles.titleRegular}> & Settings</Text>
+        </Text>
+
+        <View style={styles.statsContainer}>
+          <View style={styles.statPill}>
+            <Text style={styles.statLabel}>Listings</Text>
+            <Text style={styles.statCount}>{myListings.length}</Text>
+          </View>
+          <View style={[styles.statPill, styles.statPillActive]}>
+            <Text style={styles.statLabelActive}>Sold</Text>
+            <Text style={styles.statCountActive}>{myListings.filter(l => l.status === 'sold').length}</Text>
           </View>
         </View>
-        <View style={styles.chartContainer}>
-          {monthlyData.map((item, index) => (
-            <View key={index} style={styles.chartColumn}>
-              <View style={styles.barContainer}>
-                <View 
-                  style={[
-                    styles.bar,
-                    { 
-                      height: `${(item.amount / maxAmount) * 100}%`,
-                      backgroundColor: item.month === 'MAR' ? '#FF6B35' : '#E0E0E0'
-                    }
-                  ]} 
-                />
+
+        <View style={styles.menuList}>
+          {menuItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.menuCard, { backgroundColor: item.bgColor }]}
+              onPress={item.action}
+            >
+              <View style={styles.menuCardLeft}>
+                <View style={styles.menuIconContainer}>
+                  <Ionicons name={item.icon} size={28} color={item.iconColor} />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                  <Text style={styles.menuDescription}>{item.description}</Text>
+                </View>
               </View>
-              <Text style={styles.monthLabel}>{item.month}</Text>
-            </View>
+              <Ionicons name="chevron-forward" size={20} color="#6F7787" />
+            </TouchableOpacity>
           ))}
         </View>
-      </View>
 
-      {/* Premium Card */}
-      <TouchableOpacity 
-        style={styles.premiumCardWrapper}
-        onPress={() => navigation.navigate('Paywall')}
-      >
-        <LinearGradient
-          colors={['#7C3AED', '#FF6B35']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.premiumCard}
+        <TouchableOpacity
+          style={styles.logoutCard}
+          onPress={logout}
         >
-          <View style={styles.premiumContent}>
-            <Text style={styles.premiumTitle}>SnapSell Premium</Text>
-            <Text style={styles.premiumSubtitle}>Boost your sales with{"\n"}Unlimited listings & AI Pro{"\n"}selling tools.</Text>
-            <View style={styles.upgradeButton}>
-              <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+          <View style={styles.menuCardLeft}>
+            <View style={[styles.menuIconContainer, { backgroundColor: '#FFE8E8' }]}>
+              <Ionicons name="log-out-outline" size={28} color="#FF4444" />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={[styles.menuLabel, { color: '#FF4444' }]}>Logout</Text>
+              <Text style={styles.menuDescription}>Sign out of your account</Text>
             </View>
           </View>
-          <View style={styles.premiumDecoration}>
-            <View style={[styles.star, { top: 20, right: 30 }]} />
-            <View style={[styles.star, { top: 60, right: 20 }]} />
-            <View style={[styles.star, { bottom: 40, right: 40 }]} />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* Menu Items */}
-      <View style={styles.menuSection}>
-        <TouchableOpacity style={styles.menuItem}>
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#E8F9F4' }]}>
-              <Ionicons name="people" size={20} color="#00D9A5" />
-            </View>
-            <Text style={styles.menuItemText}>Invite Friends</Text>
-          </View>
-          <View style={styles.menuItemRight}>
-            <Text style={styles.rewardText}>Get ₱0</Text>
-            <Ionicons name="chevron-forward" size={20} color="#CCC" />
-          </View>
+          <Ionicons name="chevron-forward" size={20} color="#FF4444" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#F5F5F5' }]}>
-              <Ionicons name="settings-outline" size={20} color="#666" />
-            </View>
-            <Text style={styles.menuItemText}>Settings</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#CCC" />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('ConnectPlatforms')}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FFF0E8' }]}>
-              <Ionicons name="link-outline" size={20} color="#FF6B35" />
-            </View>
-            <Text style={styles.menuItemText}>Connected Platforms</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#CCC" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#F5F5F5' }]}>
-              <Ionicons name="help-circle-outline" size={20} color="#666" />
-            </View>
-            <Text style={styles.menuItemText}>Help Center</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#CCC" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={logout}>
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FFE8E8' }]}>
-              <Ionicons name="log-out-outline" size={20} color="#FF4444" />
-            </View>
-            <Text style={[styles.menuItemText, { color: '#FF4444' }]}>Logout</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Footer */}
-      <Text style={styles.footer}>v1.2.0 - BUILT FOR THE PINOY SELLER.</Text>
+        <Text style={styles.footer}>v1.2.0 - BUILT FOR THE PINOY SELLER.</Text>
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <FAB onPress={handleOpenImagePicker} />
-
-      {/* Bottom Navigation */}
-      <TabBar navigation={navigation} activeTab="Profile" />
-
-      {/* Image Picker Modal */}
       <Modal
         visible={showImagePicker}
         transparent={true}
@@ -294,6 +281,34 @@ export const ProfileScreen = ({ navigation }) => {
           </Animated.View>
         </TouchableOpacity>
       </Modal>
+
+      <TouchableOpacity 
+        style={styles.fabButton}
+        onPress={handleOpenImagePicker}
+      >
+        <Ionicons name="add" size={28} color="#FFF" />
+      </TouchableOpacity>
+
+      <View style={styles.bottomNav}>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Ionicons name="home-outline" size={20} color="#666" />
+          <Text style={styles.navLabel}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('My Listings')}
+        >
+          <Ionicons name="list-outline" size={20} color="#666" />
+          <Text style={styles.navLabel}>My Listings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="person" size={20} color="#000" />
+          <Text style={styles.navLabelActive}>Profile</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -301,273 +316,141 @@ export const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8F9FC',
   },
   scrollView: {
     flex: 1,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#FFF',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   menuButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1A1D1F',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logo: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FF6B35',
-    fontFamily: 'Montserrat_700Bold',
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
+  searchButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#FFF',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  levelBadge: {
-    position: 'absolute',
-    bottom: -8,
-    left: '50%',
-    transform: [{ translateX: -50 }],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  levelText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '700',
-    fontFamily: 'Montserrat_700Bold',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 4,
-    fontFamily: 'Montserrat_700Bold',
-  },
-  userHandle: {
-    fontSize: 14,
-    color: '#999',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  earningsSection: {
-    backgroundColor: 'transparent',
-    marginTop: 0,
-    marginHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  earningsTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 4,
-    fontFamily: 'Montserrat_700Bold',
-  },
-  earningsSubtitle: {
-    fontSize: 13,
-    color: '#999',
-    lineHeight: 18,
-    marginBottom: 16,
-    fontFamily: 'Montserrat_400Regular',
-  },
-  earningsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  earningsPeriod: {
-    fontSize: 12,
-    color: '#999',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  balanceContainer: {
-    marginBottom: 20,
-    marginTop: 8,
-  },
-  balanceLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
-    fontFamily: 'Montserrat_400Regular',
-  },
-  balanceAmount: {
+  title: {
     fontSize: 32,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 8,
+    lineHeight: 40,
+    marginBottom: 24,
+    marginTop: 8,
+    paddingHorizontal: 20,
+  },
+  titleRegular: {
+    fontFamily: 'Montserrat_400Regular',
+    color: '#1A1D1F',
+  },
+  titleBold: {
     fontFamily: 'Montserrat_700Bold',
+    color: '#1A1D1F',
   },
-  percentageContainer: {
+  statsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    gap: 12,
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
-  percentageText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#00D9A5',
-    fontFamily: 'Montserrat_600SemiBold',
-  },
-  chartContainer: {
+  statPill: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 120,
-    paddingHorizontal: 8,
-  },
-  chartColumn: {
-    flex: 1,
     alignItems: 'center',
     gap: 8,
-  },
-  barContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  bar: {
-    width: 24,
-    borderRadius: 6,
-  },
-  monthLabel: {
-    fontSize: 10,
-    color: '#999',
-    fontWeight: '600',
-    fontFamily: 'Montserrat_600SemiBold',
-  },
-  premiumCardWrapper: {
-    marginTop: 16,
-    marginHorizontal: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  premiumCard: {
-    padding: 24,
-    borderRadius: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  premiumContent: {
-    zIndex: 1,
-  },
-  premiumTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 8,
-    fontFamily: 'Montserrat_700Bold',
-  },
-  premiumSubtitle: {
-    fontSize: 13,
-    color: '#FFF',
-    lineHeight: 20,
-    marginBottom: 16,
-    opacity: 0.9,
-    fontFamily: 'Montserrat_400Regular',
-  },
-  upgradeButton: {
-    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    paddingHorizontal: 20,
     borderRadius: 20,
-    alignSelf: 'flex-start',
+    backgroundColor: '#E8EAED',
   },
-  upgradeButtonText: {
+  statPillActive: {
+    backgroundColor: '#1A1D1F',
+  },
+  statLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#7C3AED',
-    fontFamily: 'Montserrat_700Bold',
+    fontFamily: 'Montserrat_500Medium',
+    color: '#6F7787',
   },
-  premiumDecoration: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: '40%',
+  statLabelActive: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_500Medium',
+    color: '#FFF',
   },
-  star: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    transform: [{ rotate: '45deg' }],
-    borderRadius: 6,
+  statCount: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#1A1D1F',
   },
-  menuSection: {
-    backgroundColor: 'transparent',
-    marginTop: 16,
-    marginHorizontal: 16,
-    paddingVertical: 8,
+  statCountActive: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#FFF',
   },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
+  menuList: {
     paddingHorizontal: 20,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
-  menuIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuItemText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000',
-    fontFamily: 'Montserrat_600SemiBold',
-  },
-  menuItemRight: {
+  menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 12,
   },
-  rewardText: {
+  menuCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#1A1D1F',
+    marginBottom: 4,
+  },
+  menuDescription: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#FF6B35',
-    fontFamily: 'Montserrat_700Bold',
+    fontFamily: 'Montserrat_400Regular',
+    color: '#6F7787',
+  },
+  logoutCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 20,
+    marginTop: 12,
+    marginHorizontal: 20,
+    backgroundColor: '#FFF',
   },
   footer: {
     fontSize: 11,
@@ -657,6 +540,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#475569',
+    fontFamily: 'Montserrat_600SemiBold',
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF6B35',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    paddingBottom: 28,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  navLabel: {
+    fontSize: 10,
+    color: '#666',
+    fontWeight: '500',
+    fontFamily: 'Montserrat_500Medium',
+  },
+  navLabelActive: {
+    fontSize: 10,
+    color: '#000',
+    fontWeight: '600',
     fontFamily: 'Montserrat_600SemiBold',
   },
 });

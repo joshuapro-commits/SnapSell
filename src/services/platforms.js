@@ -170,6 +170,36 @@ export const platformService = {
   },
 
   /**
+   * Save Facebook cookies for session persistence
+   */
+  async saveFacebookCookies(userId, cookies) {
+    try {
+      const cookieKey = `@snap_sell_fb_cookies_${userId}`;
+      await storageService.saveData(cookieKey, cookies);
+      console.log('[COOKIE_SAVE] Facebook cookies saved');
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving Facebook cookies:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Get saved Facebook cookies
+   */
+  async getFacebookCookies(userId) {
+    try {
+      const cookieKey = `@snap_sell_fb_cookies_${userId}`;
+      const cookies = await storageService.getData(cookieKey);
+      console.log('[COOKIE_LOAD] Facebook cookies loaded:', cookies ? 'YES' : 'NO');
+      return cookies || '';
+    } catch (error) {
+      console.error('Error loading Facebook cookies:', error);
+      return '';
+    }
+  },
+
+  /**
    * Get platform tokens for a user
    */
   async getPlatformTokens(userId) {

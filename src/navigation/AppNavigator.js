@@ -6,14 +6,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoginScreen } from '../screens/LoginScreen';
 import { LoginFormScreen } from '../screens/LoginFormScreen';
 import { SignupScreen } from '../screens/SignupScreen';
+import { CameraScreen } from '../screens/CameraScreen';
 import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { ListingEditorScreen } from '../screens/ListingEditorScreen';
 import { ListingSuccessScreen } from '../screens/ListingSuccessScreen';
 import { AnalyzingScreen } from '../screens/AnalyzingScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
 import { ConnectPlatformsScreen } from '../screens/ConnectPlatformsScreen';
-import { FacebookWebViewScreen } from '../screens/FacebookWebViewScreen';
 import { FacebookLoginWebView } from '../screens/FacebookLoginWebView';
+import { FacebookUnifiedWebView } from '../screens/FacebookUnifiedWebView';
+import { EarningsScreen } from '../screens/EarningsScreen';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
 
@@ -74,6 +76,11 @@ export const AppNavigator = () => {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="Sell"
+              component={CameraScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="ProductDetail"
               component={ProductDetailScreen}
               options={{ headerShown: false }}
@@ -104,17 +111,19 @@ export const AppNavigator = () => {
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="FacebookWebView"
-              component={FacebookWebViewScreen}
+              name="FacebookLoginWebView"
+              component={FacebookLoginWebView}
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="FacebookLoginWebView"
-              component={FacebookLoginWebView}
-              options={{ 
-                headerShown: false,
-                unmountOnBlur: false,
-              }}
+              name="FacebookUnifiedWebView"
+              component={FacebookUnifiedWebView}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Earnings"
+              component={EarningsScreen}
+              options={{ headerShown: false }}
             />
           </>
         )}

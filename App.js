@@ -6,6 +6,7 @@ import { useFonts, Montserrat_400Regular, Montserrat_500Medium, Montserrat_600Se
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ListingsProvider } from './src/contexts/ListingsContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { storageService } from './src/services/storage';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -19,7 +20,18 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Removed automatic timer - let SplashScreen animation control the transition
+    // Clear platform tokens on app start
+    const clearTokens = async () => {
+      try {
+        const user = await storageService.getUser();
+        if (user) {
+          await storageService.clearAllPlatformTokens(user.id);
+        }
+      } catch (error) {
+        console.error('Error clearing tokens:', error);
+      }
+    };
+    clearTokens();
   }, []);
 
   if (!fontsLoaded) {
