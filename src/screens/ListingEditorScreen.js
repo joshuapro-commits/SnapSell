@@ -6,86 +6,85 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
+import { getFPCId, getCategoryNameFromId, isLeafCategory, getParentName, getLeafName, FB_CATEGORY_LIST, FPC_HIERARCHY } from '../constants/facebookCategories';
 
 export const ListingEditorScreen = ({ navigation, route }) => {
   const { productData, listing } = route.params;
   const data = productData || listing;
-  const { addListing } = useListings();
+  const isEditing = !!listing?.id;
+  const { addListing, updateListing } = useListings();
   const { user } = useAuth();
+  
+  // Initialize state from listing data (works for both new and existing listings)
   const [selectedCategory, setSelectedCategory] = useState(data.category || 'Electronics');
   const [selectedCondition, setSelectedCondition] = useState(data.condition || 'Like New');
-  const [carousellCategory, setCarousellCategory] = useState(data.category || 'Electronics');
-  const [carousellCondition, setCarousellCondition] = useState(data.condition || 'Like New');
-  const [facebookCategory, setFacebookCategory] = useState(data.platformData?.facebook?.category || 'Other');
-  const [facebookCondition, setFacebookCondition] = useState(data.condition || 'Used - Like New');
-  const [location, setLocation] = useState(data.location || 'Manila, Philippines');
+  const [carousellCategory, setCarousellCategory] = useState(data.platformData?.carousell?.category || data.category || 'Electronics');
+  const [carousellCondition, setCarousellCondition] = useState(data.platformData?.carousell?.condition || data.condition || 'Like New');
+  
+  // Facebook category uses FPC ID
+  const initialFbCategoryId = data.platformData?.facebook?.categoryId || getFPCId(data.category);
+  const initialFbCategoryName = data.platformData?.facebook?.categoryName || getCategoryNameFromId(initialFbCategoryId);
+  const initialFbHierarchy = data.platformData?.facebook?.hierarchy ?? (isLeafCategory(initialFbCategoryId) ? { parentName: getParentName(initialFbCategoryId), leafName: getLeafName(initialFbCategoryId), fallbackLeaf: FPC_HIERARCHY[initialFbCategoryId]?.fallbackLeaf || null } : null);
+  const [facebookCategoryId, setFacebookCategoryId] = useState(initialFbCategoryId);
+  const [facebookCategoryName, setFacebookCategoryName] = useState(initialFbCategoryName);
+  const [facebookHierarchy, setFacebookHierarchy] = useState(initialFbHierarchy);
+  const [facebookCondition, setFacebookCondition] = useState(data.platformData?.facebook?.condition || data.condition || 'Used – good');
+  const [location, setLocation] = useState(data.platformData?.facebook?.location || data.location || 'Manila, Philippines');
   const [selectedThumbnail, setSelectedThumbnail] = useState(0);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
-  const [productName, setProductName] = useState(data.name || 'Floral Wrap Mini Dress');
-  const [description, setDescription] = useState(data.description || data.descriptions?.generic || 'Stay effortlessly stylish with this floral wrap mini dress.');
+  const [productName, setProductName] = useState(data.name || '');
+  const [brand, setBrand] = useState(data.brand || '');
+  const [imageUri, setImageUri] = useState(data.imageUri || '');
+  const [description, setDescription] = useState(data.descriptions?.generic || data.description || '');
   const [carousellDescription, setCarousellDescription] = useState(data.descriptions?.carousell || data.description || '');
   const [facebookDescription, setFacebookDescription] = useState(data.descriptions?.facebook || data.description || '');
   const [shopeeDescription, setShopeeDescription] = useState(data.descriptions?.shopee || data.description || '');
   const [carousellHashtags, setCarousellHashtags] = useState(data.platformData?.carousell?.hashtags || []);
   const [carousellMeetupLocations, setCarousellMeetupLocations] = useState(data.platformData?.carousell?.meetupLocations || []);
-  const [carousellPrice, setCarousellPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
-  const [facebookPrice, setFacebookPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
-  const [facebookShipping, setFacebookShipping] = useState(data.platformData?.facebook?.shippingAvailable || true);
-  const [shopeeCategory, setShopeeCategory] = useState(data.platformData?.shopee?.category || 'Electronics');
-  const [shopeeCondition, setShopeeCondition] = useState(data.condition || 'Like New');
-  const [shopeePrice, setShopeePrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
-  const [shopeeFreeShipping, setShopeeFreeShipping] = useState(data.platformData?.shopee?.freeShipping || false);
-  const [price, setPrice] = useState((data.suggestedPrice || data.price)?.toString() || '490.50');
-  const [tempValue, setTempValue] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState({
-    carousell: true,
-    facebook: true,
-    shopee: true,
-  });
+  const [facebookTags, setFacebookTags] = useState(data.platformData?.facebook?.tags || []);
 
-  const categories = [
-    { name: 'Electronics', icon: 'phone-portrait-outline' },
-    { name: 'Clothing', icon: 'shirt-outline' },
-    { name: 'Furniture', icon: 'bed-outline' },
-    { name: 'Books', icon: 'book-outline' },
-    { name: 'Sporting Goods', icon: 'basketball-outline' },
-    { name: 'Toys', icon: 'game-controller-outline' },
-    { name: 'Home', icon: 'home-outline' },
-    { name: 'Automotive', icon: 'car-outline' },
-    { name: 'Beauty', icon: 'sparkles-outline' },
-    { name: 'Jewelry', icon: 'diamond-outline' },
-    { name: 'Other', icon: 'apps-outline' },
-  ];
-  const facebookCategories = [
-    { name: 'Electronics', icon: 'phone-portrait-outline' },
-    { name: 'Clothing & Shoes', icon: 'shirt-outline' },
-    { name: 'Furniture', icon: 'bed-outline' },
-    { name: 'Books & Magazines', icon: 'book-outline' },
-    { name: 'Sporting Goods', icon: 'basketball-outline' },
-    { name: 'Toys & Games', icon: 'game-controller-outline' },
-    { name: 'Household', icon: 'home-outline' },
-    { name: 'Garden', icon: 'leaf-outline' },
-    { name: 'Automotive', icon: 'car-outline' },
-    { name: 'Beauty & Personal Care', icon: 'sparkles-outline' },
-    { name: 'Jewelry & Accessories', icon: 'diamond-outline' },
-    { name: 'Pet Supplies', icon: 'paw-outline' },
-    { name: 'Tools', icon: 'construct-outline' },
-    { name: 'Musical Instruments', icon: 'musical-notes-outline' },
-    { name: 'Other', icon: 'apps-outline' },
-  ];
+  React.useEffect(() => {
+    console.log('[ListingEditor] Carousell Hashtags:', carousellHashtags);
+    console.log('[ListingEditor] Full platformData:', data.platformData);
+  }, []);
+  const [carousellPrice, setCarousellPrice] = useState((data.platformData?.carousell?.price || data.price || data.suggestedPrice)?.toString() || '0');
+  const [facebookPrice, setFacebookPrice] = useState((data.platformData?.facebook?.price || data.price || data.suggestedPrice)?.toString() || '0');
+  const [facebookShipping, setFacebookShipping] = useState(data.platformData?.facebook?.shippingAvailable ?? true);
+  const [shopeeCategory, setShopeeCategory] = useState(data.platformData?.shopee?.category || data.category || 'Electronics');
+  const [shopeeCondition, setShopeeCondition] = useState(data.platformData?.shopee?.condition || data.condition || 'Like New');
+  const [shopeePrice, setShopeePrice] = useState((data.platformData?.shopee?.price || data.price || data.suggestedPrice)?.toString() || '0');
+  const [shopeeFreeShipping, setShopeeFreeShipping] = useState(data.platformData?.shopee?.freeShipping ?? false);
+  const [price, setPrice] = useState((data.price || data.suggestedPrice)?.toString() || '0');
+  const [tempValue, setTempValue] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState(
+    data.selectedPlatforms || {
+      carousell: true,
+      facebook: true,
+      shopee: true,
+    }
+  );
+
+  // Use FB_CATEGORY_LIST for all platforms to ensure consistency
+  const categories = FB_CATEGORY_LIST.map(cat => ({
+    name: cat.name,
+    icon: cat.icon || 'pricetag-outline',
+    id: cat.id,
+    parentName: cat.parentName,
+    isLeaf: cat.isLeaf,
+  }));
   const conditions = [
     { name: 'New', icon: 'star' },
-    { name: 'Used - Like New', icon: 'star-half' },
-    { name: 'Used - Good', icon: 'thumbs-up-outline' },
-    { name: 'Used - Fair', icon: 'checkmark-circle-outline' },
+    { name: 'Used – like new', icon: 'star-half' },
+    { name: 'Used – good', icon: 'thumbs-up-outline' },
+    { name: 'Used – fair', icon: 'checkmark-circle-outline' },
   ];
   const thumbnails = [
-    { image: data.imageUri },
-    { image: data.imageUri },
-    { image: data.imageUri },
+    { image: imageUri },
+    { image: imageUri },
+    { image: imageUri },
   ];
 
   const handleEditPress = (field) => {
@@ -97,6 +96,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     if (field === 'shopee') setTempValue(shopeeDescription);
     if (field === 'carousellHashtags') setTempValue(carousellHashtags.join(', '));
     if (field === 'carousellMeetup') setTempValue(carousellMeetupLocations.join(', '));
+    if (field === 'facebookTags') setTempValue(facebookTags.join(', '));
     if (field === 'carousellPrice') setTempValue(carousellPrice);
     if (field === 'facebookPrice') setTempValue(facebookPrice);
     if (field === 'shopeePrice') setTempValue(shopeePrice);
@@ -119,6 +119,10 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       const tags = tempValue.split(',').map(tag => tag.trim()).filter(tag => tag);
       setCarousellHashtags(tags);
     }
+    if (editingField === 'facebookTags') {
+      const tags = tempValue.split(',').map(tag => tag.trim()).filter(tag => tag);
+      setFacebookTags(tags);
+    }
     if (editingField === 'carousellMeetup') {
       const locations = tempValue.split(',').map(loc => loc.trim()).filter(loc => loc);
       setCarousellMeetupLocations(locations);
@@ -134,7 +138,15 @@ export const ListingEditorScreen = ({ navigation, route }) => {
 
   const handleCategorySelect = (category) => {
     if (editingField === 'carousellCategory') setCarousellCategory(category);
-    if (editingField === 'facebookCategory') setFacebookCategory(category);
+    if (editingField === 'facebookCategory') {
+      const item = FB_CATEGORY_LIST.find(c => c.name === category);
+      if (item) {
+        setFacebookCategoryId(item.id);
+        setFacebookCategoryName(item.name);
+        setFacebookHierarchy(item.isLeaf ? { parentName: item.parentName, leafName: item.name, fallbackLeaf: FPC_HIERARCHY[item.id]?.fallbackLeaf || null } : null);
+        console.log(`[Editor] Selected "${item.name}" → FPC ID: ${item.id}, hierarchy:`, item.isLeaf ? item.parentName : 'top-level');
+      }
+    }
     if (editingField === 'shopeeCategory') setShopeeCategory(category);
     setEditModalVisible(false);
     setEditingField(null);
@@ -181,49 +193,87 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       return;
     }
 
+    const listingData = {
+      name: productName,
+      brand: brand,
+      price: parseFloat(price),
+      description: description,
+      descriptions: {
+        carousell: carousellDescription,
+        facebook: facebookDescription,
+        shopee: shopeeDescription,
+        generic: description,
+      },
+      category: selectedCategory,
+      condition: selectedCondition,
+      imageUri: imageUri,
+      location: location,
+      selectedPlatforms: selectedPlatforms,
+      platformData: {
+        carousell: {
+          hashtags: carousellHashtags,
+          meetupLocations: carousellMeetupLocations,
+          price: parseFloat(carousellPrice),
+          category: carousellCategory,
+          condition: carousellCondition,
+        },
+        facebook: {
+          categoryId: facebookCategoryId,
+          categoryName: facebookCategoryName,
+          hierarchy: facebookHierarchy,
+          shippingAvailable: facebookShipping,
+          price: parseFloat(facebookPrice),
+          condition: facebookCondition,
+          location: location,
+          tags: facebookTags,
+        },
+        shopee: {
+          category: shopeeCategory,
+          freeShipping: shopeeFreeShipping,
+          price: parseFloat(shopeePrice),
+          condition: shopeeCondition,
+        },
+      },
+    };
+
+    // If editing existing listing, update it
+    if (isEditing) {
+      try {
+        await updateListing(listing.id, {
+          ...listingData,
+          id: listing.id,
+          userId: listing.userId,
+          status: listing.status,
+          createdAt: listing.createdAt,
+          publishResults: listing.publishResults,
+          publishedPlatforms: listing.publishedPlatforms,
+        });
+        Alert.alert('Success', 'Listing updated successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+        return;
+      } catch (error) {
+        console.error('Update error:', error);
+        Alert.alert('Error', 'Failed to update listing. Please try again.');
+        return;
+      }
+    }
+
     // If only Facebook is selected, go directly to WebView
     if (selectedPlatforms.facebook && !selectedPlatforms.carousell && !selectedPlatforms.shopee) {
-      const listingData = {
-        name: productName,
-        brand: data.brand,
-        price: parseFloat(price),
-        description: description,
-        descriptions: {
-          carousell: carousellDescription,
-          facebook: facebookDescription,
-          shopee: shopeeDescription,
-          generic: description,
-        },
-        category: selectedCategory,
-        condition: selectedCondition,
-        imageUri: data.imageUri,
-        location: location,
-        selectedPlatforms: selectedPlatforms,
-        platformData: {
-          carousell: {
-            hashtags: carousellHashtags,
-            meetupLocations: carousellMeetupLocations,
-            price: parseFloat(carousellPrice),
-            category: carousellCategory,
-            condition: carousellCondition,
-          },
-          facebook: {
-            category: facebookCategory,
-            shippingAvailable: facebookShipping,
-            price: parseFloat(facebookPrice),
-            condition: facebookCondition,
-            location: location,
-          },
-          shopee: {
-            category: shopeeCategory,
-            freeShipping: shopeeFreeShipping,
-            price: parseFloat(shopeePrice),
-            condition: shopeeCondition,
-          },
-        },
-      };
-
-      // Use unified WebView in sell mode
+      // If editing, update the listing first before navigating to WebView
+      if (isEditing) {
+        await updateListing(listing.id, {
+          ...listingData,
+          id: listing.id,
+          userId: listing.userId,
+          status: listing.status,
+          createdAt: listing.createdAt,
+          publishResults: listing.publishResults,
+          publishedPlatforms: listing.publishedPlatforms,
+        });
+      }
+      
       navigation.navigate('FacebookUnifiedWebView', { 
         userId: user.id,
         mode: 'sell',
@@ -240,46 +290,6 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       { cancelable: false }
     );
 
-    const listingData = {
-      name: productName,
-      brand: data.brand,
-      price: parseFloat(price),
-      description: description,
-      descriptions: {
-        carousell: carousellDescription,
-        facebook: facebookDescription,
-        shopee: shopeeDescription,
-        generic: description,
-      },
-      category: selectedCategory,
-      condition: selectedCondition,
-      imageUri: data.imageUri,
-      location: location,
-      selectedPlatforms: selectedPlatforms,
-      platformData: {
-        carousell: {
-          hashtags: carousellHashtags,
-          meetupLocations: carousellMeetupLocations,
-          price: parseFloat(carousellPrice),
-          category: carousellCategory,
-          condition: carousellCondition,
-        },
-        facebook: {
-          category: facebookCategory,
-          shippingAvailable: facebookShipping,
-          price: parseFloat(facebookPrice),
-          condition: facebookCondition,
-          location: location,
-        },
-        shopee: {
-          category: shopeeCategory,
-          freeShipping: shopeeFreeShipping,
-          price: parseFloat(shopeePrice),
-          condition: shopeeCondition,
-        },
-      },
-    };
-
     try {
       // Publish to selected platforms
       const publishResults = await platformService.publishListing(
@@ -291,6 +301,8 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       // Add listing to local storage
       const newListing = await addListing({
         ...listingData,
+        userId: user.id,
+        status: 'active',
         publishResults: publishResults,
         publishedPlatforms: {
           carousell: publishResults.carousell?.success || false,
@@ -526,7 +538,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               {/* Hashtags */}
               <View style={styles.platformFieldSection}>
                 <View style={styles.platformFieldHeader}>
-                  <Text style={styles.platformFieldLabel}>Hashtags</Text>
+                  <Text style={styles.platformFieldLabel}>Product Tags</Text>
                   <TouchableOpacity 
                     style={styles.editIconSmall} 
                     onPress={() => handleEditPress('carousellHashtags')}
@@ -534,13 +546,17 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                     <Ionicons name="pencil" size={14} color="#999" />
                   </TouchableOpacity>
                 </View>
-                <View style={styles.hashtagsContainer}>
-                  {carousellHashtags.map((tag, index) => (
-                    <View key={index} style={styles.hashtagChip}>
-                      <Text style={styles.hashtagText}>#{tag}</Text>
-                    </View>
-                  ))}
-                </View>
+                {carousellHashtags.length > 0 ? (
+                  <View style={styles.hashtagsContainer}>
+                    {carousellHashtags.map((tag, index) => (
+                      <View key={index} style={styles.hashtagChip}>
+                        <Text style={styles.hashtagText}>#{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.emptyTagsText}>No tags yet. Tap edit to add tags.</Text>
+                )}
               </View>
 
               {/* Meetup Locations */}
@@ -615,7 +631,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 </View>
                 <View style={styles.platformFieldValue}>
                   <Ionicons name="pricetag-outline" size={16} color="#666" />
-                  <Text style={styles.platformFieldText}>{facebookCategory}</Text>
+                  <Text style={styles.platformFieldText}>{facebookCategoryName} (ID: {facebookCategoryId})</Text>
                 </View>
               </View>
 
@@ -651,6 +667,30 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                   <Ionicons name="location-outline" size={16} color="#666" />
                   <Text style={styles.platformFieldText}>{location}</Text>
                 </View>
+              </View>
+
+              {/* Product Tags */}
+              <View style={styles.platformFieldSection}>
+                <View style={styles.platformFieldHeader}>
+                  <Text style={styles.platformFieldLabel}>Product Tags</Text>
+                  <TouchableOpacity 
+                    style={styles.editIconSmall} 
+                    onPress={() => handleEditPress('facebookTags')}
+                  >
+                    <Ionicons name="pencil" size={14} color="#999" />
+                  </TouchableOpacity>
+                </View>
+                {facebookTags.length > 0 ? (
+                  <View style={styles.hashtagsContainer}>
+                    {facebookTags.map((tag, index) => (
+                      <View key={index} style={styles.hashtagChip}>
+                        <Text style={styles.hashtagText}>#{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.emptyTagsText}>No tags yet. Tap edit to add tags.</Text>
+                )}
               </View>
 
               {/* Shipping */}
@@ -795,6 +835,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 {editingField === 'facebook' && 'Edit Facebook Description'}
                 {editingField === 'shopee' && 'Edit Shopee Description'}
                 {editingField === 'carousellHashtags' && 'Edit Hashtags'}
+                {editingField === 'facebookTags' && 'Edit Product Tags'}
                 {editingField === 'carousellMeetup' && 'Edit Meetup Locations'}
                 {editingField === 'carousellCategory' && 'Edit Carousell Category'}
                 {editingField === 'carousellCondition' && 'Edit Carousell Condition'}
@@ -816,23 +857,28 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             <View style={styles.editModalBody}>
               {(editingField === 'carousellCategory' || editingField === 'facebookCategory' || editingField === 'shopeeCategory') && (
                 <ScrollView style={styles.dropdownScrollView}>
-                  {(editingField === 'facebookCategory' ? facebookCategories : categories).map((category) => (
+                  {categories.map((category) => (
                     <TouchableOpacity
                       key={category.name}
                       style={styles.dropdownItem}
                       onPress={() => handleCategorySelect(category.name)}
                     >
                       <View style={styles.dropdownItemLeft}>
-                        <Ionicons name={category.icon} size={20} color="#666" style={styles.dropdownItemIcon} />
-                        <Text style={[
-                          styles.dropdownItemText,
-                          (editingField === 'carousellCategory' && carousellCategory === category.name) && styles.dropdownItemTextSelected,
-                          (editingField === 'facebookCategory' && facebookCategory === category.name) && styles.dropdownItemTextSelected,
-                          (editingField === 'shopeeCategory' && shopeeCategory === category.name) && styles.dropdownItemTextSelected,
-                        ]}>{category.name}</Text>
+                        <Ionicons name={category.icon || 'pricetag-outline'} size={20} color="#666" style={styles.dropdownItemIcon} />
+                        <View>
+                          <Text style={[
+                            styles.dropdownItemText,
+                            (editingField === 'carousellCategory' && carousellCategory === category.name) && styles.dropdownItemTextSelected,
+                            (editingField === 'facebookCategory' && facebookCategoryName === category.name) && styles.dropdownItemTextSelected,
+                            (editingField === 'shopeeCategory' && shopeeCategory === category.name) && styles.dropdownItemTextSelected,
+                          ]}>{category.name}</Text>
+                          {editingField === 'facebookCategory' && category.parentName && (
+                            <Text style={styles.dropdownItemSubText}>{category.parentName}</Text>
+                          )}
+                        </View>
                       </View>
                       {((editingField === 'carousellCategory' && carousellCategory === category.name) || 
-                        (editingField === 'facebookCategory' && facebookCategory === category.name) ||
+                        (editingField === 'facebookCategory' && facebookCategoryName === category.name) ||
                         (editingField === 'shopeeCategory' && shopeeCategory === category.name)) && (
                         <Ionicons name="checkmark" size={20} color="#FF6B35" />
                       )}
@@ -874,6 +920,19 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                     value={tempValue}
                     onChangeText={setTempValue}
                     placeholder="Nike, Sneakers, Authentic"
+                    placeholderTextColor="#999"
+                    autoFocus
+                  />
+                </View>
+              )}
+              {editingField === 'facebookTags' && (
+                <View>
+                  <Text style={styles.editHintText}>Separate tags with commas (e.g., iPhone, Electronics, Apple)</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={tempValue}
+                    onChangeText={setTempValue}
+                    placeholder="iPhone, Electronics, Apple"
                     placeholderTextColor="#999"
                     autoFocus
                   />
@@ -1194,6 +1253,12 @@ const styles = StyleSheet.create({
     color: '#333',
     fontFamily: 'Montserrat_500Medium',
   },
+  dropdownItemSubText: {
+    fontSize: 11,
+    color: '#999',
+    fontFamily: 'Montserrat_400Regular',
+    marginTop: 1,
+  },
   dropdownItemTextSelected: {
     color: '#FF6B35',
     fontFamily: 'Montserrat_600SemiBold',
@@ -1285,6 +1350,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2E7D32',
     fontFamily: 'Montserrat_600SemiBold',
+  },
+  emptyTagsText: {
+    fontSize: 13,
+    color: '#999',
+    fontStyle: 'italic',
+    fontFamily: 'Montserrat_400Regular',
   },
   meetupContainer: {
     flexDirection: 'row',

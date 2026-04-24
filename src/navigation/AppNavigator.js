@@ -15,6 +15,7 @@ import { PaywallScreen } from '../screens/PaywallScreen';
 import { ConnectPlatformsScreen } from '../screens/ConnectPlatformsScreen';
 import { FacebookLoginWebView } from '../screens/FacebookLoginWebView';
 import { FacebookUnifiedWebView } from '../screens/FacebookUnifiedWebView';
+import { CarousellWebView } from '../screens/CarousellWebView';
 import { EarningsScreen } from '../screens/EarningsScreen';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
@@ -118,6 +119,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="FacebookUnifiedWebView"
               component={FacebookUnifiedWebView}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CarousellWebView"
+              component={CarousellWebView}
               options={{ headerShown: false }}
             />
             <Stack.Screen

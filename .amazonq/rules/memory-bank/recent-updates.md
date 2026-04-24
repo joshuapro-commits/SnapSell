@@ -218,17 +218,91 @@ function findFieldByText(searchText) {
   // 5. Return input element or null
 }
 
-// Dropdown Selection Algorithm
-function selectFromDropdown(labelText, optionText) {
-  // 1. Find label by exact text match
-  // 2. Search parent chain for trigger with [aria-expanded] or [role="combobox"]
-  // 3. Check if menu already open via aria-expanded="true"
-  // 4. Click trigger to open if closed
-  // 5. Wait 1200ms for menu to render
-  // 6. Find menu with [role="listbox"]
-  // 7. Search visible spans with exact text match and children.length === 0
-  // 8. Click matching option
+// Dropdown Selection Algorithm with Lazy Loading
+function selectDropdownByValue(labelText, targetFpcId) {
+  // 1. Find dropdown trigger by label text
+  // 2. Click to open dropdown menu
+  // 3. Scroll dropdown container to load ALL lazy-rendered options
+  // 4. Search for option by value/data-id attribute (FPC ID)
+  // 5. Check aria-owns for portal-rendered options
+  // 6. Click option + dispatch change/input events for React state sync
+  // 7. Return success/failure
 }
+
+// Lazy Loading Handler (CRITICAL for Facebook's windowed dropdowns)
+async function scrollDropdownToLoadAll(menuRoot) {
+  const scrollable = menuRoot.querySelector('[role="listbox"]') || menuRoot;
+  let lastHeight = scrollable.scrollHeight;
+  let stableCount = 0;
+  
+  for (let i = 0; i < 10; i++) {
+    scrollable.scrollTop = scrollable.scrollHeight; // Scroll to bottom
+    await wait(300);
+    
+    const newHeight = scrollable.scrollHeight;
+    if (newHeight === lastHeight) {
+      stableCount++;
+      if (stableCount >= 2) break; // All options loaded
+    } else {
+      stableCount = 0;
+    }
+    lastHeight = newHeight;
+  }
+  
+  scrollable.scrollTop = 0; // Scroll back to top
+}
+
+// Multi-Level Category Selection (Category → Sub-category → Sub-sub-category)
+async function selectCategoryHierarchy(fpcIdPath) {
+  const levels = Array.isArray(fpcIdPath) ? fpcIdPath : [fpcIdPath];
+  
+  for (let i = 0; i < levels.length; i++) {
+    const fpcId = levels[i];
+    const success = await selectDropdownByValue('Category', fpcId);
+    if (!success) return false;
+    
+    // Wait for next level dropdown to appear
+    if (i < levels.length - 1) {
+      await wait(1000);
+      // Poll for sub-category dropdown (up to 5 attempts)
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const subTrigger = findDropdownTrigger('Sub-category');
+        if (subTrigger) break;
+        await wait(500);
+      }
+    }
+  }
+  return true;
+}
+
+// MutationObserver for Dynamic Fields (Brand, Size, Color, etc.)
+function watchForDynamicFields(callback) {
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length > 0) {
+        const newInputs = Array.from(mutation.addedNodes)
+          .filter(node => node.nodeType === 1)
+          .flatMap(node => [
+            ...Array.from(node.querySelectorAll('input, textarea, select, [role="combobox"]')),
+            node.matches && node.matches('input, textarea, select, [role="combobox"]') ? node : null
+          ])
+          .filter(Boolean);
+        
+        if (newInputs.length > 0) callback(newInputs);
+      }
+    }
+  });
+  
+  observer.observe(document.body, { childList: true, subtree: true });
+  return observer;
+}
+
+// React State Sync (CRITICAL)
+// After selecting dropdown option, MUST dispatch both events:
+target.click();
+target.dispatchEvent(new Event('change', { bubbles: true }));
+target.dispatchEvent(new Event('input', { bubbles: true }));
+// Without this, React state doesn't update and Next button stays disabled
 
 // Typewriter Effect (Human-Like Behavior)
 for (let char of text) {
@@ -237,9 +311,6 @@ for (let char of text) {
   await sleep(40 + Math.random() * 40); // 40-80ms per character
 }
 el.dispatchEvent(new Event('change', { bubbles: true }));
-
-// React Event Triggering (CRITICAL)
-// Without bubbles: true, Facebook's Save button stays grayed out
 
 // Programmatic Image Upload (BREAKTHROUGH)
 // 1. Convert image to Base64 in React Native
@@ -495,3 +566,76 @@ LoginScreen (auto-login)
 - **Direct**: Skip pleasantries, get to the point
 - **Technical**: Assume developer knowledge
 - **Concise**: Brief explanations, code examples when helpful
+
+
+## Facebook Product Category (FPC) ID System (April 2025)
+
+### Implementation
+- **FPC ID Mapping**: Replaced text-based category matching with stable numerical FPC IDs from Meta's official taxonomy
+- **Source**: `/Data/taxonomy-with-ids.en-US.csv` (2026 taxonomy, 1000+ categories)
+- **New File**: `/src/constants/facebookCategories.js` - Complete FPC mapping system
+- **Problem Solved**: "undefined" errors when AI returned categories that didn't match Facebook's dropdown text
+
+### Architecture
+1. **AI Service** (`ai.js`):
+   - Returns `categoryId`, `categoryName`, `requiredFields` in `platformData.facebook`
+   - Maps app categories to FPC IDs using `getFPCId()`
+   - Example: "electronics" → FPC ID "222" (Electronics)
+
+2. **Listing Editor** (`ListingEditorScreen.js`):
+   - Stores `facebookCategoryId` and `facebookCategoryName` in state
+   - Displays: "Electronics (ID: 222)"
+   - Maps user selections to FPC IDs
+
+3. **WebView Injection** (`FacebookUnifiedWebView.js`):
+   - **NEW**: `selectDropdownByValue()` function
+   - Selects by `value` attribute (FPC ID) instead of text matching
+   - Searches for `value`, `data-id`, `data-category-id` attributes
+   - Falls back to text matching if attributes not found
+
+### Key FPC IDs
+- Apparel & Accessories: 166 (requires: size, gender, color)
+- Electronics: 222 (requires: brand, model)
+- Home & Garden: 536 (requires: condition)
+- Sporting Goods: 988 (requires: sport_type)
+- Toys & Games: 1253
+- Vehicles: 916
+- Health & Beauty: 469 (condition must be "New")
+- Baby & Toddler: 537 (requires: age_range)
+
+### Category-Specific Required Fields
+System tracks required fields per FPC ID:
+```javascript
+FPC_REQUIRED_FIELDS = {
+  '166': ['size', 'gender', 'color'], // Apparel
+  '222': ['brand', 'model'], // Electronics
+  '536': ['condition'], // Home & Garden
+  '469': ['condition'], // Health & Beauty (must be 'New')
+  '537': ['age_range'], // Baby Products
+  '988': ['sport_type'], // Sporting Goods
+};
+```
+
+### Debugging
+Console logs show FPC ID flow:
+```
+[AI] Mapped "electronics" → FPC ID: 222 (Electronics)
+[AI] Required fields for FPC 222: ["brand", "model"]
+[Editor] Selected "Electronics" → FPC ID: 222 (Electronics)
+[FB_SELL] Category mapping: fpcId=222, fpcName=Electronics
+[FB_SELL] Dropdown clicking by ID: fpcId=222
+[FB_SELL] Dropdown success: Category = 222
+```
+
+### Benefits
+- **Stability**: FPC IDs never change, text labels can
+- **Accuracy**: Direct ID matching eliminates ambiguity
+- **Validation**: System knows required fields per category
+- **Future-proof**: Uses Facebook's official taxonomy
+- **Debugging**: Clear logs show exact ID being used
+
+### Fallback Strategy
+If FPC ID selection fails:
+1. Logs available options with their IDs
+2. Falls back to text-based matching
+3. Alerts user if category cannot be selected

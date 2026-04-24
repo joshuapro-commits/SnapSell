@@ -318,84 +318,139 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                 await wait(80 + Math.random() * 120);
               }
 
-              // Category mapping
+              // Category mapping - maps our app categories to Facebook's ACTUAL dropdown options
               const categoryMap = {
-                "jewelry": "Jewelry & Accessories",
-                "jewelry & accessories": "Jewelry & Accessories",
                 "electronics": "Electronics",
-                "furniture": "Furniture",
                 "clothing": "Clothing & Shoes",
-                "clothing & shoes": "Clothing & Shoes",
                 "apparel": "Clothing & Shoes",
-                "books": "Books & Magazines",
-                "books & magazines": "Books & Magazines",
+                "furniture": "Furniture",
+                "books": "Books, films & music",
+                "entertainment": "Entertainment",
                 "sporting": "Sporting Goods",
                 "sporting goods": "Sporting Goods",
                 "toys": "Toys & Games",
                 "toys & games": "Toys & Games",
-                "automotive": "Automotive",
-                "beauty": "Beauty & Personal Care",
-                "beauty & personal care": "Beauty & Personal Care",
                 "home": "Household",
-                "home & garden": "Household",
                 "home goods": "Household",
+                "home & garden": "Home & garden",
                 "household": "Household",
-                "kitchen": "Household",
-                "tools": "Tools",
-                "pet": "Pet Supplies",
-                "pet supplies": "Pet Supplies",
-                "garden": "Garden",
+                "automotive": "Vehicles",
+                "vehicles": "Vehicles",
+                "beauty": "Beauty & Personal Care",
+                "jewelry": "Jewelry & Accessories",
                 "musical": "Musical Instruments",
                 "musical instruments": "Musical Instruments",
+                "pet": "Pet Supplies",
+                "pet supplies": "Pet Supplies",
                 "office": "Office Supplies",
-                "other": "Other",
+                "tools": "Tools",
+                "garden": "Garden",
+                "appliances": "Appliances",
+                "other": "Household",
               };
 
-              // Stealth-types text into an input/textarea.
-              // Primary: execCommand('insertText') — triggers React's synthetic event system.
-              // Fallback: native setter + manual event dispatch (for inputs where execCommand fails).
-              async function stealthType(el, text) {
+              // Stealth-types text into an input/textarea/contenteditable.
+              // Implements all anti-bot detection techniques:
+              // 1. Focus first (real users click before typing)
+              // 2. Character-by-character with randomized delays (50-150ms jitter)
+              // 3. Dispatch keydown + input events per character (React state sync)
+              // 4. Typo simulation (2% chance)
+              // 5. Variable typing speed (faster for common words, slower for complex)
+              async function stealthType(el, text, skipClear = false) {
+                // Always focus first — real users click the field
                 el.focus();
                 await wait(150 + Math.random() * 100);
 
-                // Clear existing value first
-                el.select && el.select();
-                document.execCommand('selectAll', false, null);
-                document.execCommand('delete', false, null);
-                await wait(80 + Math.random() * 60);
+                // Clear existing value first (unless skipClear is true)
+                if (!skipClear) {
+                  if (el.isContentEditable) {
+                    el.select && el.select();
+                    document.execCommand('selectAll', false, null);
+                    document.execCommand('delete', false, null);
+                  } else {
+                    el.select && el.select();
+                    document.execCommand('selectAll', false, null);
+                    document.execCommand('delete', false, null);
+                  }
+                  await wait(80 + Math.random() * 60);
+                }
 
-                // Type character by character
+                // Type character by character with human-like rhythm
                 for (let i = 0; i < text.length; i++) {
                   const char = text[i];
+                  
+                  // Typo simulation: 2% chance, not on last 2 chars or spaces
                   const shouldTypo = Math.random() < 0.02 && i < text.length - 2 && char !== ' ';
 
                   if (shouldTypo) {
                     const wrong = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+                    // Dispatch keydown for wrong character
+                    el.dispatchEvent(new KeyboardEvent('keydown', { key: wrong, bubbles: true }));
                     document.execCommand('insertText', false, wrong);
                     el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: wrong, bubbles: true }));
                     await wait(280 + Math.random() * 180);
+                    // Realize mistake, backspace
+                    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
                     document.execCommand('delete', false, null);
                     el.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
                     await wait(80 + Math.random() * 80);
                   }
 
+                  // Dispatch keydown event BEFORE inserting character (real browser behavior)
+                  el.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
+                  
                   const inserted = document.execCommand('insertText', false, char);
                   if (!inserted) {
-                    // execCommand failed (some inputs block it) — fall back to native setter
-                    var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
-                      || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
-                    if (nativeSetter && nativeSetter.set) {
-                      nativeSetter.set.call(el, el.value + char);
+                    // execCommand failed — fall back based on element type
+                    if (el.isContentEditable) {
+                      const textNode = document.createTextNode(char);
+                      const selection = window.getSelection();
+                      if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
+                        range.setEndAfter(textNode);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                      } else {
+                        el.textContent += char;
+                      }
+                    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                      var descriptor = Object.getOwnPropertyDescriptor(
+                        el.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
+                        'value'
+                      );
+                      if (descriptor && descriptor.set) {
+                        descriptor.set.call(el, el.value + char);
+                      } else {
+                        el.value += char;
+                      }
                     } else {
-                      el.value += char;
+                      el.textContent += char;
                     }
                   }
+                  
+                  // Dispatch input event (React state sync)
                   el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
-                  await wait(45 + Math.random() * 90);
+                  
+                  // Randomized delay: 50-150ms per character (human typing speed)
+                  // Faster for common characters (vowels, space), slower for numbers/symbols
+                  let baseDelay = 50;
+                  if (/[0-9!@#$%^&*()]/.test(char)) {
+                    baseDelay = 80; // Slower for numbers/symbols
+                  } else if (/[aeiou ]/.test(char.toLowerCase())) {
+                    baseDelay = 40; // Faster for vowels and spaces
+                  }
+                  await wait(baseDelay + Math.random() * 100);
                 }
 
+                // Dispatch change event after typing completes
                 el.dispatchEvent(new Event('change', { bubbles: true }));
                 await wait(120 + Math.random() * 80);
+                
+                // Blur the field (user moves to next field)
+                el.dispatchEvent(new Event('blur', { bubbles: true }));
                 el.blur();
               }
 
@@ -502,6 +557,307 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                 return true;
               }
 
+              // ── MutationObserver: watch for dynamic fields after category selection ──
+              function watchForDynamicFields(callback) {
+                const observer = new MutationObserver((mutations) => {
+                  for (const mutation of mutations) {
+                    if (mutation.addedNodes.length > 0) {
+                      const newInputs = Array.from(mutation.addedNodes)
+                        .filter(node => node.nodeType === 1)
+                        .flatMap(node => [
+                          ...Array.from(node.querySelectorAll('input, textarea, select, [role="combobox"]')),
+                          node.matches && node.matches('input, textarea, select, [role="combobox"]') ? node : null
+                        ])
+                        .filter(Boolean);
+                      
+                      if (newInputs.length > 0) {
+                        callback(newInputs);
+                      }
+                    }
+                  }
+                });
+                
+                observer.observe(document.body, {
+                  childList: true,
+                  subtree: true,
+                });
+                
+                return observer;
+              }
+
+              // ── Scroll dropdown container to load lazy-rendered options ──
+              async function scrollDropdownToLoadAll(menuRoot) {
+                const scrollable = menuRoot.querySelector('[role="listbox"]') || menuRoot;
+                const initialHeight = scrollable.scrollHeight;
+                let lastHeight = initialHeight;
+                let stableCount = 0;
+                
+                for (let i = 0; i < 10; i++) {
+                  scrollable.scrollTop = scrollable.scrollHeight;
+                  await wait(300);
+                  
+                  const newHeight = scrollable.scrollHeight;
+                  if (newHeight === lastHeight) {
+                    stableCount++;
+                    if (stableCount >= 2) break; // Height stable for 2 checks = all loaded
+                  } else {
+                    stableCount = 0;
+                  }
+                  lastHeight = newHeight;
+                }
+                
+                // Scroll back to top
+                scrollable.scrollTop = 0;
+                await wait(200);
+              }
+
+              // ── Select dropdown by text matching (value="no-value" on all FB options) ──
+              // All matching is case-insensitive. Returns the exact matched text on
+              // success (truthy), or false on failure.
+              async function selectDropdownByValue(labelText, _ignored, targetName, fallbackName, allowHeaderClick) {
+                const trigger = findDropdownTrigger(labelText);
+                if (!trigger) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DROPDOWN_BUTTON_NOT_FOUND', field: labelText }));
+                  return false;
+                }
+
+                // Normalize to lowercase once — prevents 'Home & Garden' vs 'Home & garden' mismatches
+                const nameLower = targetName.trim().toLowerCase();
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DROPDOWN_FOUND', field: labelText, targetName, nameLower }));
+
+                const beforeTap = Array.from(document.querySelectorAll('[role="dialog"], [role="listbox"]'));
+
+                trigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await wait(800);
+                await humanTouch(trigger);
+                trigger.click();
+                await wait(2000); // Increased wait for menu to fully open
+
+                for (let attempt = 0; attempt < 15; attempt++) { // Increased attempts from 10 to 15
+                  await wait(600); // Increased wait between attempts
+
+                  const afterTap = Array.from(document.querySelectorAll('[role="dialog"], [role="listbox"]'));
+                  let menuRoot = null;
+                  for (const dialog of afterTap) {
+                    if (!beforeTap.includes(dialog)) { menuRoot = dialog; break; }
+                  }
+                  if (!menuRoot && afterTap.length > 0) menuRoot = afterTap[afterTap.length - 1];
+                  if (!menuRoot) {
+                    // Menu not found yet, try clicking trigger again
+                    if (attempt === 3 || attempt === 7) {
+                      trigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      await wait(500);
+                      await humanTouch(trigger);
+                      trigger.click();
+                      await wait(1500);
+                    }
+                    continue;
+                  }
+
+                  // Guard: wrong panel opened
+                  const menuText = menuRoot.innerText || '';
+                  if (menuText.toLowerCase().includes('notifications') || menuText.toLowerCase().includes('unread')) {
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(500);
+                    trigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    await wait(800);
+                    await humanTouch(trigger);
+                    trigger.click();
+                    await wait(1500);
+                    continue;
+                  }
+
+                  // Scroll to load all lazy-rendered options
+                  await scrollDropdownToLoadAll(menuRoot);
+
+                  // Pool: prefer [role="option"], fall back to leaf text nodes
+                  const roleOpts = Array.from(menuRoot.querySelectorAll('[role="option"]'));
+                  const pool = roleOpts.length > 0
+                    ? roleOpts
+                    : Array.from(menuRoot.querySelectorAll('div, span, li')).filter(el => el.children.length === 0);
+
+                  // Debug: log what we found in the pool
+                  if (pool.length === 0) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'DROPDOWN_POOL_EMPTY',
+                      field: labelText,
+                      attempt: attempt,
+                      menuRootTag: menuRoot.tagName,
+                      menuRootRole: menuRoot.getAttribute('role'),
+                      allDivs: Array.from(menuRoot.querySelectorAll('div')).length,
+                      allSpans: Array.from(menuRoot.querySelectorAll('span')).length,
+                      menuInnerText: menuRoot.innerText ? menuRoot.innerText.substring(0, 200) : '',
+                    }));
+                    // Pool is empty, wait longer and retry
+                    await wait(1000);
+                    continue;
+                  }
+
+                  // Match priority: exact → option-text-includes-target → target-includes-option-text
+                  const matched =
+                    pool.find(el => el.textContent.trim().toLowerCase() === nameLower) ||
+                    pool.find(el => el.textContent.trim().toLowerCase().includes(nameLower)) ||
+                    pool.find(el => nameLower.includes(el.textContent.trim().toLowerCase()) && el.textContent.trim().length > 2);
+
+                  if (!matched && attempt === 2) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'DROPDOWN_OPTIONS_DEBUG',
+                      field: labelText,
+                      targetName,
+                      poolSize: pool.length,
+                      sample: pool.slice(0, 60).map(el => el.textContent.trim()).filter(t => t.length > 1 && t.length < 60),
+                    }));
+                  }
+
+                  if (matched) {
+                    // Check if matched element is actually clickable or just a section header.
+                    // Section headers have no pointer cursor and no interactive role.
+                    const isClickable = (el) => {
+                      const role = el.getAttribute('role');
+                      if (role === 'option' || role === 'menuitem' || role === 'button') return true;
+                      const style = window.getComputedStyle(el);
+                      return style.cursor === 'pointer';
+                    };
+
+                    let target = matched;
+                    if (!isClickable(matched) && !allowHeaderClick) {
+                      // It's a section header — search within its section (up to next header)
+                      // for an exact text match rather than blindly picking the first child.
+                      const matchedIdx = pool.indexOf(matched);
+                      // Find where the next non-clickable header starts (bounds the section)
+                      let sectionEnd = matchedIdx + 1;
+                      while (sectionEnd < pool.length && sectionEnd < matchedIdx + 15) {
+                        if (!isClickable(pool[sectionEnd])) break; // next header found
+                        sectionEnd++;
+                      }
+                      const sectionItems = pool.slice(matchedIdx + 1, sectionEnd);
+                      // Priority 1: exact leaf match
+                      const exactInSection = sectionItems.find(
+                        el => el.textContent.trim().toLowerCase() === nameLower && isClickable(el)
+                      );
+                      // Priority 2: fallback leaf (e.g. 'Household' when 'Kitchen & dining' not rendered)
+                      const fallbackLower = (fallbackName || '').toLowerCase();
+                      const fallbackInSection = fallbackLower
+                        ? sectionItems.find(el => el.textContent.trim().toLowerCase() === fallbackLower && isClickable(el))
+                        : null;
+
+                      const chosen = exactInSection || fallbackInSection;
+                      if (chosen) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                          type: 'DROPDOWN_HEADER_SKIP',
+                          header: matched.textContent.trim(),
+                          usedInstead: chosen.textContent.trim(),
+                          wasFallback: !exactInSection,
+                        }));
+                        target = chosen;
+                      } else {
+                        // Neither exact nor fallback found — log section contents and retry
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                          type: 'DROPDOWN_HEADER_NO_MATCH',
+                          header: matched.textContent.trim(),
+                          targetName,
+                          fallbackName: fallbackLower,
+                          sectionOptions: sectionItems.map(el => el.textContent.trim()).filter(t => t.length > 1),
+                        }));
+                        continue;
+                      }
+                    }
+
+                    const matchedText = target.textContent.trim();
+                    target.scrollIntoView({ block: 'center' });
+                    await wait(200 + Math.random() * 150);
+
+                    target.click();
+                    target.dispatchEvent(new Event('input',  { bubbles: true }));
+                    target.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    await wait(800 + Math.random() * 400);
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'DROPDOWN_SUCCESS',
+                      field: labelText,
+                      matchedText,
+                      targetName,
+                    }));
+                    return matchedText;
+                  }
+                }
+
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DROPDOWN_OPTION_NOT_FOUND', field: labelText, targetName }));
+                return false;
+              }
+
+              // ── Category drill-down: iterates through each level of the hierarchy ──
+              // hierarchy = { parentName, leafName } → levels = [parentName, leafName]
+              // hierarchy = null → levels = [fpcName]  (top-level, single click)
+              async function selectCategoryHierarchy(fpcId, fpcName, hierarchy) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'CATEGORY_HIERARCHY', fpcId, fpcName, hierarchy }));
+
+                const levels = hierarchy && hierarchy.parentName
+                  ? [hierarchy.parentName.toLowerCase(), hierarchy.leafName.toLowerCase()]
+                  : [fpcName.toLowerCase()];
+
+                for (let i = 0; i < levels.length; i++) {
+                  const levelName = levels[i];
+                  const isParentLevel = (i === 0 && levels.length > 1);
+                  const fallback = (i === levels.length - 1 && hierarchy && hierarchy.fallbackLeaf)
+                    ? hierarchy.fallbackLeaf : null;
+                  
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                    type: 'CATEGORY_LEVEL', 
+                    level: i, 
+                    target: levelName,
+                    isParent: isParentLevel,
+                    fallback: fallback
+                  }));
+
+                  const matched = await selectDropdownByValue('Category', null, levelName, fallback, isParentLevel);
+                  if (!matched) {
+                    // If this is level 1 (sub-category) and it failed, check if parent was already selected
+                    if (i === 1) {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                        type: 'CATEGORY_SUBCATEGORY_SKIP', 
+                        reason: 'Sub-category not found in mobile UI, using parent category',
+                        parent: levels[0],
+                        attemptedLeaf: levelName
+                      }));
+                      // Parent category is already selected, so we're done
+                      return true;
+                    }
+                    
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                      type: 'CATEGORY_LEVEL_FAILED', 
+                      level: i, 
+                      target: levelName 
+                    }));
+                    return false;
+                  }
+
+                  // If more levels remain: menu closed after parent click, need to re-open it
+                  if (i < levels.length - 1) {
+                    await wait(2000); // Wait for FB to update state
+                    
+                    // Check if the Category dropdown still exists (might have navigated away)
+                    const stillExists = findDropdownTrigger('Category');
+                    if (!stillExists) {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                        type: 'CATEGORY_DROPDOWN_GONE', 
+                        reason: 'Category dropdown no longer exists after parent selection',
+                        selectedParent: levelName
+                      }));
+                      // Dropdown is gone, parent selection was final
+                      return true;
+                    }
+                    
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                      type: 'CATEGORY_REOPENING', 
+                      afterLevel: i,
+                      nextTarget: levels[i + 1]
+                    }));
+                  }
+                }
+                return true;
+              }
+
               async function selectDropdown(labelText, targetValue) {
                 // Anchor to the label text node, walk up to closest [role="button"].
                 // .closest() cannot escape the form container — notification bell
@@ -561,36 +917,70 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                     continue;
                   }
 
+                  // Find all potential option elements - prefer leaf nodes with exact text match
                   var allOpts = Array.from(menuRoot.querySelectorAll('span, div, [role="option"], [role="listitem"]'));
                   var visibleOpts = [];
                   for (var oi = 0; oi < allOpts.length; oi++) {
                     if (allOpts[oi].offsetParent !== null) visibleOpts.push(allOpts[oi]);
                   }
 
+                  // Filter to leaf nodes only (no children or only one text-only child)
+                  var leafOpts = [];
+                  for (var li = 0; li < visibleOpts.length; li++) {
+                    var opt = visibleOpts[li];
+                    var isLeaf = opt.children.length === 0 || 
+                                 (opt.children.length === 1 && opt.children[0].children.length === 0);
+                    if (isLeaf) leafOpts.push(opt);
+                  }
+
+                  // Try to find exact match in leaf nodes first
                   var target = null;
-                  for (var ti = 0; ti < visibleOpts.length; ti++) {
-                    var elText = visibleOpts[ti].innerText ? visibleOpts[ti].innerText.trim().toLowerCase() : '';
-                    if (elText && (elText === tv || elText.includes(tv) || tv.includes(elText))) {
-                      target = visibleOpts[ti];
+                  for (var ti = 0; ti < leafOpts.length; ti++) {
+                    var elText = leafOpts[ti].innerText ? leafOpts[ti].innerText.trim().toLowerCase() : '';
+                    // Normalize en-dash to hyphen for comparison
+                    var normalizedElText = elText.replace(/\u2013/g, '-').replace(/\u2014/g, '-');
+                    var normalizedTv = tv.replace(/\u2013/g, '-').replace(/\u2014/g, '-');
+                    if (normalizedElText === normalizedTv) {
+                      target = leafOpts[ti];
                       break;
+                    }
+                  }
+
+                  // If no exact match, try partial match in leaf nodes (but avoid matching "New" when looking for "Like new")
+                  if (!target) {
+                    for (var ti = 0; ti < leafOpts.length; ti++) {
+                      var elText = leafOpts[ti].innerText ? leafOpts[ti].innerText.trim().toLowerCase() : '';
+                      var normalizedElText = elText.replace(/\u2013/g, '-').replace(/\u2014/g, '-');
+                      var normalizedTv = tv.replace(/\u2013/g, '-').replace(/\u2014/g, '-');
+                      // Only match if target contains element text (not the other way around)
+                      // This prevents "New" from matching when we're looking for "Like new"
+                      if (normalizedTv.includes(normalizedElText) && normalizedElText.length > 2) {
+                        target = leafOpts[ti];
+                        break;
+                      }
                     }
                   }
 
                   if (target) {
                     // Find the exact clickable option — skip section headers (no role, parent of other options)
-                    var clickEl = null;
-                    var allDescendants = Array.from(target.querySelectorAll('[role="option"], span, div, li'));
-                    for (var ci = 0; ci < allDescendants.length; ci++) {
-                      var cel = allDescendants[ci];
-                      var ct = cel.innerText ? cel.innerText.trim().toLowerCase() : '';
-                      if (ct !== tv) continue;
-                      // Must be a leaf or have role="option" — skip section headers
-                      var isOption = cel.getAttribute('role') === 'option';
-                      var isLeaf = cel.children.length === 0;
-                      var isSingleWrap = cel.children.length === 1 && (!cel.children[0].innerText || cel.children[0].innerText.trim().toLowerCase() === tv);
-                      if (isOption || isLeaf || isSingleWrap) { clickEl = cel; break; }
+                    var clickEl = target;
+                    
+                    // If target has role="option", use it directly
+                    if (target.getAttribute('role') === 'option') {
+                      clickEl = target;
+                    } else {
+                      // Otherwise, look for a clickable parent or child with role="option"
+                      var parent = target.parentElement;
+                      for (var pi = 0; pi < 3; pi++) {
+                        if (!parent) break;
+                        if (parent.getAttribute('role') === 'option') {
+                          clickEl = parent;
+                          break;
+                        }
+                        parent = parent.parentElement;
+                      }
                     }
-                    if (!clickEl) clickEl = target; // fallback
+                    
                     clickEl.scrollIntoView({ block: 'center' });
                     await wait(200 + Math.random() * 150);
                     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -602,17 +992,20 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                       childCount: clickEl.children.length,
                     }));
                     clickEl.click();
+                    clickEl.dispatchEvent(new Event('input',  { bubbles: true }));
+                    clickEl.dispatchEvent(new Event('change', { bubbles: true }));
                     await wait(800 + Math.random() * 400);
-                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DROPDOWN_SUCCESS', field: labelText, value: targetValue }));
+                    const clickedText = clickEl.innerText ? clickEl.innerText.trim() : targetValue;
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DROPDOWN_SUCCESS', field: labelText, matchedText: clickedText, targetName: targetValue }));
                     return true;
                   }
 
                   if (i === 3) {
                     var sample = [];
-                    for (var si = 0; si < visibleOpts.length; si++) {
-                      var st = visibleOpts[si].innerText ? visibleOpts[si].innerText.trim() : '';
+                    for (var si = 0; si < leafOpts.length; si++) {
+                      var st = leafOpts[si].innerText ? leafOpts[si].innerText.trim() : '';
                       if (st && st.length > 1 && st.length < 60) sample.push(st);
-                      if (sample.length >= 20) break;
+                      if (sample.length >= 100) break;
                     }
                     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DROPDOWN_VISIBLE_OPTIONS', field: labelText, sample: sample }));
                   }
@@ -625,7 +1018,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                 for (var li = 0; li < diagSpans.length; li++) {
                   var lt = diagSpans[li].innerText ? diagSpans[li].innerText.trim() : '';
                   if (lt && lt.length > 1 && lt.length < 80) spanTexts.push(lt);
-                  if (spanTexts.length >= 20) break;
+                  if (spanTexts.length >= 100) break;
                 }
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                   type: 'DROPDOWN_OPTION_NOT_FOUND',
@@ -653,15 +1046,28 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
               async function fillAllFields() {
                 try {
                   let success = true;
+                  let failedFields = [];
 
-                  // Wait before starting (simulate human reading the page)
-                  await wait(3000 + Math.random() * 2000);
+                  // Behavioral stealth: simulate human reading + scrolling before starting
+                  await wait(2000 + Math.random() * 1000);
+                  
+                  // Random scroll to simulate reviewing the form (anti-static-session detection)
+                  const scrollAmount = Math.random() > 0.5 ? 100 + Math.random() * 150 : -(100 + Math.random() * 150);
+                  window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+                  await wait(800 + Math.random() * 600);
+                  
+                  // Scroll back to top
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  await wait(1000 + Math.random() * 1000);
                   if (killSwitchTriggered) return;
 
                   // Fill Title
                   await wait(500 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  if (!await fillTextField('Title', "${listingData?.name || ''}")) success = false;
+                  if (!await fillTextField('Title', "${listingData?.name || ''}")) {
+                    success = false;
+                    failedFields.push('Title');
+                  }
 
                   // Random scroll (simulate reviewing)
                   if (Math.random() < 0.3) await randomScroll();
@@ -670,18 +1076,65 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Fill Price
                   await wait(1000 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  if (!await fillTextField('Price', "${listingData?.price || ''}")) success = false;
+                  if (!await fillTextField('Price', "${listingData?.platformData?.facebook?.price || listingData?.price || ''}")) {
+                    success = false;
+                    failedFields.push('Price');
+                  }
 
                   // Random scroll
                   if (Math.random() < 0.3) await randomScroll();
                   if (killSwitchTriggered) return;
 
-                  // Select Category
+                  // Select Category using FPC ID (supports multi-level hierarchy)
                   await wait(1500 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  const rawFbCategory = "${listingData?.platformData?.facebook?.category || listingData?.category || 'Household'}";
-                  const fbCategory = categoryMap[rawFbCategory.toLowerCase()] || categoryMap[rawFbCategory.toLowerCase().split(' ')[0]] || rawFbCategory;
-                  if (!await selectDropdown('Category', fbCategory)) success = false;
+                  const fpcId = "${listingData?.platformData?.facebook?.categoryId || '536'}";
+                  const fpcName = "${listingData?.platformData?.facebook?.categoryName || 'Home & garden'}";
+                  const fpcHierarchy = ${JSON.stringify(listingData?.platformData?.facebook?.hierarchy || null)};
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'CATEGORY_MAPPING', fpcId, fpcName, fpcHierarchy }));
+
+                  // Start MutationObserver to watch for dynamic fields (Brand, Size, etc.)
+                  const fieldObserver = watchForDynamicFields((newFields) => {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'DYNAMIC_FIELDS_DETECTED',
+                      count: newFields.length,
+                      fields: newFields.map(f => f.getAttribute('aria-label') || f.getAttribute('name') || f.tagName).slice(0, 10),
+                    }));
+                  });
+
+                  if (!await selectCategoryHierarchy(fpcId, fpcName, fpcHierarchy)) {
+                    success = false;
+                    failedFields.push('Category');
+                  }
+
+                  // Poll up to 3s for dynamic fields injected by FB after category selection
+                  // (e.g. Brand, Model for Electronics; Size, Color for Clothing)
+                  const dynamicLabels = ['Brand', 'Model', 'Size', 'Color', 'Gender'];
+                  const attributes = ${JSON.stringify(listingData?.attributes || {})};
+                  let dynamicWait = 0;
+                  while (dynamicWait < 3000) {
+                    await wait(400);
+                    dynamicWait += 400;
+                    let filled = false;
+                    for (const label of dynamicLabels) {
+                      const el = findInput(label);
+                      if (el && !el.dataset.snapFilled) {
+                        const val = attributes[label.toLowerCase()] || attributes[label] || '';
+                        if (val) {
+                          el.dataset.snapFilled = '1';
+                          await stealthType(el, val);
+                          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'DYNAMIC_FIELD_FILLED', field: label, value: val }));
+                          filled = true;
+                        }
+                      }
+                    }
+                    // Stop polling once stable (no new fields for 800ms)
+                    if (!filled && dynamicWait > 800) break;
+                  }
+                  fieldObserver.disconnect();
+
+                  // Human thinking pause before Condition (300–800ms jitter)
+                  await wait(300 + Math.random() * 500);
 
                   // Random scroll
                   if (Math.random() < 0.3) await randomScroll();
@@ -690,7 +1143,10 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Select Condition
                   await wait(2000 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  if (!await selectDropdown('Condition', "${listingData?.platformData?.facebook?.condition || listingData?.condition || 'Used - Good'}")) success = false;
+                  if (!await selectDropdown('Condition', "${listingData?.platformData?.facebook?.condition || listingData?.condition || 'Good'}")) {
+                    success = false;
+                    failedFields.push('Condition');
+                  }
 
                   // Random scroll
                   if (Math.random() < 0.3) await randomScroll();
@@ -704,12 +1160,139 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Fill Description
                   await wait(2000 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  if (!await fillDescription("${listingData?.description || ''}")) success = false;
+                  if (!await fillDescription("${listingData?.description || ''}")) {
+                    success = false;
+                    failedFields.push('Description');
+                  }
+
+                  // Fill Product Tags (character-by-character typing + Enter for each)
+                  await wait(1500 + Math.random() * 500);
+                  if (killSwitchTriggered) return;
+                  const tags = ${JSON.stringify(listingData?.platformData?.facebook?.tags || [])};
+                  if (tags && tags.length > 0) {
+                    const tagInput = findInput('Product tags') || findInput('Tags');
+                    if (tagInput) {
+                      // Vary number of tags occasionally (anti-identical-footprint)
+                      // Use 70% of tags if more than 5, otherwise use all
+                      const tagsToUse = tags.length > 5 && Math.random() < 0.3 
+                        ? tags.slice(0, Math.floor(tags.length * 0.7))
+                        : tags;
+                      
+                      for (let i = 0; i < tagsToUse.length; i++) {
+                        const tag = tagsToUse[i];
+                        
+                        // Focus the input (real users click before typing)
+                        tagInput.focus();
+                        await wait(200 + Math.random() * 200);
+                        
+                        // Type tag character-by-character with human-like rhythm
+                        // stealthType will handle clearing on first tag, we skip clearing for subsequent tags
+                        // because we want the field to be empty after Enter creates the chip
+                        for (let charIdx = 0; charIdx < tag.length; charIdx++) {
+                          const char = tag[charIdx];
+                          
+                          // Typo simulation: 2% chance
+                          const shouldTypo = Math.random() < 0.02 && charIdx < tag.length - 2 && char !== ' ';
+                          if (shouldTypo) {
+                            const wrong = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+                            tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: wrong, bubbles: true }));
+                            document.execCommand('insertText', false, wrong);
+                            tagInput.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: wrong, bubbles: true }));
+                            await wait(280 + Math.random() * 180);
+                            tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+                            document.execCommand('delete', false, null);
+                            tagInput.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
+                            await wait(80 + Math.random() * 80);
+                          }
+                          
+                          // Dispatch keydown BEFORE inserting character
+                          tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
+                          
+                          // Insert character using execCommand (React-friendly)
+                          const inserted = document.execCommand('insertText', false, char);
+                          if (!inserted) {
+                            // Fallback: use native setter
+                            if (tagInput.isContentEditable) {
+                              tagInput.textContent += char;
+                            } else if (tagInput.tagName === 'INPUT' || tagInput.tagName === 'TEXTAREA') {
+                              const descriptor = Object.getOwnPropertyDescriptor(
+                                tagInput.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
+                                'value'
+                              );
+                              if (descriptor && descriptor.set) {
+                                descriptor.set.call(tagInput, tagInput.value + char);
+                              } else {
+                                tagInput.value += char;
+                              }
+                            } else {
+                              tagInput.textContent += char;
+                            }
+                          }
+                          
+                          // Dispatch input event (React state sync)
+                          tagInput.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
+                          
+                          // Randomized delay: 50-150ms per character
+                          let baseDelay = 50;
+                          if (/[0-9!@#$%^&*()]/.test(char)) {
+                            baseDelay = 80; // Slower for numbers/symbols
+                          } else if (/[aeiou ]/.test(char.toLowerCase())) {
+                            baseDelay = 40; // Faster for vowels and spaces
+                          }
+                          await wait(baseDelay + Math.random() * 100);
+                        }
+                        
+                        // Dispatch change event after typing tag
+                        tagInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        await wait(100 + Math.random() * 80);
+                        
+                        // Press Enter to confirm the tag (keydown + keyup)
+                        tagInput.dispatchEvent(new KeyboardEvent('keydown', {
+                          key: 'Enter',
+                          code: 'Enter',
+                          keyCode: 13,
+                          which: 13,
+                          bubbles: true,
+                          cancelable: true
+                        }));
+                        
+                        tagInput.dispatchEvent(new KeyboardEvent('keyup', {
+                          key: 'Enter',
+                          code: 'Enter',
+                          keyCode: 13,
+                          which: 13,
+                          bubbles: true,
+                          cancelable: true
+                        }));
+                        
+                        // Human-like variable delay between tags (anti-bot cadence)
+                        let baseDelay = 400;
+                        if (i < 2) {
+                          baseDelay = 600; // Slower start
+                        } else if (i >= tagsToUse.length - 2) {
+                          baseDelay = 700; // Slower end
+                        }
+                        
+                        if (i < tagsToUse.length - 1) {
+                          await wait(baseDelay + Math.random() * 500);
+                        }
+                      }
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                        type: 'FIELD_FILLED', 
+                        field: 'Product tags', 
+                        count: tagsToUse.length
+                      }));
+                    } else {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'FIELD_NOT_FOUND', field: 'Product tags' }));
+                    }
+                  }
 
                   clearInterval(killSwitchInterval);
                   window.ReactNativeWebView.postMessage(JSON.stringify({
                     type: 'FORM_FILLED',
                     success: success,
+                    failedFields: failedFields,
+                    filledCount: 6 - failedFields.length,
                   }));
                 } catch (error) {
                   clearInterval(killSwitchInterval);
@@ -795,15 +1378,226 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
       } else if (mode === 'sell' && data.type === 'DROPDOWN_CLICKING') {
         console.log('[FB_SELL] Clicking option:', data.field, '| tag:', data.tag, '| role:', data.role, '| text:', data.text, '| children:', data.childCount);
       } else if (mode === 'sell' && data.type === 'DROPDOWN_SUCCESS') {
-        console.log('[FB_SELL] Dropdown selected:', data.field, '=', data.value);
+        console.log('[FB_SELL] Dropdown selected:', data.field, '=', data.matchedText, '(target:', data.targetName, ')');
       } else if (mode === 'sell' && data.type === 'DROPDOWN_NOT_FOUND') {
         console.log('[FB_SELL] Dropdown not found:', data.field);
       } else if (mode === 'sell' && data.type === 'DROPDOWN_OPTION_NOT_FOUND') {
         console.log('[FB_SELL] Dropdown option not found:', data.field, 'looking for:', data.targetText);
         console.log('[FB_SELL] Available options:', data.availableOptions);
+      } else if (mode === 'sell' && data.type === 'DROPDOWN_POOL_EMPTY') {
+        console.log('[FB_SELL] Dropdown pool empty for:', data.field);
+        console.log('[FB_SELL] Menu root:', data.menuRootTag, 'role:', data.menuRootRole);
+        console.log('[FB_SELL] Divs:', data.allDivs, 'Spans:', data.allSpans);
+        console.log('[FB_SELL] Menu text:', data.menuInnerText);
+      } else if (mode === 'sell' && data.type === 'DROPDOWN_OPTIONS_DEBUG') {
+        console.log('[FB_SELL] Dropdown options debug for:', data.field);
+        console.log('[FB_SELL] Target:', data.targetName, 'Pool size:', data.poolSize);
+        console.log('[FB_SELL] Sample options:', data.sample);
+      } else if (mode === 'sell' && data.type === 'CATEGORY_SUBCATEGORY_SKIP') {
+        console.log('[FB_SELL] Skipping sub-category:', data.reason);
+        console.log('[FB_SELL] Using parent:', data.parent, '(attempted leaf:', data.attemptedLeaf, ')');
+      } else if (mode === 'sell' && data.type === 'CATEGORY_DROPDOWN_GONE') {
+        console.log('[FB_SELL] Category dropdown disappeared:', data.reason);
+        console.log('[FB_SELL] Selected parent:', data.selectedParent);
       } else if (mode === 'sell' && data.type === 'NEXT_CLICKED') {
-        console.log('[FB_SELL] Next button clicked, waiting for Publish screen...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('[FB_SELL] Next button clicked, checking for group selection or Publish screen...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Check if group selection dialog appeared
+        const groupSelectionScript = `
+          (function() {
+            const dialog = document.querySelector('[role="dialog"]');
+            if (!dialog) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'NO_GROUP_DIALOG' }));
+              return;
+            }
+            
+            const dialogText = dialog.innerText || '';
+            if (dialogText.includes('List in more places') || dialogText.includes('Share to groups')) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_DIALOG_FOUND' }));
+            } else {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'NO_GROUP_DIALOG' }));
+            }
+          })();
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(groupSelectionScript);
+      } else if (mode === 'sell' && data.type === 'GROUP_DIALOG_FOUND') {
+        console.log('[FB_SELL] Group selection dialog detected, auto-selecting relevant groups...');
+        
+        // Generate AI keywords from listing data
+        const aiKeywords = [
+          listingData?.category?.toLowerCase(),
+          listingData?.brand?.toLowerCase(),
+          listingData?.platformData?.facebook?.categoryName?.toLowerCase(),
+          ...(listingData?.platformData?.facebook?.tags || []).map(t => t.toLowerCase()),
+        ].filter(Boolean);
+        
+        console.log('[FB_SELL] AI keywords for group matching:', aiKeywords);
+        
+        const selectGroupsScript = `
+          (async function() {
+            const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+            const keywords = ${JSON.stringify(aiKeywords)};
+            let selectedCount = 0;
+            const MAX_GROUPS = 20;
+            
+            try {
+              const dialog = document.querySelector('[role="dialog"]');
+              if (!dialog) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_SELECTION_FAILED', reason: 'Dialog not found' }));
+                return;
+              }
+              
+              // Find scrollable container
+              const scrollContainer = dialog.querySelector('[role="list"]') || 
+                                     dialog.querySelector('div[style*="overflow"]') ||
+                                     dialog;
+              
+              // Scroll to load all groups (lazy loading)
+              let lastHeight = scrollContainer.scrollHeight;
+              let stableCount = 0;
+              
+              for (let i = 0; i < 10; i++) {
+                scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                await wait(500);
+                
+                const newHeight = scrollContainer.scrollHeight;
+                if (newHeight === lastHeight) {
+                  stableCount++;
+                  if (stableCount >= 2) break; // All groups loaded
+                } else {
+                  stableCount = 0;
+                }
+                lastHeight = newHeight;
+              }
+              
+              // Scroll back to top
+              scrollContainer.scrollTop = 0;
+              await wait(300);
+              
+              // Find all group checkboxes
+              const groupRows = Array.from(dialog.querySelectorAll('div[role="checkbox"]'));
+              window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                type: 'GROUP_SCAN_COMPLETE', 
+                totalGroups: groupRows.length 
+              }));
+              
+              // Score and rank groups by relevance
+              const scoredGroups = groupRows.map(row => {
+                const groupName = row.innerText?.toLowerCase() || '';
+                let score = 0;
+                
+                keywords.forEach(kw => {
+                  if (groupName.includes(kw)) score += 10;
+                  // Bonus for exact word match
+                  const words = groupName.split(/\s+/);
+                  if (words.includes(kw)) score += 5;
+                });
+                
+                return { row, groupName, score };
+              });
+              
+              // Filter to only relevant groups (score > 0)
+              const relevantGroups = scoredGroups.filter(g => g.score > 0);
+              
+              // Randomly select 5-10 groups from relevant ones
+              const targetCount = Math.floor(Math.random() * 6) + 5; // Random number between 5-10
+              const selectedCount = Math.min(targetCount, relevantGroups.length);
+              
+              // Shuffle relevant groups randomly
+              for (let i = relevantGroups.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [relevantGroups[i], relevantGroups[j]] = [relevantGroups[j], relevantGroups[i]];
+              }
+              
+              // Take first N groups after shuffle
+              const groupsToSelect = relevantGroups.slice(0, selectedCount);
+              
+              window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                type: 'GROUP_SELECTION_PLAN',
+                totalRelevant: relevantGroups.length,
+                willSelect: selectedCount,
+                sampleGroups: groupsToSelect.slice(0, 3).map(g => g.groupName.substring(0, 40))
+              }));
+              
+              // Select the randomly chosen groups
+              const selectedGroups = [];
+              let actualSelected = 0;
+              for (const { row, groupName, score } of groupsToSelect) {
+                
+                // Check if already selected (multiple ways to detect)
+                const isChecked = row.getAttribute('aria-checked') === 'true' || 
+                                 row.classList.contains('checked') ||
+                                 row.querySelector('[aria-checked="true"]');
+                
+                if (!isChecked) {
+                  row.scrollIntoView({ block: 'center' });
+                  await wait(200 + Math.random() * 200);
+                  
+                  // Try multiple click strategies
+                  // 1. Click the checkbox element itself
+                  row.click();
+                  
+                  // 2. Find and click any nested checkbox input
+                  const checkbox = row.querySelector('input[type="checkbox"]');
+                  if (checkbox) checkbox.click();
+                  
+                  // 3. Dispatch events for React state sync
+                  row.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                  row.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                  row.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                  row.dispatchEvent(new Event('change', { bubbles: true }));
+                  row.dispatchEvent(new Event('input', { bubbles: true }));
+                  
+                  actualSelected++;
+                  selectedGroups.push(groupName.substring(0, 50));
+                  await wait(300 + Math.random() * 200);
+                }
+              }
+              
+              window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                type: 'GROUPS_SELECTED', 
+                count: actualSelected,
+                groups: selectedGroups,
+                checkboxInfo: groupsToSelect.slice(0, 2).map(g => ({
+                  name: g.groupName.substring(0, 30),
+                  role: g.row.getAttribute('role'),
+                  ariaChecked: g.row.getAttribute('aria-checked'),
+                  hasCheckboxInput: !!g.row.querySelector('input[type="checkbox"]')
+                }))
+              }));
+              
+              // Wait 1s then click Next/Done button
+              await wait(1000);
+              const buttons = Array.from(dialog.querySelectorAll('[role="button"], button'));
+              const nextBtn = buttons.find(btn => {
+                const text = btn.innerText?.trim();
+                return text === 'Next' || text === 'Done' || text === 'Continue';
+              });
+              
+              if (nextBtn && nextBtn.getAttribute('aria-disabled') !== 'true') {
+                nextBtn.scrollIntoView({ block: 'center' });
+                await wait(500);
+                nextBtn.click();
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_NEXT_CLICKED' }));
+              } else {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_NEXT_NOT_FOUND' }));
+              }
+            } catch (error) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                type: 'GROUP_SELECTION_ERROR', 
+                error: error.toString() 
+              }));
+            }
+          })();
+          true;
+        `;
+        
+        webViewRef.current?.injectJavaScript(selectGroupsScript);
+      } else if (mode === 'sell' && data.type === 'NO_GROUP_DIALOG') {
+        console.log('[FB_SELL] No group dialog, proceeding to Publish screen...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         const publishScript = `
           (async function() {
             try {
@@ -856,6 +1650,21 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
           true;
         `;
         webViewRef.current?.injectJavaScript(publishScript);
+      } else if (mode === 'sell' && data.type === 'GROUP_SCAN_COMPLETE') {
+        console.log('[FB_SELL] Found', data.totalGroups, 'groups to scan');
+      } else if (mode === 'sell' && data.type === 'GROUP_SELECTION_PLAN') {
+        console.log('[FB_SELL] 🎲 Found', data.totalRelevant, 'relevant groups, randomly selecting', data.willSelect, 'groups');
+      } else if (mode === 'sell' && data.type === 'GROUPS_SELECTED') {
+        console.log('[FB_SELL] Auto-selected', data.count, 'relevant groups:', data.groups);
+      } else if (mode === 'sell' && data.type === 'GROUP_NEXT_CLICKED') {
+        console.log('[FB_SELL] Group selection complete, proceeding to Publish...');
+      } else if (mode === 'sell' && data.type === 'GROUP_NEXT_NOT_FOUND') {
+        console.warn('[FB_SELL] Next button not found after group selection');
+        Alert.alert('Groups Selected', 'Tap Next manually to continue.', [{ text: 'OK' }]);
+      } else if (mode === 'sell' && data.type === 'GROUP_SELECTION_ERROR') {
+        console.error('[FB_SELL] Group selection error:', data.error);
+      } else if (mode === 'sell' && data.type === 'GROUP_SELECTION_FAILED') {
+        console.warn('[FB_SELL] Group selection failed:', data.reason);
       } else if (mode === 'sell' && data.type === 'PUBLISH_CLICKED') {
         console.log('[FB_SELL] Publish button clicked, verifying...');
       } else if (mode === 'sell' && data.type === 'PUBLISH_CONFIRMED') {
@@ -945,6 +1754,17 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
         );
       } else if (mode === 'sell' && data.type === 'FORM_FILLED') {
         setFormFilled(true);
+        
+        // Show user feedback about form fill results
+        if (!data.success && data.failedFields && data.failedFields.length > 0) {
+          console.warn('[FB_SELL] Some fields failed:', data.failedFields);
+          Alert.alert(
+            'Partial Fill',
+            `Filled ${data.filledCount}/6 fields. Please manually fill: ${data.failedFields.join(', ')}`,
+            [{ text: 'OK' }]
+          );
+        }
+        
         // Inject image automatically after form fill
         const imageUri = listingData?.imageUri;
         if (!imageUri) {

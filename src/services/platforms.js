@@ -34,40 +34,6 @@ export const platformService = {
   },
 
   /**
-   * Connect Carousell account
-   * TODO: Implement real OAuth flow with Carousell API
-   */
-  async connectCarousell(userId) {
-    try {
-      // TODO: Replace with real Carousell OAuth
-      // 1. Open OAuth URL
-      // 2. Handle callback
-      // 3. Exchange code for token
-      
-      const mockToken = {
-        accessToken: `carousell_token_${Date.now()}`,
-        refreshToken: `carousell_refresh_${Date.now()}`,
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        userId: `carousell_user_${userId}`,
-        userName: 'Carousell User',
-      };
-
-      await storageService.savePlatformToken(userId, 'carousell', mockToken);
-
-      return {
-        success: true,
-        message: 'Carousell connected successfully',
-      };
-    } catch (error) {
-      console.error('Error connecting Carousell:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  },
-
-  /**
    * Connect Shopee account
    * TODO: Implement real OAuth flow with Shopee Open Platform API
    */

@@ -70,7 +70,7 @@ export const PaywallScreen = ({ navigation }) => {
             <Ionicons name="infinite" size={24} color="#FFF" />
             <Text style={styles.featureText}>
               Unlimited listings{'\n'}without restrictions.
-            </Text>
+            </Text>wsa
           </View>
 
           <View style={styles.featureItem}>

@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
+import { CarousellRegionSelector } from '../components/CarousellRegionSelector';
 
 export const ConnectPlatformsScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
     carousell: null,
   });
   const [loading, setLoading] = useState(true);
+  const [showRegionSelector, setShowRegionSelector] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -60,9 +62,20 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
         mode: 'login',
         userId: user.id,
       });
+    } else if (platform === 'carousell') {
+      setShowRegionSelector(true);
     } else {
       navigation.goBack();
     }
+  };
+
+  const handleRegionSelect = (region) => {
+    setShowRegionSelector(false);
+    navigation.navigate('CarousellWebView', {
+      mode: 'login',
+      userId: user.id,
+      region: region,
+    });
   };
 
   const handleDisconnect = async (platform) => {
@@ -217,6 +230,12 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      <CarousellRegionSelector
+        visible={showRegionSelector}
+        onSelect={handleRegionSelect}
+        onClose={() => setShowRegionSelector(false)}
+      />
     </SafeAreaView>
   );
 };

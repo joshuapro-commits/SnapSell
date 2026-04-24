@@ -70,45 +70,42 @@ export const HomeScreen = ({ navigation }) => {
     });
   };
 
-  const handleTakePicture = async () => {
-    setImagePickerVisible(false);
-    await new Promise(resolve => setTimeout(resolve, 300));
+  const handleTakePicture = () => {
+    // Close modal first, then navigate
+    handleCloseImagePicker();
     
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Camera permission is required to take photos');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
-    }
+    // Small delay to ensure modal closes before navigation
+    setTimeout(() => {
+      navigation.navigate('Sell');
+    }, 300);
   };
 
   const handleUploadPhoto = async () => {
-    setImagePickerVisible(false);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Photo library permission is required');
-      return;
-    }
+    try {
+      // 1. Request permissions first
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need access to your photos to upload.');
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.8,
-    });
+      // 2. Launch picker FIRST (while modal is still visible)
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
 
-    if (!result.canceled) {
-      navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+      // 3. Close modal AFTER picker interaction is done
+      handleCloseImagePicker();
+
+      // 4. Navigate if image was selected
+      if (!result.canceled) {
+        navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      handleCloseImagePicker();
     }
   };
 
@@ -211,21 +208,21 @@ export const HomeScreen = ({ navigation }) => {
           activeOpacity={1}
           onPress={handleCloseImagePicker}
         >
-          <Animated.View 
-            style={[
-              styles.imagePickerSheet,
-              {
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <TouchableOpacity activeOpacity={1}>
+          <TouchableOpacity activeOpacity={1}>
+            <Animated.View 
+              style={[
+                styles.imagePickerSheet,
+                {
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
               <View style={styles.sheetHandle} />
-              
-              <Text style={styles.sheetTitle}>Add Product Photo</Text>
-              <Text style={styles.sheetSubtitle}>Choose how you'd like to add your product image</Text>
-              
-              <View style={styles.optionsContainer}>
+            
+            <Text style={styles.sheetTitle}>Add Product Photo</Text>
+            <Text style={styles.sheetSubtitle}>Choose how you'd like to add your product image</Text>
+            
+            <View style={styles.optionsContainer}>
                 <TouchableOpacity 
                   style={styles.optionButton}
                   onPress={handleTakePicture}
@@ -253,16 +250,16 @@ export const HomeScreen = ({ navigation }) => {
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
                 </TouchableOpacity>
-              </View>
+            </View>
 
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={handleCloseImagePicker}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={handleCloseImagePicker}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-          </Animated.View>
+            </Animated.View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
