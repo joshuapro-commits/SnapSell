@@ -207,23 +207,15 @@ export const platformService = {
           error: 'Carousell account not connected',
         });
       } else {
-        try {
-          // TODO: Replace with real Carousell API call
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          results.carousell = {
-            success: true,
-            listingId: `carousell_${Date.now()}`,
-            listingUrl: `https://www.carousell.ph/p/${Date.now()}`,
-            platform: 'carousell',
-            publishedAt: new Date().toISOString(),
-          };
-        } catch (error) {
-          results.errors.push({
-            platform: 'carousell',
-            error: error.message,
-          });
-        }
+        // Return special flag to trigger WebView navigation
+        results.carousell = {
+          success: false,
+          requiresWebView: true,
+          platform: 'carousell',
+          region: tokens.carousell.region || 'ph',
+          regionName: tokens.carousell.regionName || 'Philippines',
+          domain: tokens.carousell.domain || 'carousell.ph',
+        };
       }
     }
 

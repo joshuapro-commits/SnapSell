@@ -25,6 +25,19 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
   const [hasConnected, setHasConnected] = useState(false);
   const [formFilled, setFormFilled] = useState(false);
 
+  // Show warning on mount for sell mode
+  useEffect(() => {
+    if (mode === 'sell') {
+      setTimeout(() => {
+        Alert.alert(
+          '💡 Smart Rate Limiting',
+          'SnapSell automatically adjusts wait times based on your activity:\n\n• First 3 listings: 2 min wait\n• Next 2 listings: 5 min wait\n• After 5 listings: 10 min wait\n\nThis keeps your account safe!',
+          [{ text: 'Got it' }]
+        );
+      }, 1000);
+    }
+  }, [mode]);
+
   // Determine initial URL based on mode
   const getInitialUrl = () => {
     if (mode === 'login') return 'https://www.facebook.com/login';
@@ -116,16 +129,47 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
         console.log('[FB_SELL] Marketplace create page loaded, waiting for form...');
         setFormFilled(true);
 
-        // ── Cool-down check: enforce 5-minute gap between listings ──────────
-        // Prevents Facebook's velocity-based bot detection from triggering
+        // Smart tiered cooldown system
         const lastPublish = await storageService.getLastPublishTime(userId);
-        const elapsed = Date.now() - lastPublish;
-        const COOL_DOWN_MS = 5 * 60 * 1000;
-        if (elapsed < COOL_DOWN_MS) {
-          const remaining = Math.ceil((COOL_DOWN_MS - elapsed) / 1000);
+        const publishHistory = await storageService.getPublishHistory(userId);
+        const now = Date.now();
+        const elapsed = now - lastPublish;
+        
+        // Count recent listings (last hour)
+        const oneHourAgo = now - (60 * 60 * 1000);
+        const recentListings = publishHistory.filter(time => time > oneHourAgo).length;
+        
+        // Tiered cooldown based on velocity
+        let requiredGap;
+        let message;
+        
+        if (recentListings === 0) {
+          // First listing of the hour - no wait
+          requiredGap = 0;
+        } else if (recentListings < 3) {
+          // Listings 2-3: 2 minutes
+          requiredGap = 2 * 60 * 1000;
+          message = 'Quick break! Wait 2 minutes between listings to keep your account safe.';
+        } else if (recentListings < 5) {
+          // Listings 4-5: 5 minutes
+          requiredGap = 5 * 60 * 1000;
+          message = 'Slow down a bit. Wait 5 minutes to avoid Facebook security checks.';
+        } else {
+          // 6+ listings: 10 minutes
+          requiredGap = 10 * 60 * 1000;
+          message = 'You\'ve posted several listings. Wait 10 minutes to prevent account restrictions.';
+        }
+        
+        if (elapsed < requiredGap) {
+          const remaining = Math.ceil((requiredGap - elapsed) / 60000);
+          const seconds = Math.ceil((requiredGap - elapsed) / 1000) % 60;
+          const timeStr = remaining > 0 
+            ? `${remaining} minute${remaining > 1 ? 's' : ''}${seconds > 0 ? ` ${seconds}s` : ''}`
+            : `${seconds} seconds`;
+          
           Alert.alert(
-            'Cool Down Active',
-            `Please wait ${remaining}s before publishing another listing. This prevents account flags.`,
+            'Please Wait',
+            `${message}\n\nTime remaining: ${timeStr}`,
             [{ text: 'OK', onPress: () => navigation.goBack() }]
           );
           return;
@@ -352,10 +396,12 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
               // Stealth-types text into an input/textarea/contenteditable.
               // Implements all anti-bot detection techniques:
               // 1. Focus first (real users click before typing)
-              // 2. Character-by-character with randomized delays (50-150ms jitter)
+              // 2. Character-by-character with randomized delays (40-200ms jitter)
               // 3. Dispatch keydown + input events per character (React state sync)
-              // 4. Typo simulation (2% chance)
+              // 4. Typo simulation (3% chance)
               // 5. Variable typing speed (faster for common words, slower for complex)
+              // 6. Micro-pauses between words (200-400ms)
+              // 7. Occasional hesitation mid-sentence (5% chance, 500-1000ms)
               async function stealthType(el, text, skipClear = false) {
                 // Always focus first — real users click the field
                 el.focus();
@@ -379,8 +425,18 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                 for (let i = 0; i < text.length; i++) {
                   const char = text[i];
                   
-                  // Typo simulation: 2% chance, not on last 2 chars or spaces
-                  const shouldTypo = Math.random() < 0.02 && i < text.length - 2 && char !== ' ';
+                  // Micro-pause between words (space character)
+                  if (char === ' ' && i > 0) {
+                    await wait(200 + Math.random() * 200); // 200-400ms pause between words
+                  }
+                  
+                  // Occasional hesitation mid-sentence (5% chance)
+                  if (Math.random() < 0.05 && i > 5 && i < text.length - 5) {
+                    await wait(500 + Math.random() * 500); // 500-1000ms thinking pause
+                  }
+                  
+                  // Typo simulation: 3% chance, not on last 2 chars or spaces
+                  const shouldTypo = Math.random() < 0.03 && i < text.length - 2 && char !== ' ';
 
                   if (shouldTypo) {
                     const wrong = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
@@ -434,15 +490,17 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Dispatch input event (React state sync)
                   el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
                   
-                  // Randomized delay: 50-150ms per character (human typing speed)
+                  // Randomized delay: 40-200ms per character (human typing speed)
                   // Faster for common characters (vowels, space), slower for numbers/symbols
-                  let baseDelay = 50;
+                  let baseDelay = 60;
                   if (/[0-9!@#$%^&*()]/.test(char)) {
-                    baseDelay = 80; // Slower for numbers/symbols
+                    baseDelay = 100; // Slower for numbers/symbols
                   } else if (/[aeiou ]/.test(char.toLowerCase())) {
                     baseDelay = 40; // Faster for vowels and spaces
+                  } else if (/[A-Z]/.test(char)) {
+                    baseDelay = 80; // Slightly slower for capitals (shift key)
                   }
-                  await wait(baseDelay + Math.random() * 100);
+                  await wait(baseDelay + Math.random() * 140);
                 }
 
                 // Dispatch change event after typing completes
@@ -1049,44 +1107,45 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   let failedFields = [];
 
                   // Behavioral stealth: simulate human reading + scrolling before starting
-                  await wait(2000 + Math.random() * 1000);
+                  // Real users orient themselves to the page first
+                  await wait(3000 + Math.random() * 2000); // 3-5 seconds initial pause
                   
                   // Random scroll to simulate reviewing the form (anti-static-session detection)
                   const scrollAmount = Math.random() > 0.5 ? 100 + Math.random() * 150 : -(100 + Math.random() * 150);
                   window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
-                  await wait(800 + Math.random() * 600);
+                  await wait(1200 + Math.random() * 800); // 1.2-2 seconds watching scroll
                   
                   // Scroll back to top
                   window.scrollTo({ top: 0, behavior: 'smooth' });
-                  await wait(1000 + Math.random() * 1000);
+                  await wait(1500 + Math.random() * 1000); // 1.5-2.5 seconds
                   if (killSwitchTriggered) return;
 
-                  // Fill Title
-                  await wait(500 + Math.random() * 500);
+                  // Fill Title - with longer pre-field pause
+                  await wait(800 + Math.random() * 700); // 0.8-1.5s thinking before first field
                   if (killSwitchTriggered) return;
                   if (!await fillTextField('Title', "${listingData?.name || ''}")) {
                     success = false;
                     failedFields.push('Title');
                   }
 
-                  // Random scroll (simulate reviewing)
-                  if (Math.random() < 0.3) await randomScroll();
+                  // Random scroll (simulate reviewing) - 40% chance
+                  if (Math.random() < 0.4) await randomScroll();
                   if (killSwitchTriggered) return;
 
-                  // Fill Price
-                  await wait(1000 + Math.random() * 500);
+                  // Fill Price - variable delay between fields
+                  await wait(1200 + Math.random() * 800); // 1.2-2 seconds between fields
                   if (killSwitchTriggered) return;
                   if (!await fillTextField('Price', "${listingData?.platformData?.facebook?.price || listingData?.price || ''}")) {
                     success = false;
                     failedFields.push('Price');
                   }
 
-                  // Random scroll
-                  if (Math.random() < 0.3) await randomScroll();
+                  // Random scroll - 40% chance
+                  if (Math.random() < 0.4) await randomScroll();
                   if (killSwitchTriggered) return;
 
-                  // Select Category using FPC ID (supports multi-level hierarchy)
-                  await wait(1500 + Math.random() * 500);
+                  // Select Category - longer pause before dropdown interaction
+                  await wait(2000 + Math.random() * 1000); // 2-3 seconds
                   if (killSwitchTriggered) return;
                   const fpcId = "${listingData?.platformData?.facebook?.categoryId || '536'}";
                   const fpcName = "${listingData?.platformData?.facebook?.categoryName || 'Home & garden'}";
@@ -1165,15 +1224,57 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                     failedFields.push('Description');
                   }
 
-                  // Fill Product Tags (character-by-character typing + Enter for each)
+                  // Fill Product Tags with Total Interception script
                   await wait(1500 + Math.random() * 500);
                   if (killSwitchTriggered) return;
                   const tags = ${JSON.stringify(listingData?.platformData?.facebook?.tags || [])};
                   if (tags && tags.length > 0) {
+                    // Install continuous monitoring script that re-binds on every FB re-render
+                    const tagInterceptionScript = \`
+                      (function() {
+                        function forceTag(input) {
+                          if (input.dataset.tagHooked) return;
+                          input.dataset.tagHooked = "true";
+
+                          input.addEventListener('input', function(e) {
+                            const val = e.target.value;
+                            // If comma or space typed, force Enter lifecycle
+                            if (val.endsWith(',') || val.endsWith(' ')) {
+                              e.target.value = val.slice(0, -1); // Remove delimiter
+                              
+                              // Fire complete event sequence
+                              ['keydown', 'keypress', 'keyup'].forEach(type => {
+                                const event = new KeyboardEvent(type, {
+                                  key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+                                  bubbles: true, cancelable: true
+                                });
+                                e.target.dispatchEvent(event);
+                              });
+
+                              // Hack: Facebook sometimes only commits on blur
+                              e.target.blur();
+                              setTimeout(() => e.target.focus(), 10);
+                            }
+                          });
+                        }
+
+                        // Continuously check for tag input (FB re-renders frequently)
+                        setInterval(() => {
+                          const tagInput = document.querySelector('input[placeholder*="Tag"]') || 
+                                         document.querySelector('label[aria-label*="Tag"] input') ||
+                                         document.querySelector('[role="textbox"][aria-label*="Tag"]');
+                          if (tagInput) forceTag(tagInput);
+                        }, 1000);
+                      })();
+                    \`;
+                    
+                    // Inject the interception script first
+                    eval(tagInterceptionScript);
+                    await wait(500);
+                    
                     const tagInput = findInput('Product tags') || findInput('Tags');
                     if (tagInput) {
                       // Vary number of tags occasionally (anti-identical-footprint)
-                      // Use 70% of tags if more than 5, otherwise use all
                       const tagsToUse = tags.length > 5 && Math.random() < 0.3 
                         ? tags.slice(0, Math.floor(tags.length * 0.7))
                         : tags;
@@ -1181,13 +1282,11 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                       for (let i = 0; i < tagsToUse.length; i++) {
                         const tag = tagsToUse[i];
                         
-                        // Focus the input (real users click before typing)
+                        // Focus the input
                         tagInput.focus();
                         await wait(200 + Math.random() * 200);
                         
-                        // Type tag character-by-character with human-like rhythm
-                        // stealthType will handle clearing on first tag, we skip clearing for subsequent tags
-                        // because we want the field to be empty after Enter creates the chip
+                        // Type tag character-by-character
                         for (let charIdx = 0; charIdx < tag.length; charIdx++) {
                           const char = tag[charIdx];
                           
@@ -1205,13 +1304,10 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                             await wait(80 + Math.random() * 80);
                           }
                           
-                          // Dispatch keydown BEFORE inserting character
+                          // Insert character
                           tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
-                          
-                          // Insert character using execCommand (React-friendly)
                           const inserted = document.execCommand('insertText', false, char);
                           if (!inserted) {
-                            // Fallback: use native setter
                             if (tagInput.isContentEditable) {
                               tagInput.textContent += char;
                             } else if (tagInput.tagName === 'INPUT' || tagInput.tagName === 'TEXTAREA') {
@@ -1229,48 +1325,38 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                             }
                           }
                           
-                          // Dispatch input event (React state sync)
                           tagInput.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
                           
-                          // Randomized delay: 50-150ms per character
                           let baseDelay = 50;
                           if (/[0-9!@#$%^&*()]/.test(char)) {
-                            baseDelay = 80; // Slower for numbers/symbols
+                            baseDelay = 80;
                           } else if (/[aeiou ]/.test(char.toLowerCase())) {
-                            baseDelay = 40; // Faster for vowels and spaces
+                            baseDelay = 40;
                           }
                           await wait(baseDelay + Math.random() * 100);
                         }
                         
-                        // Dispatch change event after typing tag
-                        tagInput.dispatchEvent(new Event('change', { bubbles: true }));
-                        await wait(100 + Math.random() * 80);
+                        // Force commit via blur/focus (the "secret sauce")
+                        await wait(100);
+                        tagInput.blur();
+                        await wait(50);
+                        tagInput.focus();
+                        await wait(300);
                         
-                        // Press Enter to confirm the tag (keydown + keyup)
-                        tagInput.dispatchEvent(new KeyboardEvent('keydown', {
-                          key: 'Enter',
-                          code: 'Enter',
-                          keyCode: 13,
-                          which: 13,
-                          bubbles: true,
-                          cancelable: true
-                        }));
+                        // Dispatch Enter key events as backup
+                        ['keydown', 'keypress', 'keyup'].forEach(type => {
+                          tagInput.dispatchEvent(new KeyboardEvent(type, {
+                            key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+                            bubbles: true, cancelable: true
+                          }));
+                        });
                         
-                        tagInput.dispatchEvent(new KeyboardEvent('keyup', {
-                          key: 'Enter',
-                          code: 'Enter',
-                          keyCode: 13,
-                          which: 13,
-                          bubbles: true,
-                          cancelable: true
-                        }));
-                        
-                        // Human-like variable delay between tags (anti-bot cadence)
+                        // Human-like variable delay between tags
                         let baseDelay = 400;
                         if (i < 2) {
-                          baseDelay = 600; // Slower start
+                          baseDelay = 600;
                         } else if (i >= tagsToUse.length - 2) {
-                          baseDelay = 700; // Slower end
+                          baseDelay = 700;
                         }
                         
                         if (i < tagsToUse.length - 1) {
@@ -1423,178 +1509,17 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
         `;
         webViewRef.current?.injectJavaScript(groupSelectionScript);
       } else if (mode === 'sell' && data.type === 'GROUP_DIALOG_FOUND') {
-        console.log('[FB_SELL] Group selection dialog detected, auto-selecting relevant groups...');
+        console.log('[FB_SELL] Group selection dialog detected');
         
-        // Generate AI keywords from listing data
-        const aiKeywords = [
-          listingData?.category?.toLowerCase(),
-          listingData?.brand?.toLowerCase(),
-          listingData?.platformData?.facebook?.categoryName?.toLowerCase(),
-          ...(listingData?.platformData?.facebook?.tags || []).map(t => t.toLowerCase()),
-        ].filter(Boolean);
+        // Show helpful tip instead of auto-selecting
+        Alert.alert(
+          '💡 Boost Your Reach',
+          'Facebook is asking if you want to share to groups.\n\nTip: Select 3-5 relevant groups to get more views!\n\nTap "Skip" if you want to post without groups.',
+          [{ text: 'Got it' }]
+        );
         
-        console.log('[FB_SELL] AI keywords for group matching:', aiKeywords);
-        
-        const selectGroupsScript = `
-          (async function() {
-            const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-            const keywords = ${JSON.stringify(aiKeywords)};
-            let selectedCount = 0;
-            const MAX_GROUPS = 20;
-            
-            try {
-              const dialog = document.querySelector('[role="dialog"]');
-              if (!dialog) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_SELECTION_FAILED', reason: 'Dialog not found' }));
-                return;
-              }
-              
-              // Find scrollable container
-              const scrollContainer = dialog.querySelector('[role="list"]') || 
-                                     dialog.querySelector('div[style*="overflow"]') ||
-                                     dialog;
-              
-              // Scroll to load all groups (lazy loading)
-              let lastHeight = scrollContainer.scrollHeight;
-              let stableCount = 0;
-              
-              for (let i = 0; i < 10; i++) {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                await wait(500);
-                
-                const newHeight = scrollContainer.scrollHeight;
-                if (newHeight === lastHeight) {
-                  stableCount++;
-                  if (stableCount >= 2) break; // All groups loaded
-                } else {
-                  stableCount = 0;
-                }
-                lastHeight = newHeight;
-              }
-              
-              // Scroll back to top
-              scrollContainer.scrollTop = 0;
-              await wait(300);
-              
-              // Find all group checkboxes
-              const groupRows = Array.from(dialog.querySelectorAll('div[role="checkbox"]'));
-              window.ReactNativeWebView.postMessage(JSON.stringify({ 
-                type: 'GROUP_SCAN_COMPLETE', 
-                totalGroups: groupRows.length 
-              }));
-              
-              // Score and rank groups by relevance
-              const scoredGroups = groupRows.map(row => {
-                const groupName = row.innerText?.toLowerCase() || '';
-                let score = 0;
-                
-                keywords.forEach(kw => {
-                  if (groupName.includes(kw)) score += 10;
-                  // Bonus for exact word match
-                  const words = groupName.split(/\s+/);
-                  if (words.includes(kw)) score += 5;
-                });
-                
-                return { row, groupName, score };
-              });
-              
-              // Filter to only relevant groups (score > 0)
-              const relevantGroups = scoredGroups.filter(g => g.score > 0);
-              
-              // Randomly select 5-10 groups from relevant ones
-              const targetCount = Math.floor(Math.random() * 6) + 5; // Random number between 5-10
-              const selectedCount = Math.min(targetCount, relevantGroups.length);
-              
-              // Shuffle relevant groups randomly
-              for (let i = relevantGroups.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [relevantGroups[i], relevantGroups[j]] = [relevantGroups[j], relevantGroups[i]];
-              }
-              
-              // Take first N groups after shuffle
-              const groupsToSelect = relevantGroups.slice(0, selectedCount);
-              
-              window.ReactNativeWebView.postMessage(JSON.stringify({ 
-                type: 'GROUP_SELECTION_PLAN',
-                totalRelevant: relevantGroups.length,
-                willSelect: selectedCount,
-                sampleGroups: groupsToSelect.slice(0, 3).map(g => g.groupName.substring(0, 40))
-              }));
-              
-              // Select the randomly chosen groups
-              const selectedGroups = [];
-              let actualSelected = 0;
-              for (const { row, groupName, score } of groupsToSelect) {
-                
-                // Check if already selected (multiple ways to detect)
-                const isChecked = row.getAttribute('aria-checked') === 'true' || 
-                                 row.classList.contains('checked') ||
-                                 row.querySelector('[aria-checked="true"]');
-                
-                if (!isChecked) {
-                  row.scrollIntoView({ block: 'center' });
-                  await wait(200 + Math.random() * 200);
-                  
-                  // Try multiple click strategies
-                  // 1. Click the checkbox element itself
-                  row.click();
-                  
-                  // 2. Find and click any nested checkbox input
-                  const checkbox = row.querySelector('input[type="checkbox"]');
-                  if (checkbox) checkbox.click();
-                  
-                  // 3. Dispatch events for React state sync
-                  row.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                  row.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                  row.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                  row.dispatchEvent(new Event('change', { bubbles: true }));
-                  row.dispatchEvent(new Event('input', { bubbles: true }));
-                  
-                  actualSelected++;
-                  selectedGroups.push(groupName.substring(0, 50));
-                  await wait(300 + Math.random() * 200);
-                }
-              }
-              
-              window.ReactNativeWebView.postMessage(JSON.stringify({ 
-                type: 'GROUPS_SELECTED', 
-                count: actualSelected,
-                groups: selectedGroups,
-                checkboxInfo: groupsToSelect.slice(0, 2).map(g => ({
-                  name: g.groupName.substring(0, 30),
-                  role: g.row.getAttribute('role'),
-                  ariaChecked: g.row.getAttribute('aria-checked'),
-                  hasCheckboxInput: !!g.row.querySelector('input[type="checkbox"]')
-                }))
-              }));
-              
-              // Wait 1s then click Next/Done button
-              await wait(1000);
-              const buttons = Array.from(dialog.querySelectorAll('[role="button"], button'));
-              const nextBtn = buttons.find(btn => {
-                const text = btn.innerText?.trim();
-                return text === 'Next' || text === 'Done' || text === 'Continue';
-              });
-              
-              if (nextBtn && nextBtn.getAttribute('aria-disabled') !== 'true') {
-                nextBtn.scrollIntoView({ block: 'center' });
-                await wait(500);
-                nextBtn.click();
-                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_NEXT_CLICKED' }));
-              } else {
-                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GROUP_NEXT_NOT_FOUND' }));
-              }
-            } catch (error) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ 
-                type: 'GROUP_SELECTION_ERROR', 
-                error: error.toString() 
-              }));
-            }
-          })();
-          true;
-        `;
-        
-        webViewRef.current?.injectJavaScript(selectGroupsScript);
+        // User handles group selection manually
+        // App will detect when they click Next and proceed to Publish screen
       } else if (mode === 'sell' && data.type === 'NO_GROUP_DIALOG') {
         console.log('[FB_SELL] No group dialog, proceeding to Publish screen...');
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1873,6 +1798,9 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
         androidHardwareAccelerationDisabled={false}
         // Prevent Facebook from blocking redirects
         originWhitelist={['*']}
+        // Android-specific: critical for tag chip creation
+        setSupportMultipleWindows={false}
+        mixedContentMode="always"
         onNavigationStateChange={handleNavigationStateChange}
         onMessage={handleMessage}
         onLoadStart={() => setLoading(true)}

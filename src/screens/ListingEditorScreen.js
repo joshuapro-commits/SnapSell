@@ -282,6 +282,37 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       return;
     }
 
+    // If only Carousell is selected, go directly to WebView
+    if (selectedPlatforms.carousell && !selectedPlatforms.facebook && !selectedPlatforms.shopee) {
+      const tokens = await platformService.getPlatformTokens(user.id);
+      if (!tokens.carousell) {
+        Alert.alert(
+          'Carousell Not Connected',
+          'Please connect your Carousell account first in Settings > Connect Platforms.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Connect Now',
+              onPress: () => navigation.navigate('ConnectPlatforms'),
+            },
+          ]
+        );
+        return;
+      }
+
+      navigation.navigate('CarousellWebView', {
+        mode: 'sell',
+        userId: user.id,
+        region: {
+          id: tokens.carousell.region || 'ph',
+          name: tokens.carousell.regionName || 'Philippines',
+          domain: tokens.carousell.domain || 'carousell.ph',
+        },
+        listingData: listingData,
+      });
+      return;
+    }
+
     // Show publishing progress for other platforms
     Alert.alert(
       'Publishing',
@@ -972,7 +1003,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                   placeholder={editingField.includes('price') || editingField.includes('Price') ? '0.00' : 'Enter text'}
                   placeholderTextColor="#999"
                   keyboardType={editingField.includes('price') || editingField.includes('Price') ? 'decimal-pad' : 'default'}
-                  autoFocus
+                  autoFocusdz 
                 />
               )}
             </View>

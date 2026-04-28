@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
+import { googleSignInService } from '../services/googleSignIn';
 import { CarousellRegionSelector } from '../components/CarousellRegionSelector';
 
 export const ConnectPlatformsScreen = ({ navigation }) => {
@@ -27,8 +29,12 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
   });
   const [loading, setLoading] = useState(true);
   const [showRegionSelector, setShowRegionSelector] = useState(false);
+  const [googleSignInLoading, setGoogleSignInLoading] = useState(false);
 
   useEffect(() => {
+    // Configure Google Sign-In on mount
+    googleSignInService.configure();
+    
     const unsubscribe = navigation.addListener('focus', () => {
       loadConnectedPlatforms();
     });
@@ -63,9 +69,59 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
         userId: user.id,
       });
     } else if (platform === 'carousell') {
-      setShowRegionSelector(true);
+      // Show native Google Sign-In for Carousell
+      handleCarousellGoogleSignIn();
     } else {
       navigation.goBack();
+    }
+  };
+
+  const handleCarousellGoogleSignIn = async () => {
+    try {
+      setGoogleSignInLoading(true);
+      console.log('[CONNECT_PLATFORMS] Starting native Google Sign-In for Carousell...');
+      
+      const result = await googleSignInService.signIn();
+      
+      if (result.success) {
+        console.log('[CONNECT_PLATFORMS] ✅ Google Sign-In successful');
+        console.log('[CONNECT_PLATFORMS] User:', result.user.email);
+        console.log('[CONNECT_PLATFORMS] ID Token:', result.tokens.idToken.substring(0, 50) + '...');
+        
+        // Show success message
+        Alert.alert(
+          '✅ Google Sign-In Successful',
+          `Signed in as ${result.user.email}\n\nNext: We'll pass this session to Carousell WebView for listing management.`,
+          [
+            {
+              text: 'Continue to Carousell',
+              onPress: () => {
+                // TODO: Pass idToken to CarousellWebView for session injection
+                setShowRegionSelector(true);
+              },
+            },
+          ]
+        );
+      } else {
+        console.log('[CONNECT_PLATFORMS] ❌ Google Sign-In failed:', result.error);
+        
+        if (result.code !== 'CANCELLED') {
+          Alert.alert(
+            'Sign-In Failed',
+            result.error || 'Failed to sign in with Google',
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[CONNECT_PLATFORMS] Google Sign-In error:', error);
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred during sign-in',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setGoogleSignInLoading(false);
     }
   };
 
@@ -198,21 +254,31 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
                   )}
 
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={[
+                      styles.actionButton,
+                      googleSignInLoading && platform.id === 'carousell' && styles.actionButtonDisabled
+                    ]}
                     onPress={() => 
                       connectedPlatforms[platform.id] 
                         ? handleDisconnect(platform.id)
                         : handleConnect(platform.id)
                     }
+                    disabled={googleSignInLoading && platform.id === 'carousell'}
                   >
-                    <Text style={styles.actionButtonText}>
-                      {connectedPlatforms[platform.id] ? 'Disconnect' : 'Connect'}
-                    </Text>
-                    <Ionicons 
-                      name={connectedPlatforms[platform.id] ? 'close' : 'arrow-forward'} 
-                      size={18} 
-                      color="#1A1D1F" 
-                    />
+                    {googleSignInLoading && platform.id === 'carousell' ? (
+                      <ActivityIndicator size="small" color="#1A1D1F" />
+                    ) : (
+                      <>
+                        <Text style={styles.actionButtonText}>
+                          {connectedPlatforms[platform.id] ? 'Disconnect' : 'Connect'}
+                        </Text>
+                        <Ionicons 
+                          name={connectedPlatforms[platform.id] ? 'close' : 'arrow-forward'} 
+                          size={18} 
+                          color="#1A1D1F" 
+                        />
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
 
@@ -402,6 +468,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 8,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   actionButtonText: {
     fontSize: 15,

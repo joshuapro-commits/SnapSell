@@ -251,9 +251,35 @@ export const storageService = {
 
   async setLastPublishTime(userId) {
     try {
-      await AsyncStorage.setItem(`${KEYS.FB_LAST_PUBLISH}_${userId}`, Date.now().toString());
+      const now = Date.now();
+      await AsyncStorage.setItem(`${KEYS.FB_LAST_PUBLISH}_${userId}`, now.toString());
+      
+      // Also add to history
+      const history = await this.getPublishHistory(userId);
+      history.push(now);
+      
+      // Keep only last 24 hours of history
+      const oneDayAgo = now - (24 * 60 * 60 * 1000);
+      const recentHistory = history.filter(time => time > oneDayAgo);
+      
+      await AsyncStorage.setItem(`@snap_sell_fb_publish_history_${userId}`, JSON.stringify(recentHistory));
     } catch (error) {
       console.error('Error saving last publish time:', error);
+    }
+  },
+
+  async getPublishHistory(userId) {
+    try {
+      const val = await AsyncStorage.getItem(`@snap_sell_fb_publish_history_${userId}`);
+      if (!val) return [];
+      
+      const history = JSON.parse(val);
+      
+      // Filter out old entries (older than 24 hours)
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      return history.filter(time => time > oneDayAgo);
+    } catch {
+      return [];
     }
   },
 };

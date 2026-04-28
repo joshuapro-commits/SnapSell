@@ -12,6 +12,7 @@
       "backgroundColor": "#F5F5F5"
     },
     "ios": {
+      "bundleIdentifier": "com.joshuaseziba.SnapSell",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to take photos of products for listing.",
@@ -55,8 +56,15 @@
           "photosPermission": "Allow Snap & Sell to access your photos to select product images."
         }
       ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.72999929916-u2jrcfqpjh9atk069tulkk104au6iuvh"
+        }
+      ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store"
     ]
   }
 }
