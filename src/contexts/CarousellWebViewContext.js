@@ -8,9 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // iOS Safari UA gets Google Sign-In, Android Chrome UA does not
 const USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
-// Viewport injection + Cookie banner removal
+// Viewport injection + Cookie banner removal + UA verification
 const PREWARM_INJECTION = `
   (function() {
+    // Log User Agent for debugging
+    console.log('[PREWARM] User Agent:', navigator.userAgent);
+    
     // Inject mobile viewport
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'viewport');
@@ -204,24 +207,40 @@ export const CarousellWebViewProvider = ({ children }) => {
     
     // Always navigate to target URL when showing WebView
     if (domain !== currentDomain) {
-      console.log('[PREWARM_MANAGER] 🔄 Domain changed, updating state');
+      console.log('[PREWARM_MANAGER] 🔄 Domain changed, forcing reload');
       setCurrentDomain(domain);
       setIsPrewarmed(false);
+      
+      // Force reload when domain changes
+      setIsVisible(true);
+      setTimeout(() => {
+        console.log('[PREWARM_MANAGER] 🔄 Reloading WebView for domain change');
+        webViewRef.current?.reload();
+        
+        // Navigate after reload
+        setTimeout(() => {
+          console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
+          webViewRef.current?.injectJavaScript(`
+            console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
+            window.location.href='${targetUrl}';
+            true;
+          `);
+        }, 500);
+      }, 100);
+    } else {
+      // Same domain, just navigate
+      setIsVisible(true);
+      console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
+      
+      setTimeout(() => {
+        console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
+        webViewRef.current?.injectJavaScript(`
+          console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
+          window.location.href='${targetUrl}';
+          true;
+        `);
+      }, 100);
     }
-    
-    // Show WebView first, then navigate
-    setIsVisible(true);
-    console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
-    
-    // Navigate after a brief delay to ensure WebView is visible
-    setTimeout(() => {
-      console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
-      webViewRef.current?.injectJavaScript(`
-        console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
-        window.location.href='${targetUrl}';
-        true;
-      `);
-    }, 100);
   };
   
   const hideWebView = () => {
