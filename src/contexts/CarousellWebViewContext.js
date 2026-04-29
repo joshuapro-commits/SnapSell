@@ -3,12 +3,10 @@ import { View, StyleSheet, Platform, StatusBar } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Platform-specific User Agents for optimal compatibility
-const USER_AGENT = Platform.select({
-  ios: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-  android: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-  default: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-});
+// Use iOS Safari User Agent for both platforms to ensure consistent login options
+// Carousell serves different login options based on User Agent
+// iOS Safari UA gets Google Sign-In, Android Chrome UA does not
+const USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
 // Viewport injection + Cookie banner removal
 const PREWARM_INJECTION = `
@@ -135,7 +133,7 @@ export const CarousellWebViewProvider = ({ children }) => {
   useEffect(() => {
     console.log('[PREWARM_MANAGER] 🚀 Singleton WebView initializing...');
     console.log('[PREWARM_MANAGER] Platform:', Platform.OS);
-    console.log('[PREWARM_MANAGER] User Agent:', USER_AGENT.substring(0, 50) + '...');
+    console.log('[PREWARM_MANAGER] User Agent: iOS Safari (consistent across platforms)');
     console.log('[PREWARM_MANAGER] Pre-warming Carousell in background...');
   }, []);
   
@@ -195,6 +193,8 @@ export const CarousellWebViewProvider = ({ children }) => {
   
   const showWebView = (domain = 'carousell.sg', mode = 'login') => {
     console.log('[PREWARM_MANAGER] 👁️ Showing WebView for', domain, 'mode:', mode);
+    console.log('[PREWARM_MANAGER] 📱 Platform:', Platform.OS);
+    console.log('[PREWARM_MANAGER] 📏 StatusBar height:', StatusBar.currentHeight);
     
     const targetUrl = mode === 'login' 
       ? `https://www.${domain}/login/` 
@@ -211,11 +211,16 @@ export const CarousellWebViewProvider = ({ children }) => {
     
     // Show WebView first, then navigate
     setIsVisible(true);
+    console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
     
     // Navigate after a brief delay to ensure WebView is visible
     setTimeout(() => {
       console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
-      webViewRef.current?.injectJavaScript(`window.location.href='${targetUrl}';true;`);
+      webViewRef.current?.injectJavaScript(`
+        console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
+        window.location.href='${targetUrl}';
+        true;
+      `);
     }, 100);
   };
   
@@ -277,18 +282,17 @@ export const CarousellWebViewProvider = ({ children }) => {
       {children}
       
       {/* Singleton Pre-warmed WebView - Always mounted, visibility controlled */}
-      {/* CRITICAL: Proper stacking and safe area handling */}
+      {/* CRITICAL: Absolutely positioned overlay that renders OVER the screen */}
       <View 
         style={[
           styles.prewarmContainer,
           isVisible ? styles.visible : styles.hidden
         ]}
       >
-        {/* Add top padding to account for header (60px) + status bar */}
+        {/* Add top margin to push WebView below the screen's header */}
+        {/* The screen renders: SafeAreaView + StatusBar + Header (60px) */}
         <View style={{
-          paddingTop: Platform.OS === 'android' 
-            ? (StatusBar.currentHeight || 0) + 60 
-            : 60, // iOS SafeAreaView handles status bar
+          marginTop: 60, // Just the header height - screen handles status bar
           flex: 1,
           backgroundColor: '#FFF',
         }}>
