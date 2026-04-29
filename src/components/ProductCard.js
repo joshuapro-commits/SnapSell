@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Animated } from 'react
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
 import { formatPrice, formatDate } from '../utils/helpers';
 import { createFadeIn, createScale, pressAnimation } from '../utils/animations';
+import { VerificationBadge } from './VerificationBadge';
 
 export const ProductCard = ({ listing, onPress }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -47,6 +48,18 @@ export const ProductCard = ({ listing, onPress }) => {
         <Text style={styles.name} numberOfLines={1}>
           {listing.name}
         </Text>
+        
+        {/* Verification Badge */}
+        {listing.verification && (
+          <View style={styles.verificationContainer}>
+            <VerificationBadge 
+              verification={listing.verification} 
+              size="small" 
+              showLabel={true}
+            />
+          </View>
+        )}
+        
         <Text style={styles.brand} numberOfLines={1}>
           {listing.brand}
         </Text>
@@ -83,6 +96,9 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: SPACING.md,
+  },
+  verificationContainer: {
+    marginVertical: SPACING.xs,
   },
   name: {
     fontSize: FONT_SIZES.lg,

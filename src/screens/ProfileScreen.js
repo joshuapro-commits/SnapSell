@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useListings } from '../contexts/ListingsContext';
+import { verificationService } from '../services/verification';
+import { SellerVerificationBadge } from '../components/VerificationBadge';
 import * as ImagePicker from 'expo-image-picker';
 
 export const ProfileScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
-  const { myListings } = useListings();
+  const { myListings, allListings } = useListings();
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [sellerScore, setSellerScore] = useState(null);
   const slideAnim = React.useRef(new Animated.Value(300)).current;
+
+  useEffect(() => {
+    // Calculate seller verification score
+    const calculateScore = async () => {
+      const score = await verificationService.getSellerScore(user.id, allListings);
+      setSellerScore(score);
+    };
+    calculateScore();
+  }, [user.id, allListings]);
 
   const totalEarnings = myListings
     .filter(l => l.status === 'sold')
@@ -174,6 +186,18 @@ export const ProfileScreen = ({ navigation }) => {
             <Text style={styles.statCountActive}>{myListings.filter(l => l.status === 'sold').length}</Text>
           </View>
         </View>
+
+        {/* Seller Verification Badge */}
+        {sellerScore && (
+          <View style={styles.sellerScoreContainer}>
+            <SellerVerificationBadge sellerScore={sellerScore} size="medium" />
+            {sellerScore.level !== 'new' && (
+              <Text style={styles.sellerScoreText}>
+                {sellerScore.verifiedListings} of {sellerScore.totalListings} listings verified
+              </Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.menuList}>
           {menuItems.map((item) => (
@@ -586,5 +610,23 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '600',
     fontFamily: 'Montserrat_600SemiBold',
+  },
+  sellerScoreContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sellerScoreText: {
+    fontSize: 12,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#666',
   },
 });

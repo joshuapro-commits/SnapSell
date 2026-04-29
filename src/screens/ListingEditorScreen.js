@@ -7,6 +7,7 @@ import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
 import { getFPCId, getCategoryNameFromId, isLeafCategory, getParentName, getLeafName, FB_CATEGORY_LIST, FPC_HIERARCHY } from '../constants/facebookCategories';
+import { VerificationBadge, VerificationScore } from '../components/VerificationBadge';
 
 export const ListingEditorScreen = ({ navigation, route }) => {
   const { productData, listing } = route.params;
@@ -393,6 +394,51 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.sheetContent}
             showsVerticalScrollIndicator={false}
           >
+          {/* Verification Section */}
+          {data.verification && (
+            <View style={styles.verificationSection}>
+              <View style={styles.verificationHeader}>
+                <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+                <Text style={styles.verificationTitle}>Listing Verification</Text>
+              </View>
+              <VerificationBadge 
+                verification={data.verification} 
+                size="large" 
+                showLabel={true}
+              />
+              <VerificationScore verification={data.verification} />
+              
+              {data.verification.checks && (
+                <View style={styles.verificationChecks}>
+                  {data.verification.checks.photoSource && (
+                    <View style={styles.checkItem}>
+                      <Ionicons 
+                        name={data.verification.checks.photoSource.passed ? "checkmark-circle" : "alert-circle"} 
+                        size={16} 
+                        color={data.verification.checks.photoSource.passed ? "#10B981" : "#F59E0B"} 
+                      />
+                      <Text style={styles.checkText}>
+                        {data.verification.checks.photoSource.message}
+                      </Text>
+                    </View>
+                  )}
+                  {data.verification.checks.aiConsistency && (
+                    <View style={styles.checkItem}>
+                      <Ionicons 
+                        name={data.verification.checks.aiConsistency.passed ? "checkmark-circle" : "alert-circle"} 
+                        size={16} 
+                        color={data.verification.checks.aiConsistency.passed ? "#10B981" : "#F59E0B"} 
+                      />
+                      <Text style={styles.checkText}>
+                        {data.verification.checks.aiConsistency.message}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+          
           {/* Gallery Section */}
           <View style={styles.gallerySection}>
             <Text style={styles.galleryTitle}>Gallery</Text>
@@ -1645,5 +1691,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
     fontFamily: 'Montserrat_600SemiBold',
+  },
+  verificationSection: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  verificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  verificationTitle: {
+    fontSize: 16,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#166534',
+  },
+  verificationChecks: {
+    marginTop: 12,
+    gap: 8,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkText: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#166534',
+    flex: 1,
   },
 });

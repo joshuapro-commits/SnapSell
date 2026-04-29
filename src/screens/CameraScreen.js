@@ -18,7 +18,10 @@ export const CameraScreen = ({ navigation }) => {
     if (!cameraRef.current) return;
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      navigation.navigate('AnalyzingScreen', { imageUri: photo.uri });
+      navigation.navigate('AnalyzingScreen', { 
+        imageUri: photo.uri,
+        photoSource: 'camera', // Track photo source for verification
+      });
     } catch (error) {
       Alert.alert('Error', 'Failed to take photo');
     }
@@ -32,7 +35,10 @@ export const CameraScreen = ({ navigation }) => {
         quality: 0.8,
       });
       if (!result.canceled) {
-        navigation.navigate('AnalyzingScreen', { imageUri: result.assets[0].uri });
+        navigation.navigate('AnalyzingScreen', { 
+          imageUri: result.assets[0].uri,
+          photoSource: 'gallery', // Track photo source for verification
+        });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to open photo library');

@@ -8,11 +8,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { aiService } from '../services/ai';
+import { verificationService } from '../services/verification';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const AnalyzingScreen = ({ route, navigation }) => {
-  const { imageUri } = route.params || {};
+  const { imageUri, photoSource = 'gallery' } = route.params || {};
   const [progress, setProgress] = useState(0);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [fadeAnim] = useState(new Animated.Value(1));
@@ -25,16 +26,40 @@ export const AnalyzingScreen = ({ route, navigation }) => {
     'Finding market prices',
     'Writing description',
     'Detecting brand',
+    'Verifying listing',
     'Finalizing'
   ];
 
   useEffect(() => {
     const analyzeImage = async () => {
       try {
+        // Step 1: AI Analysis
         const result = await aiService.analyzeImage(imageUri);
+        
+        if (result.success) {
+          // Step 2: Verification
+          const verification = await verificationService.verifyListing({
+            imageUri,
+            photoSource,
+            listingData: result.data,
+            exifData: null, // TODO: Extract EXIF data from image
+          });
+          
+          // Attach verification to result
+          result.data.verification = verification;
+          result.data.photoSource = photoSource;
+          
+          console.log('[ANALYZING] Verification result:', {
+            verified: verification.verified,
+            score: verification.score,
+            level: verification.level,
+          });
+        }
+        
         setAiResult(result);
         setAiComplete(true);
       } catch (error) {
+        console.error('[ANALYZING] Error:', error);
         navigation.goBack();
       }
     };
@@ -42,7 +67,7 @@ export const AnalyzingScreen = ({ route, navigation }) => {
     if (imageUri) {
       analyzeImage();
     }
-  }, [imageUri]);
+  }, [imageUri, photoSource]);
 
   useEffect(() => {
     if (aiComplete && progress >= 100) {
