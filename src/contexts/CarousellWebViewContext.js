@@ -3,8 +3,12 @@ import { View, StyleSheet, Platform, StatusBar } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mobile User Agent
-const USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+// Platform-specific User Agents for optimal compatibility
+const USER_AGENT = Platform.select({
+  ios: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  android: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  default: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+});
 
 // Viewport injection + Cookie banner removal
 const PREWARM_INJECTION = `
@@ -60,25 +64,21 @@ const PREWARM_INJECTION = `
   })();
 `;
 
-// Aggressive resource blocker
+// Aggressive resource blocker with OAuth whitelist
 const RESOURCE_BLOCKLIST = [
-  // Analytics & Tracking
+  // Analytics & Tracking (but NOT OAuth)
   'googletagmanager',
   'google-analytics',
-  'googleadservices',
-  'googlesyndication',
   'doubleclick',
   'adservice',
-  'analytics',
+  'analytics.js',
   'tracking',
   'telemetry',
   'metrics',
   
-  // Social Media Trackers
-  'facebook.net',
+  // Social Media Trackers (but NOT OAuth)
   'facebook.com/tr',
   'fbevents',
-  'connect.facebook',
   
   // Ad Networks
   'criteo',
@@ -87,6 +87,8 @@ const RESOURCE_BLOCKLIST = [
   'adsystem',
   'adnxs',
   'pubmatic',
+  'googlesyndication',
+  'googleadservices',
   
   // Third-party Services
   'segment.io',
@@ -106,6 +108,19 @@ const RESOURCE_BLOCKLIST = [
   'static.criteo',
 ];
 
+// Whitelist for OAuth and authentication services
+const OAUTH_WHITELIST = [
+  'accounts.google.com',
+  'oauth.googleusercontent.com',
+  'gstatic.com/firebasejs',
+  'apis.google.com',
+  'accounts.facebook.com',
+  'facebook.com/login',
+  'facebook.com/v',
+  'connect.facebook.net',
+  'graph.facebook.com',
+];
+
 const CarousellWebViewContext = createContext(null);
 
 export const CarousellWebViewProvider = ({ children }) => {
@@ -119,6 +134,8 @@ export const CarousellWebViewProvider = ({ children }) => {
   
   useEffect(() => {
     console.log('[PREWARM_MANAGER] 🚀 Singleton WebView initializing...');
+    console.log('[PREWARM_MANAGER] Platform:', Platform.OS);
+    console.log('[PREWARM_MANAGER] User Agent:', USER_AGENT.substring(0, 50) + '...');
     console.log('[PREWARM_MANAGER] Pre-warming Carousell in background...');
   }, []);
   
@@ -127,19 +144,30 @@ export const CarousellWebViewProvider = ({ children }) => {
     if (url.startsWith('about:') || 
         url.startsWith('blob:') || 
         url.startsWith('data:')) {
-      console.log('[PREWARM_ALLOW] Internal URL:', url.substring(0, 40));
       return true;
     }
     
+    // CRITICAL: Whitelist OAuth and authentication services
+    const isOAuthUrl = OAUTH_WHITELIST.some(whitelisted => 
+      url.toLowerCase().includes(whitelisted.toLowerCase())
+    );
+    
+    if (isOAuthUrl) {
+      console.log('[PREWARM_OAUTH_ALLOWED]', url.substring(0, 60));
+      return true;
+    }
+    
+    // Block analytics and trackers
     const shouldBlock = RESOURCE_BLOCKLIST.some(blocked => 
-      url.toLowerCase().includes(blocked)
+      url.toLowerCase().includes(blocked.toLowerCase())
     );
     
     if (shouldBlock) {
       console.log('[PREWARM_BLOCKED]', url.substring(0, 60));
+      return false;
     }
     
-    return !shouldBlock;
+    return true;
   };
   
   const handleLoadEnd = () => {
@@ -168,26 +196,27 @@ export const CarousellWebViewProvider = ({ children }) => {
   const showWebView = (domain = 'carousell.sg', mode = 'login') => {
     console.log('[PREWARM_MANAGER] 👁️ Showing WebView for', domain, 'mode:', mode);
     
+    const targetUrl = mode === 'login' 
+      ? `https://www.${domain}/login/` 
+      : `https://www.${domain}`;
+    
+    console.log('[PREWARM_MANAGER] 🧭 Target URL:', targetUrl);
+    
+    // Always navigate to target URL when showing WebView
     if (domain !== currentDomain) {
-      console.log('[PREWARM_MANAGER] 🔄 Domain changed, navigating to', domain);
+      console.log('[PREWARM_MANAGER] 🔄 Domain changed, updating state');
       setCurrentDomain(domain);
       setIsPrewarmed(false);
-      
-      // Navigate to login page directly for login mode
-      const targetUrl = mode === 'login' 
-        ? `https://www.${domain}/login/` 
-        : `https://www.${domain}`;
-      
-      console.log('[PREWARM_MANAGER] 🧭 Target URL:', targetUrl);
-      webViewRef.current?.injectJavaScript(`window.location.href='${targetUrl}';true;`);
-    } else if (mode === 'login') {
-      // Same domain but need to go to login page
-      const loginUrl = `https://www.${domain}/login/`;
-      console.log('[PREWARM_MANAGER] 🧭 Navigating to login:', loginUrl);
-      webViewRef.current?.injectJavaScript(`window.location.href='${loginUrl}';true;`);
     }
     
+    // Show WebView first, then navigate
     setIsVisible(true);
+    
+    // Navigate after a brief delay to ensure WebView is visible
+    setTimeout(() => {
+      console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
+      webViewRef.current?.injectJavaScript(`window.location.href='${targetUrl}';true;`);
+    }, 100);
   };
   
   const hideWebView = () => {
@@ -255,10 +284,14 @@ export const CarousellWebViewProvider = ({ children }) => {
           isVisible ? styles.visible : styles.hidden
         ]}
       >
-        <SafeAreaView 
-          style={styles.safeArea}
-          edges={isVisible ? ['top'] : []}
-        >
+        {/* Add top padding to account for header (60px) + status bar */}
+        <View style={{
+          paddingTop: Platform.OS === 'android' 
+            ? (StatusBar.currentHeight || 0) + 60 
+            : 60, // iOS SafeAreaView handles status bar
+          flex: 1,
+          backgroundColor: '#FFF',
+        }}>
           <WebView
             ref={webViewRef}
             source={{ uri: `https://www.${currentDomain}` }}
@@ -310,7 +343,7 @@ export const CarousellWebViewProvider = ({ children }) => {
             
             style={styles.webview}
           />
-        </SafeAreaView>
+        </View>
       </View>
     </CarousellWebViewContext.Provider>
   );
@@ -332,21 +365,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 9999,
+    elevation: 9999, // CRITICAL: Android requires elevation for z-index to work
     backgroundColor: '#FFF',
-    // CRITICAL: Overflow hidden to prevent WebView bleeding
     overflow: 'hidden',
   },
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    // Android: Respect status bar height
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   hidden: {
-    opacity: 0,
-    width: 0,
-    height: 0,
-    pointerEvents: 'none',
+    display: 'none', // CRITICAL: Use display:none instead of opacity/size for Android
   },
   visible: {
     opacity: 1,

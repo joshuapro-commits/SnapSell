@@ -405,18 +405,6 @@ export const CarousellWebView = ({ navigation, route }) => {
         // For now, relying on native WebView cookie management
       }
       
-      // Also save to platform tokens for UI display
-      const connectionData = {
-        connected: true,
-        connectedAt: new Date().toISOString(),
-        userName: 'Carousell User',
-        region: region.id,
-        regionName: region.name,
-        domain: domain
-      };
-      
-      await storageService.savePlatformToken(userId, 'carousell', connectionData);
-      
       return true;
     } catch (error) {
       console.error('[CAROUSELL_SESSION] Save error:', error);
@@ -505,11 +493,24 @@ export const CarousellWebView = ({ navigation, route }) => {
           // Hide loading overlay
           setShowLoadingOverlay(false);
           
-          saveSession(data.cookies).then((saved) => {
+          saveSession(data.cookies).then(async (saved) => {
             if (saved) {
+              // Save connection to platform tokens
+              const connectionData = {
+                connected: true,
+                connectedAt: new Date().toISOString(),
+                userName: 'Carousell User',
+                region: region.id,
+                regionName: region.name,
+                domain: domain,
+              };
+              
+              await storageService.savePlatformToken(userId, 'carousell', connectionData);
+              console.log('[CAROUSELL_MSG] Connection saved to platform tokens:', connectionData);
+              
               Alert.alert(
                 'Connected Successfully',
-                `Your Carousell ${region.name} account is now connected!`,
+                `Your Carousell ${region.name} account is now connected!\n\nYou can now publish listings to Carousell.`,
                 [
                   {
                     text: 'OK',
@@ -651,15 +652,15 @@ export const CarousellWebView = ({ navigation, route }) => {
           )}
           
           <TouchableOpacity
-            style={styles.reloadButton}
+            style={styles.refreshButton}
             onPress={handleReload}
           >
-            <Ionicons name="reload" size={20} color="#000" />
+            <Ionicons name="refresh" size={22} color="#D32F2F" />
           </TouchableOpacity>
         </View>
       </View>
       
-      {/* WebView Container - Flex 1 with overflow hidden (CRITICAL for Android) */}
+      {/* WebView Container - Just a placeholder, actual WebView rendered by context */}
       <View style={styles.webviewContainer}>
         {/* Loading overlay */}
         {showLoadingOverlay && (
@@ -675,7 +676,7 @@ export const CarousellWebView = ({ navigation, route }) => {
         )}
         
         {/* Singleton WebView rendered by CarousellWebViewProvider */}
-        {/* Visibility and navigation controlled via context */}
+        {/* This container is just a spacer - WebView is absolutely positioned */}
       </View>
     </SafeAreaView>
   );
@@ -738,9 +739,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Montserrat_600SemiBold',
   },
-  reloadButton: {
+  refreshButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFE8E8',
     justifyContent: 'center',
     alignItems: 'center',
   },

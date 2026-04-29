@@ -56,12 +56,6 @@
           "photosPermission": "Allow Snap & Sell to access your photos to select product images."
         }
       ],
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.72999929916-u2jrcfqpjh9atk069tulkk104au6iuvh"
-        }
-      ],
       "expo-font",
       "expo-web-browser",
       "expo-secure-store"

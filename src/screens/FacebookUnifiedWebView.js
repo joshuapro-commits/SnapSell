@@ -51,77 +51,62 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
 
     if (mode === 'login') {
       // Login mode: detect successful login
-      if (
+      // More strict detection - only trigger on actual Facebook home/feed/marketplace URLs
+      const isLoginSuccess = (
         navState.url.includes('facebook.com') &&
-        !navState.url.includes('login') &&
-        !navState.url.includes('checkpoint') &&
-        !hasConnected
-      ) {
+        !navState.url.includes('/login') &&
+        !navState.url.includes('/checkpoint') &&
+        !navState.url.includes('/recover') &&
+        !navState.url.includes('/help') &&
+        !navState.url.includes('/privacy') &&
+        !navState.url.includes('/confirmemail') &&
+        !navState.url.includes('/checkpoint/') &&
+        !hasConnected &&
+        // Must be on one of these authenticated pages
+        (navState.url.includes('/home.php') ||
+         navState.url.includes('facebook.com/?') ||
+         navState.url.includes('facebook.com/#') ||
+         navState.url === 'https://www.facebook.com/' ||
+         navState.url === 'https://m.facebook.com/' ||
+         navState.url.includes('/marketplace') ||
+         navState.url.includes('/profile.php') ||
+         navState.url.includes('/watch') ||
+         navState.url.includes('/groups'))
+      );
+
+      if (isLoginSuccess) {
         console.log('[FB_LOGIN] Login successful detected!');
-        setHasConnected(true);
-
-        // Save connection immediately
-        const connectionData = {
-          connected: true,
-          connectedAt: new Date().toISOString(),
-          userName: 'Facebook User',
-          profilePic: '',
-        };
-
-        await storageService.savePlatformToken(userId, 'facebook', connectionData);
-        console.log('[FB_LOGIN] Connection saved, redirecting back...');
-
-        // Redirect back immediately
-        navigation.goBack();
+        console.log('[FB_LOGIN] Final URL:', navState.url);
         
-        // Show alert after redirect
-        setTimeout(() => {
-          Alert.alert(
-            'Successfully Connected',
-            'Your Facebook account has been connected. You can now publish listings to Facebook Marketplace.'
-          );
-        }, 500);
-
-        // Try to extract profile info in background (optional)
-        const injectedJS = `
+        // Wait 2 seconds to ensure page is fully loaded and session is stable
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Verify session by checking for profile elements
+        const verifyScript = `
           (function() {
-            setTimeout(async () => {
-              try {
-                let userName = '';
-                
-                const profileButton = document.querySelector('div[aria-label*="Account"], div[aria-label*="Profile"]');
-                if (profileButton) {
-                  userName = profileButton.getAttribute('aria-label') || '';
-                }
-
-                if (!userName) {
-                  const profileLinks = document.querySelectorAll('a[href*="/profile"], a[href*="/user"]');
-                  for (let link of profileLinks) {
-                    const ariaLabel = link.getAttribute('aria-label');
-                    if (ariaLabel && ariaLabel.length > 0 && ariaLabel.length < 50) {
-                      userName = ariaLabel;
-                      break;
-                    }
-                  }
-                }
-
-                if (userName) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'UPDATE_PROFILE',
-                    userName: userName.trim(),
-                  }));
-                }
-              } catch (error) {
-                console.error('[FB_INJECT] Error:', error);
-              }
-            }, 2000);
+            try {
+              // Check if we're actually logged in by looking for profile indicators
+              const hasProfileButton = document.querySelector('[aria-label*="Account"], [aria-label*="Profile"], [aria-label*="Menu"]');
+              const hasNavigation = document.querySelector('[role="navigation"]');
+              const isLoggedIn = hasProfileButton || hasNavigation;
+              
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'SESSION_VERIFIED',
+                isLoggedIn: isLoggedIn,
+                url: window.location.href,
+              }));
+            } catch (error) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'SESSION_VERIFIED',
+                isLoggedIn: false,
+                error: error.toString(),
+              }));
+            }
           })();
           true;
         `;
-
-        setTimeout(() => {
-          webViewRef.current?.injectJavaScript(injectedJS);
-        }, 1000);
+        
+        webViewRef.current?.injectJavaScript(verifyScript);
       }
     } else if (mode === 'sell') {
       // Sell mode: Auto-fill form when marketplace create page loads
@@ -1432,18 +1417,81 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
       const data = JSON.parse(event.nativeEvent.data);
       console.log(`[FB_${mode.toUpperCase()}] Message received:`, data);
 
-      if (mode === 'login' && data.type === 'UPDATE_PROFILE') {
-        // Update profile info in background
-        const existingData = await storageService.getPlatformTokens(userId);
-        const facebookData = existingData.facebook || {};
+      if (mode === 'login' && data.type === 'SESSION_VERIFIED') {
+        if (data.isLoggedIn) {
+          console.log('[FB_LOGIN] Session verified successfully!');
+          setHasConnected(true);
+
+          // Extract profile info
+          const profileScript = `
+            (function() {
+              try {
+                let userName = '';
+                
+                const profileButton = document.querySelector('div[aria-label*="Account"], div[aria-label*="Profile"]');
+                if (profileButton) {
+                  userName = profileButton.getAttribute('aria-label') || '';
+                }
+
+                if (!userName) {
+                  const profileLinks = document.querySelectorAll('a[href*="/profile"], a[href*="/user"]');
+                  for (let link of profileLinks) {
+                    const ariaLabel = link.getAttribute('aria-label');
+                    if (ariaLabel && ariaLabel.length > 0 && ariaLabel.length < 50) {
+                      userName = ariaLabel;
+                      break;
+                    }
+                  }
+                }
+
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'PROFILE_EXTRACTED',
+                  userName: userName.trim() || 'Facebook User',
+                }));
+              } catch (error) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'PROFILE_EXTRACTED',
+                  userName: 'Facebook User',
+                }));
+              }
+            })();
+            true;
+          `;
+          
+          webViewRef.current?.injectJavaScript(profileScript);
+        } else {
+          console.log('[FB_LOGIN] Session verification failed - not actually logged in');
+          Alert.alert(
+            'Login Incomplete',
+            'Please complete the Facebook login process.',
+            [{ text: 'OK' }]
+          );
+        }
+      } else if (mode === 'login' && data.type === 'PROFILE_EXTRACTED') {
+        console.log('[FB_LOGIN] Profile extracted:', data.userName);
         
-        const updatedData = {
-          ...facebookData,
-          userName: data.userName || facebookData.userName,
+        // Save connection with profile info
+        const connectionData = {
+          connected: true,
+          connectedAt: new Date().toISOString(),
+          userName: data.userName,
+          profilePic: '',
         };
 
-        await storageService.savePlatformToken(userId, 'facebook', updatedData);
-        console.log('[FB_LOGIN] Profile updated:', updatedData);
+        await storageService.savePlatformToken(userId, 'facebook', connectionData);
+        console.log('[FB_LOGIN] Connection saved with profile data');
+
+        // Navigate back
+        navigation.goBack();
+        
+        // Show success alert
+        setTimeout(() => {
+          Alert.alert(
+            'Successfully Connected',
+            `Connected as ${data.userName}\n\nYou can now publish listings to Facebook Marketplace.`,
+            [{ text: 'OK' }]
+          );
+        }, 500);
       } else if (mode === 'sell' && data.type === 'DEBUG_INPUTS') {
         console.log('[FB_SELL] Available inputs:', data.inputs);
       } else if (mode === 'sell' && data.type === 'FIELD_FILLED') {

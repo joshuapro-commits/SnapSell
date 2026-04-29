@@ -285,7 +285,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     // If only Carousell is selected, go directly to WebView
     if (selectedPlatforms.carousell && !selectedPlatforms.facebook && !selectedPlatforms.shopee) {
       const tokens = await platformService.getPlatformTokens(user.id);
-      if (!tokens.carousell) {
+      console.log('[ListingEditor] Carousell tokens:', tokens.carousell);
+      
+      if (!tokens.carousell || !tokens.carousell.connected) {
         Alert.alert(
           'Carousell Not Connected',
           'Please connect your Carousell account first in Settings > Connect Platforms.',

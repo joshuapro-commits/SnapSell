@@ -173,6 +173,13 @@ export const platformService = {
   },
 
   /**
+   * Save platform token for a user
+   */
+  async savePlatformToken(userId, platform, tokenData) {
+    return await storageService.savePlatformToken(userId, platform, tokenData);
+  },
+
+  /**
    * Get Facebook disconnect timestamp
    */
   async getFacebookDisconnectTime(userId) {
