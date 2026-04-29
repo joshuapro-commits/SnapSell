@@ -3,17 +3,15 @@ import { View, StyleSheet, Platform, StatusBar } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Use iOS Safari User Agent for both platforms to ensure consistent login options
-// Carousell serves different login options based on User Agent
-// iOS Safari UA gets Google Sign-In, Android Chrome UA does not
-const USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+// Use iPad Safari User Agent - best of both worlds:
+// - Carousell shows Google Sign-In button (treats as iOS)
+// - Google accepts it (not flagged as embedded WebView)
+// - Mobile-optimized redirects (not desktop POST responses)
+const USER_AGENT = 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
-// Viewport injection + Cookie banner removal + UA verification
+// Viewport injection + Cookie banner removal
 const PREWARM_INJECTION = `
   (function() {
-    // Log User Agent for debugging
-    console.log('[PREWARM] User Agent:', navigator.userAgent);
-    
     // Inject mobile viewport
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'viewport');
@@ -22,7 +20,6 @@ const PREWARM_INJECTION = `
     
     // Hide cookie consent banners and "Open in App" popups
     const hideAnnoyances = () => {
-      // Cookie consent selectors
       const selectors = [
         '[class*="cookie"]',
         '[class*="consent"]',
@@ -46,7 +43,6 @@ const PREWARM_INJECTION = `
               text.includes('open in app') ||
               text.includes('download app')) {
             el.style.display = 'none';
-            console.log('[PREWARM] Hidden annoyance:', selector);
           }
         });
       });
@@ -58,7 +54,7 @@ const PREWARM_INJECTION = `
       document.addEventListener('DOMContentLoaded', hideAnnoyances);
     }
     
-    // Run periodically to catch dynamically added popups
+    // Run periodically
     setInterval(hideAnnoyances, 2000);
     
     console.log('[PREWARM] Carousell pre-warming initialized');
@@ -128,6 +124,8 @@ export const CarousellWebViewProvider = ({ children }) => {
   const webViewRef = useRef(null);
   const messageHandlerRef = useRef(null);
   const navigationHandlerRef = useRef(null);
+  const lastPopupUrlRef = useRef(null);
+  const popupHandledRef = useRef(false);
   const [isPrewarmed, setIsPrewarmed] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [currentDomain, setCurrentDomain] = useState('carousell.sg');
@@ -148,13 +146,31 @@ export const CarousellWebViewProvider = ({ children }) => {
       return true;
     }
     
+    // CRITICAL: ALWAYS allow Carousell domain (including ALL subpaths and API endpoints)
+    if (url.includes('carousell.')) {
+      console.log('[PREWARM_CAROUSELL_ALLOWED]', url.substring(0, 80));
+      return true;
+    }
+    
     // CRITICAL: Whitelist OAuth and authentication services
     const isOAuthUrl = OAUTH_WHITELIST.some(whitelisted => 
       url.toLowerCase().includes(whitelisted.toLowerCase())
     );
     
     if (isOAuthUrl) {
-      console.log('[PREWARM_OAUTH_ALLOWED]', url.substring(0, 60));
+      console.log('[PREWARM_OAUTH_ALLOWED]', url.substring(0, 80));
+      return true;
+    }
+    
+    // CRITICAL: Allow ALL Google domains for OAuth flow (including callback URLs)
+    if (url.includes('google.com') || url.includes('gstatic.com') || url.includes('googleapis.com') || url.includes('googleusercontent.com')) {
+      console.log('[PREWARM_GOOGLE_ALLOWED]', url.substring(0, 80));
+      return true;
+    }
+    
+    // CRITICAL: Allow ALL Facebook domains for OAuth
+    if (url.includes('facebook.com') || url.includes('fbcdn.net')) {
+      console.log('[PREWARM_FACEBOOK_ALLOWED]', url.substring(0, 80));
       return true;
     }
     
@@ -164,25 +180,63 @@ export const CarousellWebViewProvider = ({ children }) => {
     );
     
     if (shouldBlock) {
-      console.log('[PREWARM_BLOCKED]', url.substring(0, 60));
+      console.log('[PREWARM_BLOCKED]', url.substring(0, 80));
       return false;
     }
     
+    // Allow everything else by default (safer for OAuth flows)
     return true;
   };
   
   const handleLoadEnd = () => {
+    // Don't mark as pre-warmed if we're on Google OAuth pages
+    if (currentUrl.includes('google.com')) {
+      console.log('[PREWARM_MANAGER] ⏸️ Skipping pre-warm complete (on Google OAuth)');
+      return;
+    }
+    
     console.log('[PREWARM_MANAGER] ✅ Pre-warming complete for', currentDomain);
     console.log('[PREWARM_MANAGER] WebView ready for instant display');
     setIsPrewarmed(true);
   };
   
   const handleLoadStart = () => {
+    // Don't log or update state if we're on Google OAuth pages
+    if (currentUrl.includes('google.com')) {
+      console.log('[PREWARM_MANAGER] ⏸️ Skipping load start (on Google OAuth)');
+      return;
+    }
     console.log('[PREWARM_MANAGER] 🔄 Loading:', currentDomain);
   };
   
   const handleNavigationStateChange = (navState) => {
     setCurrentUrl(navState.url);
+    
+    // CRITICAL: Log EVERY navigation for debugging OAuth flow
+    console.log('[PREWARM_NAV] ========================================');
+    console.log('[PREWARM_NAV] URL:', navState.url);
+    console.log('[PREWARM_NAV] Loading:', navState.loading);
+    console.log('[PREWARM_NAV] Title:', navState.title);
+    console.log('[PREWARM_NAV] canGoBack:', navState.canGoBack);
+    
+    // CRITICAL: Detect blank screen at gsi/transform
+    if (navState.url.includes('gsi/transform')) {
+      console.log('[PREWARM_NAV] ⚠️ ON GSI/TRANSFORM PAGE');
+      console.log('[PREWARM_NAV] Waiting for Google to redirect back...');
+      console.log('[PREWARM_NAV] If stuck here for >10s, OAuth failed');
+    }
+    
+    console.log('[PREWARM_NAV] ========================================');
+    
+    // Reset popup flag when successfully navigating away from Google
+    if (!navState.loading && !navState.url.includes('accounts.google.com') && !navState.url.includes('myaccount.google.com')) {
+      popupHandledRef.current = false;
+      lastPopupUrlRef.current = null;
+    }
+    
+    // REMOVED: Aggressive OAuth reset logic that was killing the login flow
+    // Let Google OAuth complete naturally without interference
+    
     if (navigationHandlerRef.current) {
       navigationHandlerRef.current(navState);
     }
@@ -207,40 +261,24 @@ export const CarousellWebViewProvider = ({ children }) => {
     
     // Always navigate to target URL when showing WebView
     if (domain !== currentDomain) {
-      console.log('[PREWARM_MANAGER] 🔄 Domain changed, forcing reload');
+      console.log('[PREWARM_MANAGER] 🔄 Domain changed, updating state');
       setCurrentDomain(domain);
       setIsPrewarmed(false);
-      
-      // Force reload when domain changes
-      setIsVisible(true);
-      setTimeout(() => {
-        console.log('[PREWARM_MANAGER] 🔄 Reloading WebView for domain change');
-        webViewRef.current?.reload();
-        
-        // Navigate after reload
-        setTimeout(() => {
-          console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
-          webViewRef.current?.injectJavaScript(`
-            console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
-            window.location.href='${targetUrl}';
-            true;
-          `);
-        }, 500);
-      }, 100);
-    } else {
-      // Same domain, just navigate
-      setIsVisible(true);
-      console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
-      
-      setTimeout(() => {
-        console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
-        webViewRef.current?.injectJavaScript(`
-          console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
-          window.location.href='${targetUrl}';
-          true;
-        `);
-      }, 100);
     }
+    
+    // Show WebView first, then navigate
+    setIsVisible(true);
+    console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
+    
+    // Navigate after a brief delay to ensure WebView is visible
+    setTimeout(() => {
+      console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
+      webViewRef.current?.injectJavaScript(`
+        console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
+        window.location.href='${targetUrl}';
+        true;
+      `);
+    }, 100);
   };
   
   const hideWebView = () => {
@@ -324,10 +362,10 @@ export const CarousellWebViewProvider = ({ children }) => {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             
-            // Cookie & Session Management (CRITICAL for iOS)
-            sharedCookiesEnabled={true}
-            thirdPartyCookiesEnabled={true}
-            incognito={false}
+            // Cookie & Session Management (CRITICAL for OAuth)
+            sharedCookiesEnabled={true}  // iOS: Share cookies across WebViews
+            thirdPartyCookiesEnabled={true}  // Android: Allow Google OAuth cookies
+            incognito={false}  // MUST be false to persist session
             
             // Caching (CRITICAL)
             cacheEnabled={true}
@@ -341,19 +379,19 @@ export const CarousellWebViewProvider = ({ children }) => {
             allowsInlineMediaPlayback={true}
             allowsBackForwardNavigationGestures={true}
             
-            // Media Optimization
-            setSupportMultipleWindows={false}
+            // Media Optimization - FORCE single window for OAuth
+            setSupportMultipleWindows={false}  // Keep Google OAuth in main frame
             mediaPlaybackRequiresUserAction={true}
-            javaScriptCanOpenWindowsAutomatically={false}
+            javaScriptCanOpenWindowsAutomatically={false}  // Prevent popup attempts
             
-            // Security
-            originWhitelist={['*']}
+            // Security - Allow all HTTPS/HTTP navigation
+            originWhitelist={['https://*', 'http://*', 'about:*', 'data:*']}
             
             // CRITICAL: Use injectedJavaScriptBeforeContentLoaded for iOS
             injectedJavaScriptBeforeContentLoaded={PREWARM_INJECTION}
             
-            // Resource blocking
-            onShouldStartLoadWithRequest={(request) => shouldBlockRequest(request.url)}
+            // Resource blocking - TEMPORARILY DISABLED for OAuth debugging
+            // onShouldStartLoadWithRequest={(request) => shouldBlockRequest(request.url)}
             
             // Events
             onLoadStart={handleLoadStart}

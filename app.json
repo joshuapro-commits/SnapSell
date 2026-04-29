@@ -11,6 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#F5F5F5"
     },
+    "scheme": "snapsell",
     "ios": {
       "bundleIdentifier": "com.joshuaseziba.SnapSell",
       "supportsTablet": true,

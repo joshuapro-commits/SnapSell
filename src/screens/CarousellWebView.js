@@ -30,44 +30,7 @@ const VIEWPORT_INJECTION = `
 `;
 
 // Cookie extraction script - runs after successful login
-const COOKIE_EXTRACTION_SCRIPT = `
-  (function() {
-    const cookies = document.cookie;
-    const url = window.location.href;
-    
-    // Check for session indicators
-    const hasSessionCookie = cookies.includes('session=') || 
-                            cookies.includes('access_token=') ||
-                            cookies.includes('auth_token=') ||
-                            cookies.includes('user_id=');
-    
-    // Check for logged-in UI elements
-    const avatar = document.querySelector('[data-testid="nav-avatar"]') ||
-                   document.querySelector('button[aria-label*="Profile"]') ||
-                   document.querySelector('a[href*="/profile/"]');
-    
-    const loginButton = document.querySelector('a[href*="/login"]');
-    const isLoggedIn = hasSessionCookie && avatar && !loginButton;
-    
-    console.log('[CAROUSELL_SESSION] Cookie check:', {
-      url: url,
-      hasSessionCookie: hasSessionCookie,
-      hasAvatar: !!avatar,
-      hasLoginButton: !!loginButton,
-      isLoggedIn: isLoggedIn,
-      cookieCount: cookies.split(';').length
-    });
-    
-    if (isLoggedIn) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'SESSION_ESTABLISHED',
-        cookies: cookies,
-        url: url
-      }));
-    }
-  })();
-  true;
-`;
+const COOKIE_EXTRACTION_SCRIPT = `(function(){try{var cookies=document.cookie;var url=window.location.href;var hasSessionCookie=cookies.includes('session=')||cookies.includes('access_token=')||cookies.includes('auth_token=')||cookies.includes('user_id=');var avatar=document.querySelector('[data-testid="nav-avatar"]')||document.querySelector('button[aria-label*="Profile"]')||document.querySelector('a[href*="/profile/"]')||document.querySelector('img[alt*="profile"]')||document.querySelector('[class*="avatar"]');var sellButton=document.querySelector('a[href*="/sell"]')||document.querySelector('button[aria-label*="Sell"]');var loginButton=document.querySelector('a[href*="/login"]');var userName='Carousell User';var profileLink=document.querySelector('a[href*="/u/"]');if(profileLink&&profileLink.href){var match=profileLink.href.match(/\\/u\\/([^\\/\\?]+)/);if(match&&match[1]){userName=decodeURIComponent(match[1]);}}if(userName==='Carousell User'){if(avatar&&avatar.alt){userName=avatar.alt.replace(/profile|picture|avatar/gi,'').trim();}else if(avatar&&avatar.getAttribute){var ariaLabel=avatar.getAttribute('aria-label');if(ariaLabel){userName=ariaLabel;}}}var isLoggedIn=(hasSessionCookie||avatar||sellButton)&&!loginButton;console.log('[CAROUSELL_SESSION] isLoggedIn:'+isLoggedIn+', userName:'+userName);if(isLoggedIn&&window.ReactNativeWebView&&window.ReactNativeWebView.postMessage){window.ReactNativeWebView.postMessage(JSON.stringify({type:'SESSION_ESTABLISHED',cookies:cookies,url:url,userName:userName}));}}catch(e){console.error('[CAROUSELL_SESSION] Error:'+e.message);}})();true;`;
 
 // Session verification script - checks if user is still logged in
 const SESSION_VERIFICATION_SCRIPT = `
@@ -100,6 +63,43 @@ const SESSION_VERIFICATION_SCRIPT = `
       isLoggedIn: isLoggedIn,
       url: url
     }));
+  })();
+  true;
+`;
+
+// Auto-click FAB Sell button script
+const AUTO_CLICK_SELL_FAB_SCRIPT = `
+  (function() {
+    console.log('[CAROUSELL_FAB] Searching for Sell FAB button...');
+    
+    // Wait 3 seconds for page to fully load
+    setTimeout(() => {
+      // Find FAB button - multiple selectors for reliability
+      const fabButton = 
+        document.querySelector('a[href*="/sell"]') ||
+        document.querySelector('button[aria-label*="Sell"]') ||
+        document.querySelector('[data-testid*="sell"]') ||
+        Array.from(document.querySelectorAll('a, button')).find(el => 
+          el.textContent.toLowerCase().includes('sell') &&
+          el.getBoundingClientRect().bottom > window.innerHeight - 200
+        );
+      
+      if (fabButton) {
+        console.log('[CAROUSELL_FAB] ✅ Found Sell button, clicking...');
+        fabButton.click();
+        
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'FAB_CLICKED',
+          success: true
+        }));
+      } else {
+        console.log('[CAROUSELL_FAB] ❌ Sell button not found');
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'FAB_CLICKED',
+          success: false
+        }));
+      }
+    }, 3000);
   })();
   true;
 `;
@@ -278,30 +278,35 @@ export const CarousellWebView = ({ navigation, route }) => {
   const hasExtractedCookies = useRef(false);
   const hasVerifiedSession = useRef(false);
   const hasFinishedLogin = useRef(false);
-  const hasInitialized = useRef(false);
   const loadingTimeoutRef = useRef(null);
   
   // UI state only - minimal re-renders
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(!isPrewarmed);
   const [autoFillReady, setAutoFillReady] = useState(false);
   const [formFilled, setFormFilled] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   
   const domain = region?.domain || 'carousell.sg';
   const secureStoreKey = `carousell_session_${userId}_${region?.id || 'sg'}`;
   
-  // Remove initialUrl - using singleton WebView
-  // Remove handleLoadStart, handleLoadEnd, handleHttpError - handled by singleton
-  // Remove handleShouldStartLoadWithRequest - handled by singleton
-  
   console.log('[CAROUSELL_MOUNT] Component mounted with mode:', mode, 'domain:', domain);
   console.log('[CAROUSELL_MOUNT] Pre-warmed status:', isPrewarmed ? '✅ INSTANT LOAD' : '⏳ Warming...');
+  console.log('[CAROUSELL_MOUNT] Platform:', Platform.OS);
   
   useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
+    // Reset all refs for clean state on every mount
+    isVerifying.current = false;
+    hasExtractedCookies.current = false;
+    hasVerifiedSession.current = false;
+    hasFinishedLogin.current = false;
     
     console.log('[CAROUSELL_INIT] 🚀 Using singleton WebView for instant load');
     console.log('[CAROUSELL_INIT] Domain:', domain);
+    console.log('[CAROUSELL_INIT] Mode:', mode);
+    console.log('[CAROUSELL_INIT] UserId:', userId);
+    console.log('[CAROUSELL_INIT] Region:', region);
+    console.log('[CAROUSELL_INIT] Current URL:', currentUrl);
     
     // Register handlers for this screen
     registerMessageHandler(handleMessage);
@@ -315,14 +320,24 @@ export const CarousellWebView = ({ navigation, route }) => {
       console.log('[CAROUSELL_INIT] ⚡ WebView pre-warmed, instant display!');
       setShowLoadingOverlay(false);
     } else {
+      // CRITICAL: Longer timeout to allow OAuth to complete
       loadingTimeoutRef.current = setTimeout(() => {
         console.log('[CAROUSELL_TIMEOUT] Forcing overlay hide');
         setShowLoadingOverlay(false);
-      }, 10000);
+      }, 15000); // Increased from 10s to 15s for OAuth
     }
     
     if (mode === 'sell') {
       checkExistingSession();
+    }
+    
+    // Show login prompt for Android login mode after page loads
+    if (Platform.OS === 'android' && mode === 'login') {
+      console.log('[CAROUSELL_PROMPT] Setting timer for login prompt...');
+      const promptTimer = setTimeout(() => {
+        console.log('[CAROUSELL_PROMPT] Showing login prompt NOW');
+        setShowLoginPrompt(true);
+      }, 3000);
     }
     
     return () => {
@@ -335,7 +350,33 @@ export const CarousellWebView = ({ navigation, route }) => {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, []);
+  }, []); // Empty dependency array - run once on mount
+  
+  // Separate effect to check if already logged in when URL changes
+  useEffect(() => {
+    // Only check in login mode
+    if (mode !== 'login') return;
+    
+    // Only check if we haven't already extracted cookies
+    if (hasExtractedCookies.current || hasFinishedLogin.current) return;
+    
+    // Check if we're on a Carousell page (not login page)
+    if (currentUrl && currentUrl.includes(domain) && !currentUrl.includes('/login')) {
+      console.log('[CAROUSELL_AUTO_DETECT] 🎉 Already logged in! URL:', currentUrl);
+      console.log('[CAROUSELL_AUTO_DETECT] Scheduling cookie extraction in 3 seconds...');
+      
+      const timer = setTimeout(() => {
+        if (!hasExtractedCookies.current) {
+          console.log('[CAROUSELL_AUTO_DETECT] Extracting cookies now...');
+          hasExtractedCookies.current = true;
+          hasFinishedLogin.current = true;
+          injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
+        }
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentUrl, mode, domain]); // Watch for URL changes
   
   const checkExistingSession = async () => {
     try {
@@ -433,6 +474,12 @@ export const CarousellWebView = ({ navigation, route }) => {
       mode: mode,
     });
     
+    // CRITICAL: Hide loading overlay when ANY page finishes loading
+    // This ensures we don't hide the WebView during OAuth
+    if (!loading) {
+      setShowLoadingOverlay(false);
+    }
+    
     // Skip about: URLs
     if (url.includes('about:')) return;
     
@@ -444,24 +491,38 @@ export const CarousellWebView = ({ navigation, route }) => {
       const isCarousellDomain = url.includes(domain);
       const isLoginPage = url.includes('/login');
       const isSignupPage = url.includes('/signup');
+      const isGoogleOAuth = url.includes('accounts.google.com');
+      const isFacebookOAuth = url.includes('facebook.com');
       
-      // Normalize URL - handle trailing slashes
-      const normalizedUrl = url.replace(/\/$/, '');
-      const isHomepage = normalizedUrl === `https://www.${domain}` || 
-                        normalizedUrl === `https://${domain}` ||
-                        url.includes('/profile');
+      // Success indicators - user landed on main Carousell pages
+      const isProfilePage = url.includes('/profile') || url.includes('/u/');
+      const isSellPage = url.includes('/sell');
+      const isHomePage = url === `https://www.${domain}/` || 
+                        url === `https://www.${domain}` ||
+                        url.match(new RegExp(`^https://www\\.${domain.replace('.', '\\.')}/?$`));
       
-      if (isCarousellDomain && isHomepage && !isLoginPage && !isSignupPage) {
-        console.log('[CAROUSELL_NAV] ✅ Login success detected');
+      // Success = on Carousell domain, on profile/sell/home page, NOT on login/signup/OAuth
+      const isSuccessfulLogin = isCarousellDomain && 
+                               (isProfilePage || isSellPage || isHomePage) &&
+                               !isLoginPage && 
+                               !isSignupPage && 
+                               !isGoogleOAuth &&
+                               !isFacebookOAuth;
+      
+      if (isSuccessfulLogin) {
+        console.log('[CAROUSELL_NAV] ✅ Login success detected at:', url);
+        console.log('[CAROUSELL_NAV] Extracting session and username...');
         hasFinishedLogin.current = true;
+        setShowLoginPrompt(false);
         
+        // Wait for page to fully render before extracting
         setTimeout(() => {
           if (!hasExtractedCookies.current) {
-            console.log('[CAROUSELL_NAV] Extracting cookies...');
+            console.log('[CAROUSELL_NAV] Injecting cookie extraction script...');
             hasExtractedCookies.current = true;
             injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
           }
-        }, 2000);
+        }, 3000); // Increased to 3 seconds for better reliability
       }
     }
     
@@ -475,11 +536,26 @@ export const CarousellWebView = ({ navigation, route }) => {
       }, 2000);
     }
     
+    // Auto-click FAB Sell button when on Carousell home/main page in sell mode
+    if (mode === 'sell' && !url.includes('/sell/') && isCarousellMainPage(url)) {
+      console.log('[CAROUSELL_NAV] 🎯 On main page, auto-clicking Sell FAB...');
+      setTimeout(() => {
+        injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
+      }, 1000);
+    }
+    
     // Detect successful listing
     if (mode === 'sell' && url.match(/\/p\/[\w-]+-\d+/)) {
       console.log('[CAROUSELL_NAV] ✅ Listing published!');
       handleListingSuccess(url);
     }
+  };
+  
+  // Helper to check if on Carousell main page
+  const isCarousellMainPage = (url) => {
+    return url === `https://www.${domain}/` || 
+           url === `https://www.${domain}` ||
+           url.match(new RegExp(`^https://www\\.${domain.replace('.', '\\.')}/?$`));
   };
   
   // Handle WebView messages
@@ -490,36 +566,46 @@ export const CarousellWebView = ({ navigation, route }) => {
       
       switch (data.type) {
         case 'SESSION_ESTABLISHED':
-          // Hide loading overlay
+          // Show success overlay
           setShowLoadingOverlay(false);
+          setShowSuccessOverlay(true);
           
-          saveSession(data.cookies).then(async (saved) => {
-            if (saved) {
-              // Save connection to platform tokens
-              const connectionData = {
-                connected: true,
-                connectedAt: new Date().toISOString(),
-                userName: 'Carousell User',
-                region: region.id,
-                regionName: region.name,
-                domain: domain,
-              };
-              
-              await storageService.savePlatformToken(userId, 'carousell', connectionData);
-              console.log('[CAROUSELL_MSG] Connection saved to platform tokens:', connectionData);
-              
-              Alert.alert(
-                'Connected Successfully',
-                `Your Carousell ${region.name} account is now connected!\n\nYou can now publish listings to Carousell.`,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => navigation.goBack()
-                  }
-                ]
-              );
-            }
-          });
+          const userName = data.userName || 'Carousell User';
+          console.log('[CAROUSELL_MSG] ✅ Session established for user:', userName);
+          console.log('[CAROUSELL_MSG] Region:', region);
+          console.log('[CAROUSELL_MSG] Domain:', domain);
+          
+          // Save session and connection data
+          const saved = await saveSession(data.cookies);
+          if (saved) {
+            // Save connection to platform tokens
+            const connectionData = {
+              connected: true,
+              connectedAt: new Date().toISOString(),
+              userName: userName,
+              region: region?.id || 'ph',
+              regionName: region?.name || 'Philippines',
+              domain: domain,
+            };
+            
+            console.log('[CAROUSELL_MSG] 💾 Saving connection data:', connectionData);
+            await storageService.savePlatformToken(userId, 'carousell', connectionData);
+            console.log('[CAROUSELL_MSG] ✅ Connection saved successfully!');
+            
+            // Verify it was saved
+            const tokens = await storageService.getPlatformTokens(userId);
+            console.log('[CAROUSELL_MSG] 🔍 Verification - Carousell token:', tokens.carousell);
+            
+            // Wait 1.5 seconds to show success message
+            setTimeout(() => {
+              console.log('[CAROUSELL_MSG] 🔙 Navigating back to ConnectPlatformsScreen...');
+              // Hide WebView first, then navigate
+              hideWebView();
+              setTimeout(() => {
+                navigation.goBack();
+              }, 100);
+            }, 1500);
+          }
           break;
           
         case 'SESSION_VERIFIED':
@@ -562,6 +648,14 @@ export const CarousellWebView = ({ navigation, route }) => {
               'Please fill the form manually.',
               [{ text: 'OK' }]
             );
+          }
+          break;
+          
+        case 'FAB_CLICKED':
+          if (data.success) {
+            console.log('[CAROUSELL_MSG] ✅ FAB Sell button clicked successfully');
+          } else {
+            console.log('[CAROUSELL_MSG] ⚠️ FAB Sell button not found, user may need to click manually');
           }
           break;
       }
@@ -609,10 +703,6 @@ export const CarousellWebView = ({ navigation, route }) => {
     injectJavaScript(getAutoFillScript(autoFillData));
   };
   
-  const handleReload = () => {
-    console.log('[CAROUSELL_UI] Manual reload triggered');
-    reload();
-  };
   
   const getHeaderTitle = () => {
     if (mode === 'login') return `Connect Carousell ${region?.name || ''}`;
@@ -650,13 +740,6 @@ export const CarousellWebView = ({ navigation, route }) => {
               <Text style={styles.autoFillText}>Fill</Text>
             </TouchableOpacity>
           )}
-          
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={handleReload}
-          >
-            <Ionicons name="refresh" size={22} color="#D32F2F" />
-          </TouchableOpacity>
         </View>
       </View>
       
@@ -675,9 +758,46 @@ export const CarousellWebView = ({ navigation, route }) => {
           </View>
         )}
         
+        {/* Success overlay */}
+        {showSuccessOverlay && (
+          <View style={styles.successOverlay}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+            </View>
+            <Text style={styles.successTitle}>Connected Successfully!</Text>
+            <Text style={styles.successSubtext}>Redirecting you back...</Text>
+            <ActivityIndicator size="small" color="#10B981" style={{ marginTop: 16 }} />
+          </View>
+        )}
+        
         {/* Singleton WebView rendered by CarousellWebViewProvider */}
         {/* This container is just a spacer - WebView is absolutely positioned */}
       </View>
+      
+      {/* Login Prompt for Android - OUTSIDE webviewContainer */}
+      {Platform.OS === 'android' && mode === 'login' && showLoginPrompt && (
+        <View style={styles.loginPromptOverlay} pointerEvents="box-none">
+          <View style={styles.loginPromptCard} pointerEvents="auto">
+            <View style={styles.loginPromptIconContainer}>
+              <Ionicons name="log-in-outline" size={32} color="#D32F2F" />
+            </View>
+            <Text style={styles.loginPromptTitle}>Connect Your Account</Text>
+            <Text style={styles.loginPromptMessage}>
+              Tap the <Text style={styles.loginPromptBold}>Login</Text> button on the page to connect your Carousell account
+            </Text>
+            <TouchableOpacity
+              style={styles.loginPromptButton}
+              onPress={() => {
+                console.log('[CAROUSELL_PROMPT] Dismissing prompt');
+                setShowLoginPrompt(false);
+              }}
+            >
+              <Text style={styles.loginPromptButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      {console.log('[CAROUSELL_RENDER] showLoginPrompt:', showLoginPrompt, 'Platform:', Platform.OS, 'Mode:', mode)}
     </SafeAreaView>
   );
 };
@@ -739,14 +859,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Montserrat_600SemiBold',
   },
-  refreshButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFE8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   loadingOverlay: {
     position: 'absolute',
     top: 0,
@@ -769,5 +882,98 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
     fontFamily: 'Montserrat_400Regular',
+  },
+  successOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  successIconContainer: {
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#10B981',
+    marginBottom: 8,
+  },
+  successSubtext: {
+    fontSize: 15,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#666',
+  },
+  loginPromptOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  loginPromptCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+    zIndex: 10000,
+  },
+  loginPromptIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFE8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  loginPromptTitle: {
+    fontSize: 20,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#000',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  loginPromptMessage: {
+    fontSize: 15,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  loginPromptBold: {
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#D32F2F',
+  },
+  loginPromptButton: {
+    backgroundColor: '#D32F2F',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    width: '100%',
+  },
+  loginPromptButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontFamily: 'Montserrat_600SemiBold',
+    textAlign: 'center',
   },
 });

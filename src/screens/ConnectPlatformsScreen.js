@@ -29,16 +29,22 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
   const [showRegionSelector, setShowRegionSelector] = useState(false);
 
   useEffect(() => {
+    // Load on mount
+    loadConnectedPlatforms();
+    
+    // Reload when screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
+      console.log('[CONNECT_PLATFORMS] Screen focused, reloading platforms...');
       loadConnectedPlatforms();
     });
     return unsubscribe;
   }, [navigation]);
 
   const loadConnectedPlatforms = async () => {
+    console.log('[CONNECT_PLATFORMS] Loading connected platforms for user:', user.id);
     try {
       const tokens = await platformService.getPlatformTokens(user.id);
-      console.log('[CONNECT_PLATFORMS] Loaded tokens:', tokens);
+      console.log('[CONNECT_PLATFORMS] Raw tokens from storage:', JSON.stringify(tokens, null, 2));
       
       const platforms = {
         facebook: tokens.facebook?.connected === true,
@@ -46,7 +52,8 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
         carousell: tokens.carousell?.connected === true,
       };
       
-      console.log('[CONNECT_PLATFORMS] Connection status:', platforms);
+      console.log('[CONNECT_PLATFORMS] Parsed connection status:', platforms);
+      console.log('[CONNECT_PLATFORMS] Carousell data:', tokens.carousell);
       
       setConnectedPlatforms(platforms);
       setPlatformData({
@@ -55,7 +62,7 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
         carousell: tokens.carousell,
       });
     } catch (error) {
-      console.error('Error loading platforms:', error);
+      console.error('[CONNECT_PLATFORMS] Error loading platforms:', error);
     } finally {
       setLoading(false);
     }
@@ -78,9 +85,8 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
   const handleRegionSelect = (region) => {
     setShowRegionSelector(false);
     
-    // Navigate directly to CarousellWebView for login
-    navigation.navigate('CarousellWebView', {
-      mode: 'login',
+    // Navigate to native auth screen (recommended)
+    navigation.navigate('CarousellNativeAuth', {
       userId: user.id,
       region: region,
     });

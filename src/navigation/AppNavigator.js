@@ -16,6 +16,7 @@ import { ConnectPlatformsScreen } from '../screens/ConnectPlatformsScreen';
 import { FacebookLoginWebView } from '../screens/FacebookLoginWebView';
 import { FacebookUnifiedWebView } from '../screens/FacebookUnifiedWebView';
 import { CarousellWebView } from '../screens/CarousellWebView';
+import { CarousellNativeAuthScreen } from '../screens/CarousellNativeAuthScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
@@ -23,9 +24,19 @@ import { COLORS, FONT_SIZES } from '../constants/theme';
 const Stack = createNativeStackNavigator();
 
 const linking = {
-  prefixes: [],
+  prefixes: ['snapsell://', 'exp://'],
   config: {
-    screens: {},
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: 'home',
+          Sell: 'sell',
+          MyListings: 'listings',
+          Profile: 'profile',
+        },
+      },
+      CarousellNativeAuth: 'oauth/callback',
+    },
   },
 };
 
@@ -34,6 +45,7 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer
+      linking={linking}
       fallback={<View style={{ flex: 1, backgroundColor: '#F5F5F5' }} />}
     >
       <Stack.Navigator
@@ -119,6 +131,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="FacebookUnifiedWebView"
               component={FacebookUnifiedWebView}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CarousellNativeAuth"
+              component={CarousellNativeAuthScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen
