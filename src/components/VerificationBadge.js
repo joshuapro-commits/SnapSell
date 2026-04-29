@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export const VerificationBadge = ({ verification, size = 'medium', showLabel = true }) => {
+export const VerificationBadge = ({ verification, size = 'medium', showLabel = true, variant = 'full' }) => {
   if (!verification || !verification.verified) {
     return null;
   }
@@ -15,6 +15,9 @@ export const VerificationBadge = ({ verification, size = 'medium', showLabel = t
   };
 
   const currentSize = sizes[size] || sizes.medium;
+  
+  // Use shortLabel for compact display, full label for prominent display
+  const displayLabel = variant === 'compact' ? badge.shortLabel : badge.label;
 
   return (
     <View style={[
@@ -24,6 +27,8 @@ export const VerificationBadge = ({ verification, size = 'medium', showLabel = t
         paddingHorizontal: currentSize.padding * 2,
         paddingVertical: currentSize.padding,
         gap: currentSize.gap,
+        borderWidth: 1,
+        borderColor: `${badge.color}40`,
       }
     ]}>
       <Ionicons 
@@ -39,7 +44,7 @@ export const VerificationBadge = ({ verification, size = 'medium', showLabel = t
             fontSize: currentSize.text,
           }
         ]}>
-          {badge.label}
+          {displayLabel}
         </Text>
       )}
     </View>

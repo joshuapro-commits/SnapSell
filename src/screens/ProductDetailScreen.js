@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatPrice, formatDate } from '../utils/helpers';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { CONDITIONS } from '../constants/categories';
+import { SnapSellVerificationBanner } from '../components/SnapSellVerificationBanner';
 
 export const ProductDetailScreen = ({ route, navigation }) => {
   const { listing } = route.params;
@@ -145,6 +146,11 @@ export const ProductDetailScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* SnapSell Verification Banner */}
+        {listing.verification && (
+          <SnapSellVerificationBanner verification={listing.verification} />
+        )}
+        
         {/* Badges */}
         <View style={styles.badgesRow}>
           <View style={styles.badge}>

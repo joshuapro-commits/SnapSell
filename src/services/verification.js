@@ -257,25 +257,29 @@ Respond in JSON format:
   getBadgeInfo(level) {
     const badges = {
       gold: {
-        label: 'Verified Gold',
+        label: 'Verified by SnapSell',
+        shortLabel: 'Gold Verified',
         color: '#FFD700',
         icon: 'shield-checkmark',
         description: 'Highest trust level - AI verified with fresh photo',
       },
       silver: {
-        label: 'Verified Silver',
+        label: 'Verified by SnapSell',
+        shortLabel: 'Silver Verified',
         color: '#C0C0C0',
         icon: 'shield-checkmark-outline',
         description: 'High trust level - AI verified listing',
       },
       bronze: {
-        label: 'Verified Bronze',
+        label: 'Verified by SnapSell',
+        shortLabel: 'Bronze Verified',
         color: '#CD7F32',
         icon: 'shield-outline',
         description: 'Good trust level - Basic verification passed',
       },
       unverified: {
         label: 'Unverified',
+        shortLabel: 'Unverified',
         color: '#999',
         icon: 'shield-off-outline',
         description: 'Standard listing - No verification',

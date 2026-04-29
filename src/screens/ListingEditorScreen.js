@@ -405,6 +405,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 verification={data.verification} 
                 size="large" 
                 showLabel={true}
+                variant="full"
               />
               <VerificationScore verification={data.verification} />
               

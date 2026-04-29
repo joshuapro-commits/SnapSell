@@ -56,6 +56,7 @@ export const ProductCard = ({ listing, onPress }) => {
               verification={listing.verification} 
               size="small" 
               showLabel={true}
+              variant="compact"
             />
           </View>
         )}
