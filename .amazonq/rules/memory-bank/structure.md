@@ -27,21 +27,27 @@ SnapSell/
 Reusable UI building blocks used across screens:
 - **Button.js**: Custom button component with consistent styling
 - **Input.js**: Text input component with validation support
-- **ProductCard.js**: Card component for displaying product listings
+- **ProductCard.js**: Card component for displaying product listings with verification badges
 - **LoadingSpinner.js**: Loading indicator component
 - **FAB.js**: Floating Action Button for primary actions
 - **TabBar.js**: Custom bottom tab bar navigation
 - **SideMenu.js**: Drawer menu component
 - **SnapSellIntro.js**: Introductory component for new users
+- **VerificationBadge.js**: Verification badge component with full/compact variants (Gold/Silver/Bronze)
+- **VerificationScore.js**: Progress bar showing verification score (0-100)
+- **SellerVerificationBadge.js**: Seller reputation badge for profile display
+- **SnapSellVerificationBanner.js**: Prominent verification banner for product detail pages
+- **TrialStatusBanner.js**: Trial countdown banner (created, not integrated)
+- **SubscriptionModal.js**: Subscription modal with pricing (created, not integrated)
 
 ### Screens (`src/screens/`)
 Full-screen views representing app pages:
 - **Authentication**: LoginScreen (with auto-login for development), SignupScreen
 - **Onboarding**: OnboardingContainer (scroll-based animations), OnboardingScreen1-3 (staggered animations), SplashScreen
-- **Core Features**: HomeScreen (real-time stats, staggered card animations), CameraScreen (image picker modal), ListingEditorScreen
-- **Management**: MyListingsScreen (status-based filtering: active/sold/draft), ProductDetailScreen, ProfileScreen
-- **Platform Integration**: ConnectPlatformsScreen (manage Carousell, Facebook, Shopee connections)
-- **Feedback**: AnalyzingScreen, ListingSuccessScreen (optimized sizing, per-platform results), PaywallScreen
+- **Core Features**: HomeScreen (real-time stats, staggered card animations), CameraScreen (image picker modal, photo source tracking), ListingEditorScreen (with verification display)
+- **Management**: MyListingsScreen (status-based filtering: active/sold/draft, verification badges), ProductDetailScreen (with verification banner), ProfileScreen (with seller verification score)
+- **Platform Integration**: ConnectPlatformsScreen (manage Carousell, Facebook, Shopee connections), CarousellWebView (with FAB auto-click), FacebookUnifiedWebView (login + sell modes)
+- **Feedback**: AnalyzingScreen (with verification step), ListingSuccessScreen (optimized sizing, per-platform results), PaywallScreen
 - **Premium**: PaywallScreen (SnapSell Premium upgrade flow)
 
 ### Navigation (`src/navigation/`)
@@ -62,6 +68,10 @@ Business logic and external integrations:
   - enhanceImage: Mock image enhancement (ready for Cloudinary/DeepAI integration)
   - generateDescription: AI-powered description generation
   - suggestPrice: Philippine Peso price suggestions with market research
+- **verification.js**: AI-powered verification service
+  - verifyListing: 4-tier verification (photo source, AI consistency, metadata, timestamp)
+  - getSellerScore: Calculate seller reputation from all listings
+  - Scoring: 0-100 points with Gold/Silver/Bronze/Unverified levels
 - **auth.js**: Authentication service with user management (no mock data, AsyncStorage-based)
 - **storage.js**: AsyncStorage wrapper for data persistence
   - User management: getAllUsers, addUser, findUserByEmail
@@ -76,11 +86,17 @@ Business logic and external integrations:
   - publishListing: Multi-platform publishing with error handling
   - validateTokens: Check token expiration
   - refreshToken: Token refresh logic
+- **subscription.js**: Subscription management service (created, not integrated)
+  - Trial tracking and premium access checks
+  - AsyncStorage integration for subscription state
+- **imageEnhancement.js**: Image badge overlay service (created, NOT RECOMMENDED for use)
 
 ### Constants (`src/constants/`)
 App-wide configuration and theming:
 - **categories.js**: Product category definitions
 - **theme.js**: Color palette, spacing, typography
+- **carousellRegions.js**: Carousell region selector (Philippines, Singapore, Indonesia only)
+- **facebookCategories.js**: Facebook Product Category (FPC) ID mapping system
 
 ### Config (`src/config/`)
 External service configurations:
@@ -131,7 +147,7 @@ LoginScreen/SignupScreen → AuthContext → auth.js → storage.js
 
 ### Listing Creation Flow
 ```
-CameraScreen → ai.js (Gemini 2.5 Flash Lite) → AnalyzingScreen → ListingEditorScreen → platformService.publishListing() → ListingsContext → storage.js → ListingSuccessScreen (with per-platform results)
+CameraScreen (photo source tracking) → ai.js (Gemini 2.5 Flash Lite) → AnalyzingScreen (with verification) → verification.js (4-tier checks) → ListingEditorScreen (verification display) → platformService.publishListing() → ListingsContext → storage.js → ListingSuccessScreen (with per-platform results)
 ```
 
 ### Multi-Platform Publishing Flow
@@ -146,12 +162,22 @@ ProfileScreen → ConnectPlatformsScreen → platforms.js (OAuth mock) → stora
 
 ### Marketplace Browsing Flow
 ```
-HomeScreen → ListingsContext → ProductDetailScreen (with platform badges)
+HomeScreen → ListingsContext → ProductDetailScreen (with platform badges + verification banner)
 ```
 
 ### My Listings Flow
 ```
-MyListingsScreen (with platform badges) → ListingEditorScreen → Update/Delete
+MyListingsScreen (with platform badges + verification badges) → ListingEditorScreen → Update/Delete
+```
+
+### Verification Flow
+```
+CameraScreen (photoSource) → AnalyzingScreen → verification.js (4 checks) → Listing with verification data → UI displays badges/scores
+```
+
+### Carousell Sell Flow
+```
+ListingEditorScreen → CarousellWebView → Auto-click FAB (3s delay) → Fill form → Publish → Success
 ```
 
 ## File Naming Conventions

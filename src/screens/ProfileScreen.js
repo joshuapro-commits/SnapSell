@@ -189,11 +189,28 @@ export const ProfileScreen = ({ navigation }) => {
 
         {/* Seller Verification Badge */}
         {sellerScore && (
-          <View style={styles.sellerScoreContainer}>
-            <SellerVerificationBadge sellerScore={sellerScore} size="medium" />
+          <View style={styles.sellerScoreCard}>
+            <View style={styles.verificationHeader}>
+              <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+              <Text style={styles.verificationTitle}>Seller Trust Score</Text>
+            </View>
+            
+            <SellerVerificationBadge sellerScore={sellerScore} size="large" />
+            
             {sellerScore.level !== 'new' && (
+              <>
+                <Text style={styles.sellerScoreText}>
+                  {sellerScore.verifiedListings} of {sellerScore.totalListings} listings verified
+                </Text>
+                <Text style={styles.verificationSubtitle}>
+                  Verified by SnapSell AI
+                </Text>
+              </>
+            )}
+            
+            {sellerScore.level === 'new' && (
               <Text style={styles.sellerScoreText}>
-                {sellerScore.verifiedListings} of {sellerScore.totalListings} listings verified
+                Create your first verified listing to build trust
               </Text>
             )}
           </View>
@@ -612,21 +629,48 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_600SemiBold',
   },
   sellerScoreContainer: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  sellerScoreGradient: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  sellerScoreCard: {
     backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 20,
     marginBottom: 24,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#F0F0F0',
+  },
+  verificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 12,
+  },
+  verificationTitle: {
+    fontSize: 18,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#1A1D1F',
   },
   sellerScoreText: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_500Medium',
+    color: '#6F7787',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  verificationSubtitle: {
     fontSize: 12,
     fontFamily: 'Montserrat_400Regular',
-    color: '#666',
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

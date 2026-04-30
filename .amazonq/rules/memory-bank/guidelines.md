@@ -588,6 +588,19 @@ const handleConnect = async () => {
 - Image enhancement mock service ready for production API integration
 - Fallback error handling with graceful degradation
 
+### AI-Powered Verification System
+- 4-tier verification checks with weighted scoring (0-100 points):
+  1. Photo Source (25/10 points): Camera vs gallery photo
+  2. AI Consistency (40/20 points): Re-analyze with Gemini, compare with original
+  3. Metadata (15/5 points): EXIF data presence (mock implementation)
+  4. Timestamp (20/15/5 points): Photo recency (24h/7d/older)
+- Verification levels: Gold (80-100), Silver (60-79), Bronze (40-59), Unverified (0-39)
+- Seller reputation: Average verification score across all listings
+- "Verified by SnapSell" branding as key differentiator
+- UI components: VerificationBadge (full/compact), VerificationScore, SellerVerificationBadge, SnapSellVerificationBanner
+- Integration: CameraScreen tracks photoSource, AnalyzingScreen runs verification, ListingEditorScreen displays results
+- FileSystem API: Use string `'base64'` for expo-file-system v19+ (not `FileSystem.EncodingType.Base64`)
+
 ### Multi-Platform Publishing
 - Platform selection with checkboxes before publishing (Carousell, Facebook, Shopee)
 - Validation to ensure at least one platform is selected
@@ -599,6 +612,8 @@ const handleConnect = async () => {
 - Token validation and refresh logic
 - Cross-publish card highlighting "Best Value" for publishing to all platforms
 - Error handling with detailed error messages per platform
+- Carousell FAB auto-click: 3-second delay after page load with multiple selector fallbacks
+- Carousell region limitation: Philippines, Singapore, Indonesia only
 
 ### Code Organization
 - Keep components focused and single-purpose

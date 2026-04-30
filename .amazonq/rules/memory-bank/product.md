@@ -50,9 +50,12 @@ SnapSell is an innovative mobile marketplace application that revolutionizes onl
    - Success screen with platform-specific results
 
 ### Advanced Features
+- **AI-Powered Verification**: "Verified by SnapSell" badge system with 4-tier checks (photo source, AI consistency, metadata, timestamp) scoring 0-100 points with Gold/Silver/Bronze levels
+- **Seller Reputation**: Average verification score across all seller's listings displayed on profile
+- **Trust Building**: Prominent verification banner on product detail pages
 - Category-based filtering (15+ categories including Electronics, Clothing, Furniture, Toys, Automotive, Beauty, Jewelry, etc.)
 - Pull-to-refresh functionality
-- Product detail views with platform badges
+- Product detail views with platform badges and verification banners
 - Persistent user sessions
 - Loading states and user feedback
 - Error handling throughout
@@ -60,6 +63,7 @@ SnapSell is an innovative mobile marketplace application that revolutionizes onl
 - Premium upgrade flow with benefits showcase
 - Platform connection management screen
 - Cross-platform publishing with error handling
+- Carousell FAB auto-click for seamless sell flow
 
 ## Target Users
 - Individual sellers looking to quickly list items for sale
@@ -76,15 +80,18 @@ SnapSell is an innovative mobile marketplace application that revolutionizes onl
 
 ## Current Status (Updated: April 2025)
 - **AI Integration**: ✅ Gemini 2.5 Flash Lite fully integrated with optimized prompts for product analysis
+- **AI Verification System**: ✅ 4-tier verification with "Verified by SnapSell" badge (Gold/Silver/Bronze)
 - **Image Enhancement**: ⏳ Mock image enhancement service ready for production API integration
 - **Platform Publishing**: ⏳ Complete multi-platform publishing flow (simulated, ready for real APIs)
 - **Platform Connections**: ⏳ OAuth flows ready for real API integration (Carousell, Facebook, Shopee)
 - **Platform-Specific Content**: ✅ AI generates tailored descriptions for each marketplace
+- **Carousell Auto-Click**: ✅ FAB button auto-click with 3-second delay and region limitation (PH/SG/ID)
 - **Data Storage**: ✅ AsyncStorage for all data persistence (NO MOCK DATA)
 - **User Authentication**: ✅ Real registration and login using AsyncStorage with auto-login for development
 - **Listings Management**: ✅ Full CRUD operations with AsyncStorage, status tracking (active/sold/draft)
 - **UI/UX**: ✅ Complete with platform selection, badges, success feedback, and earnings tracking
 - **Animations**: ✅ Professional iOS-style animations (onboarding, home stats, modals)
 - **Premium Features**: ✅ Paywall screen for SnapSell Premium with upgrade flow
+- **Monetization Strategy**: ✅ 100% FREE launch (June 3), subscriptions in Month 7+ (₱149/month)
 - **Production Ready**: ✅ All mock data removed, ready for backend API integration
 - **Launch Timeline**: 🎯 June 3, 2025 (8 weeks from April 8)

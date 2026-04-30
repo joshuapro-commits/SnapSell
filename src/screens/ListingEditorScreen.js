@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
+import { imageEnhancementService } from '../services/imageEnhancement';
 import { getFPCId, getCategoryNameFromId, isLeafCategory, getParentName, getLeafName, FB_CATEGORY_LIST, FPC_HIERARCHY } from '../constants/facebookCategories';
 import { VerificationBadge, VerificationScore } from '../components/VerificationBadge';
 
@@ -194,22 +195,50 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       return;
     }
 
+    // Apply verification enhancements (badge + text) if listing is verified
+    let enhancedImageUri = imageUri;
+    let enhancedName = productName;
+    let enhancedCarousellDesc = carousellDescription;
+    let enhancedFacebookDesc = facebookDescription;
+    let enhancedShopeeDesc = shopeeDescription;
+
+    if (data.verification && data.verification.verified) {
+      try {
+        // Add checkmark badge to image
+        enhancedImageUri = await imageEnhancementService.addVerificationBadge(imageUri, data.verification);
+        
+        // Add checkmark to title
+        enhancedName = imageEnhancementService.addVerificationToTitle(productName, data.verification);
+        
+        // Add verification footer to descriptions
+        enhancedCarousellDesc = imageEnhancementService.addVerificationToDescription(carousellDescription, data.verification);
+        enhancedFacebookDesc = imageEnhancementService.addVerificationToDescription(facebookDescription, data.verification);
+        enhancedShopeeDesc = imageEnhancementService.addVerificationToDescription(shopeeDescription, data.verification);
+        
+        console.log('[ListingEditor] Verification enhancements applied');
+      } catch (error) {
+        console.error('[ListingEditor] Enhancement error:', error);
+        // Continue with original values if enhancement fails
+      }
+    }
+
     const listingData = {
-      name: productName,
+      name: enhancedName,
       brand: brand,
       price: parseFloat(price),
       description: description,
       descriptions: {
-        carousell: carousellDescription,
-        facebook: facebookDescription,
-        shopee: shopeeDescription,
+        carousell: enhancedCarousellDesc,
+        facebook: enhancedFacebookDesc,
+        shopee: enhancedShopeeDesc,
         generic: description,
       },
       category: selectedCategory,
       condition: selectedCondition,
-      imageUri: imageUri,
+      imageUri: enhancedImageUri,
       location: location,
       selectedPlatforms: selectedPlatforms,
+      verification: data.verification, // Preserve verification data
       platformData: {
         carousell: {
           hashtags: carousellHashtags,

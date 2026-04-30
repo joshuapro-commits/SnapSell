@@ -82,27 +82,60 @@ export const VerificationScore = ({ verification }) => {
 export const SellerVerificationBadge = ({ sellerScore, size = 'medium' }) => {
   if (!sellerScore || sellerScore.level === 'new') {
     return (
-      <View style={styles.sellerBadge}>
-        <Ionicons name="person-outline" size={14} color="#999" />
-        <Text style={styles.sellerBadgeText}>New Seller</Text>
+      <View style={styles.sellerBadgeNew}>
+        <Ionicons name="person-outline" size={16} color="#999" />
+        <Text style={styles.sellerBadgeTextNew}>New Seller</Text>
       </View>
     );
   }
 
-  const levelColors = {
-    gold: '#FFD700',
-    silver: '#C0C0C0',
-    bronze: '#CD7F32',
+  const levelConfig = {
+    gold: { color: '#FFD700', icon: 'trophy', label: 'Gold Seller' },
+    silver: { color: '#C0C0C0', icon: 'medal', label: 'Silver Seller' },
+    bronze: { color: '#CD7F32', icon: 'ribbon', label: 'Bronze Seller' },
   };
 
-  const color = levelColors[sellerScore.level] || '#999';
+  const config = levelConfig[sellerScore.level] || levelConfig.bronze;
+  const sizeConfig = {
+    small: { icon: 16, text: 12, padding: 8 },
+    medium: { icon: 20, text: 14, padding: 12 },
+    large: { icon: 32, text: 18, padding: 16 },
+  };
+  const currentSize = sizeConfig[size] || sizeConfig.medium;
 
   return (
-    <View style={[styles.sellerBadge, { backgroundColor: `${color}15` }]}>
-      <Ionicons name="star" size={14} color={color} />
-      <Text style={[styles.sellerBadgeText, { color }]}>
-        {sellerScore.verificationRate}% Verified
-      </Text>
+    <View style={[
+      styles.sellerBadgeVerified,
+      { 
+        backgroundColor: `${config.color}15`,
+        borderColor: `${config.color}40`,
+        padding: currentSize.padding,
+      }
+    ]}>
+      <View style={[
+        styles.iconCircle,
+        { 
+          backgroundColor: config.color,
+          width: currentSize.icon * 2,
+          height: currentSize.icon * 2,
+        }
+      ]}>
+        <Ionicons name={config.icon} size={currentSize.icon} color="#FFF" />
+      </View>
+      <View style={styles.badgeContent}>
+        <Text style={[
+          styles.sellerBadgeTitle,
+          { fontSize: currentSize.text, color: config.color }
+        ]}>
+          {config.label}
+        </Text>
+        <Text style={[
+          styles.sellerBadgePercentage,
+          { fontSize: currentSize.text - 2 }
+        ]}>
+          {sellerScore.verificationRate}% Verified
+        </Text>
+      </View>
     </View>
   );
 };
@@ -149,5 +182,44 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Montserrat_600SemiBold',
     color: '#666',
+  },
+  sellerBadgeNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  sellerBadgeTextNew: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#999',
+  },
+  sellerBadgeVerified: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+  },
+  iconCircle: {
+    borderRadius: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeContent: {
+    flex: 1,
+  },
+  sellerBadgeTitle: {
+    fontFamily: 'Montserrat_700Bold',
+    marginBottom: 2,
+  },
+  sellerBadgePercentage: {
+    fontFamily: 'Montserrat_500Medium',
+    color: '#6F7787',
   },
 });

@@ -639,3 +639,274 @@ If FPC ID selection fails:
 1. Logs available options with their IDs
 2. Falls back to text-based matching
 3. Alerts user if category cannot be selected
+
+## Carousell WebView Auto-Click FAB (April 2025)
+
+### Implementation
+- **Feature**: Automatically clicks Carousell's floating action button (FAB) "Sell" button after page loads
+- **Timing**: 3-second delay after page load to ensure DOM is ready
+- **Script**: `AUTO_CLICK_SELL_FAB_SCRIPT` injected on Carousell main page detection
+- **Selectors**: Multiple fallback selectors for FAB button:
+  1. `button[aria-label*="Sell"]` - Primary selector
+  2. `button[data-testid*="fab"]` - Test ID fallback
+  3. `button.fab` - Class name fallback
+  4. `button[class*="fab"]` - Partial class match
+- **Detection**: `isCarousellMainPage()` helper checks if URL is Carousell homepage
+- **Message Handling**: Sends `FAB_CLICKED` message to React Native on successful click
+- **Result**: Seamless navigation to Carousell sell form without manual FAB click
+
+### Region Limitation (April 2025)
+- **Change**: Limited Carousell region selector to only 3 countries
+- **Regions**: Philippines, Singapore, Indonesia (removed Malaysia, Hong Kong, Taiwan)
+- **File**: `src/constants/carousellRegions.js`
+- **Rationale**: Focus on primary markets, simplify user experience
+
+## AI-Powered Verification System (April 2025)
+
+### Overview
+- **Purpose**: Build trust and credibility for SnapSell listings with "Verified by SnapSell" badge
+- **Differentiator**: Killer feature that makes casual sellers choose SnapSell over Facebook/Carousell
+- **Implementation**: 4-tier verification system with weighted scoring (0-100 points)
+
+### Verification Checks
+
+#### 1. Photo Source Verification (25 points max)
+- **Camera Photo**: 25 points - highest trust (user took photo themselves)
+- **Gallery Photo**: 10 points - lower trust (could be downloaded/stock photo)
+- **Implementation**: Tracks `photoSource` parameter ('camera' or 'gallery') from CameraScreen
+
+#### 2. AI Consistency Verification (40 points max)
+- **Method**: Re-analyzes product image with Gemini AI, compares with original AI analysis
+- **Passed**: 40 points - AI confirms product matches description
+- **Failed**: 20 points - AI detects inconsistencies (still gets partial credit)
+- **Checks**: Product name, category, condition, description consistency
+- **Model**: Uses Gemini 2.5 Flash Lite for verification analysis
+
+#### 3. Metadata Verification (15 points max)
+- **Complete Metadata**: 15 points - image has EXIF data (camera model, GPS, timestamp)
+- **Partial Metadata**: 5 points - some metadata present
+- **No Metadata**: 0 points - stripped/edited image
+- **Note**: Currently mock implementation, ready for real EXIF parsing
+
+#### 4. Timestamp Verification (20 points max)
+- **Recent Photo**: 20 points - taken within 24 hours
+- **Moderate Age**: 15 points - taken within 7 days
+- **Old Photo**: 5 points - taken more than 7 days ago
+- **Implementation**: Compares listing creation time with photo timestamp
+
+### Verification Levels
+- **Gold Badge** (80-100 points): Highest trust, premium verification
+- **Silver Badge** (60-79 points): Good trust, solid verification
+- **Bronze Badge** (40-59 points): Basic trust, minimal verification
+- **Unverified** (0-39 points): No badge displayed
+
+### Seller Reputation Score
+- **Calculation**: Average verification score across all seller's listings
+- **Display**: Shows on ProfileScreen with badge and percentage
+- **Purpose**: Build seller credibility over time
+
+### UI Components
+
+#### VerificationBadge Component
+- **Variants**: 
+  - `full`: Shows icon + "Verified by SnapSell" text + level (Gold/Silver/Bronze)
+  - `compact`: Shows icon + level only (for cards)
+- **Colors**: Gold (#FFD700), Silver (#C0C0C0), Bronze (#CD7F32)
+- **Icon**: Shield with checkmark
+
+#### VerificationScore Component
+- **Display**: Progress bar showing score out of 100
+- **Color**: Matches verification level (gold/silver/bronze)
+- **Usage**: ListingEditorScreen shows detailed score breakdown
+
+#### SellerVerificationBadge Component
+- **Display**: Seller's average verification score
+- **Usage**: ProfileScreen shows seller reputation
+
+#### SnapSellVerificationBanner Component
+- **Display**: Prominent banner for ProductDetailScreen
+- **Content**: "Verified by SnapSell" branding with gradient background
+- **Details**: Trust score, verification level, description
+- **Purpose**: Build trust with buyers, highlight SnapSell's unique value
+
+### Integration Points
+
+#### CameraScreen
+- Tracks `photoSource` parameter ('camera' or 'gallery')
+- Passes to AnalyzingScreen for verification
+
+#### AnalyzingScreen
+- Runs verification after AI analysis completes
+- Adds "Verifying listing" step to loading sequence
+- Attaches verification data to listing object
+
+#### ListingEditorScreen
+- Displays verification section at top of form
+- Shows badge, score, and detailed check breakdown
+- Green-themed styling for trust signals
+
+#### ProductCard
+- Shows compact verification badge on listing cards
+- Visible in HomeScreen and MyListingsScreen
+
+#### ProductDetailScreen
+- Shows prominent SnapSellVerificationBanner at top
+- Full verification details visible to buyers
+
+#### ProfileScreen
+- Shows seller verification score (average across all listings)
+- Uses SellerVerificationBadge component
+
+### Technical Implementation
+
+#### Service: verification.js
+- **verifyListing(listing, photoSource)**: Main verification function
+  - Runs all 4 verification checks
+  - Calculates total score (0-100)
+  - Assigns verification level (Gold/Silver/Bronze/Unverified)
+  - Returns verification object with detailed breakdown
+- **getSellerScore(userId, allListings)**: Calculates seller reputation
+  - Averages verification scores across all seller's listings
+  - Returns score and level
+
+#### Data Structure
+```javascript
+verification: {
+  score: 85,              // Total score (0-100)
+  level: 'gold',          // gold/silver/bronze/unverified
+  checks: {
+    photoSource: { passed: true, points: 25, maxPoints: 25 },
+    aiConsistency: { passed: true, points: 40, maxPoints: 40 },
+    metadata: { passed: true, points: 15, maxPoints: 15 },
+    timestamp: { passed: true, points: 20, maxPoints: 20 }
+  },
+  verifiedAt: '2025-04-08T12:00:00.000Z'
+}
+```
+
+### FileSystem API Fix (April 2025)
+- **Issue**: `FileSystem.EncodingType.Base64` caused error in verification service
+- **Error**: `[TypeError: Cannot read property 'Base64' of undefined]`
+- **Root Cause**: expo-file-system v19+ changed encoding API from enum to string
+- **Fix**: Changed `FileSystem.EncodingType.Base64` to string `'base64'`
+- **Location**: `verification.js` in `verifyAIConsistency()` method
+- **Result**: Verification service now works correctly with expo-file-system v19.0.21
+
+### Business Value
+- **Trust Building**: Verified badge builds buyer confidence
+- **Differentiation**: Unique feature not available on Facebook/Carousell
+- **Quality Signal**: Encourages sellers to take fresh photos, provide accurate info
+- **Seller Reputation**: Builds long-term credibility for power sellers
+- **Conversion**: Verified listings likely to sell faster and at higher prices
+
+### Documentation
+- **File**: `VERIFICATION_SYSTEM.md` - Complete system architecture and business case
+- **Content**: Detailed scoring breakdown, UI mockups, implementation guide
+
+## Subscription & Monetization Strategy (April 2025)
+
+### Launch Strategy
+- **Decision**: Launch 100% FREE on June 3, 2025
+- **Rationale**: Build user base first, monetize later
+- **Timeline**: Introduce subscriptions in Month 7+ after reaching 10,000 users
+
+### Subscription Model (Future Implementation)
+- **Pricing**: ₱149/month for SnapSell Premium
+- **Trial**: 7-day free trial with NO credit card required
+- **Conversion**: 40-60% trial-to-paid conversion (vs 3% traditional freemium)
+
+### Premium Features (Future)
+- Unlimited AI-powered listings (free tier: 10/month)
+- Priority listing placement
+- Advanced analytics dashboard
+- Bulk listing tools
+- Premium verification badge
+- Ad-free experience
+- Priority customer support
+
+### Revenue Projections (Month 7+)
+- **Target**: 10,000 users by Month 6
+- **Trial Conversion**: 50% (5,000 trial starts)
+- **Paid Conversion**: 50% of trials (2,500 paid subscribers)
+- **MRR**: ₱372,500/month (~$6,700 USD)
+- **ARR**: ₱4.47M/year (~$80,000 USD)
+
+### Transaction Fees (Future - 500k+ Users)
+- **Model**: 3% transaction fee on completed sales
+- **Requirement**: Build own marketplace with payment processing
+- **Timeline**: After reaching 500,000+ users
+- **Rationale**: Need scale to justify payment infrastructure investment
+
+### Why Subscription First (Not Transaction Fees)
+- **Trust Barriers**: Users hesitant to share payment info early on
+- **Infrastructure**: Payment processing requires significant investment
+- **Not a Marketplace**: SnapSell is a listing tool, not a transaction platform (yet)
+- **Proven Model**: Carousell ($1.1B), Mercari ($3.2B), Poshmark ($3B) all started with listing tools
+
+### Implementation Components (Created, Not Integrated)
+
+#### TrialStatusBanner Component
+- Shows trial countdown ("X days left in your free trial")
+- Upgrade CTA button
+- Dismissible banner
+
+#### SubscriptionModal Component
+- Full-screen modal with trial benefits
+- Pricing display (₱149/month)
+- Trial stats (unlimited listings, analytics, etc.)
+- "Start Free Trial" CTA
+
+#### subscription.js Service
+- Trial management (start, check status, days remaining)
+- Premium access checks
+- Subscription state management
+- AsyncStorage integration
+
+### Documentation
+- **File**: `SUBSCRIPTION_STRATEGY.md` - Complete monetization strategy
+- **Content**: Pricing, revenue projections, implementation timeline, market analysis
+
+### Market Validation
+- **Casual Seller Market**: 20-30M people in Philippines alone
+- **Proven Models**: Carousell ($1.1B), Mercari ($3.2B), Poshmark ($3B)
+- **Willingness to Pay**: ₱149/month is 1-2 coffee drinks, affordable for target market
+
+## Image Enhancement Discussion (April 2025)
+
+### Badge Overlay Proposal
+- **User Request**: Add "Verified by SnapSell" badge overlay to product photos
+- **Decision**: NOT RECOMMENDED
+
+### Reasons Against Badge Overlay
+
+#### 1. Platform Policy Violations
+- **Facebook Marketplace**: Prohibits watermarks, logos, text overlays on product images
+- **Carousell**: Similar policies against image watermarking
+- **Risk**: Listings could be rejected or account suspended
+
+#### 2. User Resistance
+- **Permanent Modification**: Users don't want their photos permanently altered
+- **Ownership**: Users feel protective of their original images
+- **Flexibility**: Users may want to use photos elsewhere without badge
+
+#### 3. Technical Issues
+- **Irreversible**: Once badge is added, original photo is lost (unless we store both)
+- **Storage**: Doubles storage requirements (original + badged version)
+- **Complexity**: Adds image processing pipeline, potential failure points
+
+#### 4. Better Alternatives
+- **Platform Badges**: Show badge in UI (cards, detail pages) without modifying photo
+- **Banner**: Prominent "Verified by SnapSell" banner on detail pages
+- **Metadata**: Store verification data separately, display contextually
+
+### Image Enhancement Service (Created, Not Recommended)
+- **File**: `src/services/imageEnhancement.js`
+- **Status**: Created but NOT integrated into app
+- **Contains**: Badge overlay functionality using canvas manipulation
+- **Recommendation**: Do NOT use this service
+
+### Current Implementation (Recommended)
+- **UI Badges**: Show verification badge in UI components only
+- **No Photo Modification**: Keep original photos untouched
+- **Platform Compliance**: Follows Facebook/Carousell policies
+- **User Friendly**: Users retain full control of their images

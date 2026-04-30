@@ -27,6 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
+          <string>snapsell</string>
           <string>com.joshuaseziba.SnapSell</string>
         </array>
       </dict>
@@ -34,12 +35,6 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>exp+snapsell</string>
-        </array>
-      </dict>
-      <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>com.googleusercontent.apps.72999929916-u2jrcfqpjh9atk069tulkk104au6iuvh</string>
         </array>
       </dict>
     </array>

@@ -129,14 +129,6 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
       description: 'Reach millions of local buyers. List your items and connect with your community instantly.',
     },
     {
-      id: 'shopee',
-      name: 'Shopee',
-      icon: 'bag-handle',
-      color: '#EE4D2D',
-      bgColor: '#FFF0ED',
-      description: 'Tap into Southeast Asia\'s largest marketplace. Sell to millions across the region.',
-    },
-    {
       id: 'carousell',
       name: 'Carousell',
       icon: 'cart-outline',
@@ -170,7 +162,7 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
         <View style={styles.statsContainer}>
           <View style={styles.statPill}>
             <Text style={styles.statLabel}>All</Text>
-            <Text style={styles.statCount}>3</Text>
+            <Text style={styles.statCount}>2</Text>
           </View>
           <View style={[styles.statPill, styles.statPillActive]}>
             <Text style={styles.statLabelActive}>Connected</Text>
@@ -181,7 +173,7 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
           <View style={styles.statPill}>
             <Text style={styles.statLabel}>Available</Text>
             <Text style={styles.statCount}>
-              {3 - Object.values(connectedPlatforms).filter(Boolean).length}
+              {2 - Object.values(connectedPlatforms).filter(Boolean).length}
             </Text>
           </View>
         </View>
@@ -287,8 +279,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 28,
+    lineHeight: 36,
     marginBottom: 24,
     marginTop: 8,
   },
@@ -367,13 +359,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   platformName: {
-    fontSize: 22,
+    fontSize: 18,
     fontFamily: 'Montserrat_700Bold',
     color: '#1A1D1F',
     marginBottom: 4,
   },
   platformDescription: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
     fontFamily: 'Montserrat_400Regular',
     color: '#6F7787',

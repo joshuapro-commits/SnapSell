@@ -86,9 +86,9 @@ export const verificationService = {
     try {
       console.log('[VERIFICATION] Checking AI consistency...');
       
-      // Convert image to base64
+      // Convert image to base64 using the correct API for expo-file-system v19+
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64', // Changed from FileSystem.EncodingType.Base64
       });
 
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
