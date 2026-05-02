@@ -13,10 +13,8 @@ export const AuthProvider = ({ children }) => {
 
   const checkUser = async () => {
     try {
-      // Comment out auto-login to always start at login screen
-      // const currentUser = await authService.getCurrentUser();
-      // setUser(currentUser);
-      setUser(null);
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
     } catch (error) {
       console.error('Error checking user:', error);
     } finally {

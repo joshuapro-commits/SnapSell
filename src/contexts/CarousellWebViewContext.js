@@ -2,6 +2,7 @@ import React, { createContext, useContext, useRef, useState, useEffect } from 'r
 import { View, StyleSheet, Platform, StatusBar } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { locationService } from '../services/location';
 
 // Use iPad Safari User Agent - best of both worlds:
 // - Carousell shows Google Sign-In button (treats as iOS)
@@ -128,14 +129,25 @@ export const CarousellWebViewProvider = ({ children }) => {
   const popupHandledRef = useRef(false);
   const [isPrewarmed, setIsPrewarmed] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [currentDomain, setCurrentDomain] = useState('carousell.sg');
+  const [currentDomain, setCurrentDomain] = useState('carousell.ph'); // Default to PH, will auto-detect
   const [currentUrl, setCurrentUrl] = useState('');
+  const [detectedRegion, setDetectedRegion] = useState(null);
   
   useEffect(() => {
     console.log('[PREWARM_MANAGER] 🚀 Singleton WebView initializing...');
     console.log('[PREWARM_MANAGER] Platform:', Platform.OS);
     console.log('[PREWARM_MANAGER] User Agent: iOS Safari (consistent across platforms)');
-    console.log('[PREWARM_MANAGER] Pre-warming Carousell in background...');
+    
+    // Auto-detect region on mount
+    const detectRegion = async () => {
+      const region = await locationService.autoDetectRegion();
+      setDetectedRegion(region);
+      setCurrentDomain(region.domain);
+      console.log('[PREWARM_MANAGER] 🌍 Auto-detected region:', region.name);
+      console.log('[PREWARM_MANAGER] Pre-warming', region.domain, 'in background...');
+    };
+    
+    detectRegion();
   }, []);
   
   const shouldBlockRequest = (url) => {

@@ -143,7 +143,9 @@ export const OnboardingScreen2 = ({ onNext, currentIndex, isActive }) => {
               
               <View style={styles.detailsCard}>
                 <View style={styles.detailsHeader}>
-                  <Text style={styles.productTitle}>Louis Vuitton Bag</Text>
+                  <Text style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">
+                    Louis Vuitton Bag
+                  </Text>
                   <Text style={styles.productPrice}>₱45,000</Text>
                 </View>
                 
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
     padding: 12,
-    gap: 8,
+    gap: 6,
   },
   detailsHeader: {
     flexDirection: 'row',
@@ -359,11 +361,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   productTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
     flex: 1,
     fontFamily: 'Montserrat_700Bold',
+    numberOfLines: 2,
   },
   productPrice: {
     fontSize: 16,

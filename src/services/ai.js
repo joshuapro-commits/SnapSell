@@ -43,7 +43,7 @@ export const aiService = {
 
   async analyzeImage(imageUri) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       // Convert image URI to base64
       const imageResponse = await fetch(imageUri);
@@ -248,7 +248,7 @@ export const aiService = {
 
   async generateDescription(productInfo) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       const prompt = `Write 2-3 first-person sentences for: ${productInfo.brand} ${productInfo.name} (${productInfo.condition}). Use 'I', 'my'. Example: "I'm selling my MacBook Pro. Runs perfectly, comes with charger."`;
 
@@ -263,7 +263,7 @@ export const aiService = {
 
   async suggestPrice(productInfo) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       const prompt = `PHP price for ${productInfo.brand} ${productInfo.name} (${productInfo.condition}). Return JSON only:
 {"suggestedPrice": number, "priceRange": {"min": number, "max": number}}

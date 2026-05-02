@@ -13,9 +13,20 @@ export const HomeScreen = ({ navigation }) => {
   const [imagePickerVisible, setImagePickerVisible] = React.useState(false);
   const slideAnim = React.useRef(new Animated.Value(300)).current;
 
-  const totalListings = allListings.length;
-  const activeListings = allListings.filter(l => l.status === 'active').length;
-  const soldListings = allListings.filter(l => l.status === 'sold').length;
+  // Real-time statistics - based on MY listings only
+  const totalListings = React.useMemo(() => myListings.length, [myListings]);
+  const activeListings = React.useMemo(() => 
+    myListings.filter(l => l.status === 'active').length, 
+    [myListings]
+  );
+  const soldListings = React.useMemo(() => 
+    myListings.filter(l => l.status === 'sold').length, 
+    [myListings]
+  );
+  const totalEarnings = React.useMemo(() => 
+    myListings.filter(l => l.status === 'sold').reduce((sum, l) => sum + (l.price || 0), 0),
+    [myListings]
+  );
 
   const templates = [
     {
@@ -25,7 +36,7 @@ export const HomeScreen = ({ navigation }) => {
       icon: 'camera',
       iconBg: '#E8F4FD',
       iconColor: '#1E88E5',
-      used: activeListings,
+      used: totalListings,
       action: 'modal',
     },
     {
@@ -35,7 +46,7 @@ export const HomeScreen = ({ navigation }) => {
       icon: 'list',
       iconBg: '#FFF3E0',
       iconColor: '#FB8C00',
-      used: totalListings,
+      used: activeListings,
       action: 'Earnings',
     },
     {
@@ -120,7 +131,7 @@ export const HomeScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={22} color="#000" />
+          <Ionicons name="search-outline" size={22} color="#000" />
         </TouchableOpacity>
       </View>
 

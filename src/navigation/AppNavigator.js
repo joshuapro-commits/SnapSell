@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginScreen } from '../screens/LoginScreen';
 import { LoginFormScreen } from '../screens/LoginFormScreen';
@@ -40,12 +41,77 @@ const linking = {
   },
 };
 
+const NAVIGATION_STATE_KEY = '@snap_sell_navigation_state';
+
 export const AppNavigator = () => {
   const { user, loading } = useAuth();
+  const [isReady, setIsReady] = useState(false);
+  const [initialState, setInitialState] = useState();
+  const navigationRef = useRef();
+
+  // Restore navigation state on app start (only if user is logged in)
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        // Only restore state if user is logged in
+        if (user) {
+          const savedStateString = await AsyncStorage.getItem(NAVIGATION_STATE_KEY);
+          const state = savedStateString ? JSON.parse(savedStateString) : undefined;
+
+          if (state !== undefined) {
+            console.log('[Navigation] Restoring state');
+            setInitialState(state);
+          }
+        } else {
+          // Clear saved state if no user
+          await AsyncStorage.removeItem(NAVIGATION_STATE_KEY);
+          console.log('[Navigation] Cleared state (no user)');
+        }
+      } catch (e) {
+        console.log('[Navigation] Failed to restore state:', e);
+        // Clear corrupted state
+        await AsyncStorage.removeItem(NAVIGATION_STATE_KEY);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    if (!isReady && !loading) {
+      restoreState();
+    }
+  }, [isReady, loading, user]);
+
+  // Clear navigation state when user logs out
+  useEffect(() => {
+    if (!user && isReady) {
+      AsyncStorage.removeItem(NAVIGATION_STATE_KEY);
+      console.log('[Navigation] Cleared state (user logged out)');
+    }
+  }, [user, isReady]);
+
+  // Don't render until auth check and state restoration complete
+  if (!isReady || loading) {
+    return <View style={{ flex: 1, backgroundColor: '#F5F5F5' }} />;
+  }
 
   return (
     <NavigationContainer
+      ref={navigationRef}
       linking={linking}
+      initialState={initialState}
+      onStateChange={(state) => {
+        // Only save state if user is logged in
+        if (user) {
+          try {
+            AsyncStorage.setItem(NAVIGATION_STATE_KEY, JSON.stringify(state));
+          } catch (e) {
+            console.log('[Navigation] Failed to save state:', e);
+          }
+        }
+      }}
+      onReady={() => {
+        console.log('[Navigation] Container ready');
+      }}
       fallback={<View style={{ flex: 1, backgroundColor: '#F5F5F5' }} />}
     >
       <Stack.Navigator

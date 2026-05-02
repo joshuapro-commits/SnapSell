@@ -1,51 +1,72 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export const VerificationBadge = ({ verification, size = 'medium', showLabel = true, variant = 'full' }) => {
-  if (!verification || !verification.verified) {
+export const VerificationBadge = ({ verification, size = 'medium', showLabel = true, variant = 'full', onInfoPress }) => {
+  if (!verification || !verification.badge) {
+    return null;
+  }
+
+  // Only show badge for scores 60+ (Bronze, Silver, Gold)
+  if (verification.score < 60) {
     return null;
   }
 
   const badge = verification.badge;
+  
   const sizes = {
-    small: { icon: 14, text: 11, padding: 4, gap: 3 },
-    medium: { icon: 16, text: 12, padding: 6, gap: 4 },
-    large: { icon: 20, text: 14, padding: 8, gap: 6 },
+    small: { icon: 14, text: 11, padding: 6, gap: 4 },
+    medium: { icon: 16, text: 13, padding: 8, gap: 6 },
+    large: { icon: 18, text: 14, padding: 10, gap: 6 },
   };
 
   const currentSize = sizes[size] || sizes.medium;
   
-  // Use shortLabel for compact display, full label for prominent display
   const displayLabel = variant === 'compact' ? badge.shortLabel : badge.label;
 
+  // Color scheme based on level
+  const colorScheme = {
+    gold: { bg: '#1E3A5F', icon: '#FFD700', text: '#FFFFFF' },
+    silver: { bg: '#1E3A5F', icon: '#E8E8E8', text: '#FFFFFF' },
+    bronze: { bg: '#1E3A5F', icon: '#CD7F32', text: '#FFFFFF' },
+    unverified: { bg: '#F5F5F5', icon: '#999', text: '#666' },
+  };
+
+  const colors = colorScheme[verification.level] || colorScheme.unverified;
+
   return (
-    <View style={[
-      styles.badge,
-      { 
-        backgroundColor: `${badge.color}15`,
-        paddingHorizontal: currentSize.padding * 2,
-        paddingVertical: currentSize.padding,
-        gap: currentSize.gap,
-        borderWidth: 1,
-        borderColor: `${badge.color}40`,
-      }
-    ]}>
-      <Ionicons 
-        name={badge.icon} 
-        size={currentSize.icon} 
-        color={badge.color} 
-      />
-      {showLabel && (
-        <Text style={[
-          styles.badgeText,
+    <View style={styles.badgeWrapper}>
+      <View
+        style={[
+          styles.badge,
           { 
-            color: badge.color,
-            fontSize: currentSize.text,
+            backgroundColor: colors.bg,
+            paddingHorizontal: currentSize.padding * 1.5,
+            paddingVertical: currentSize.padding,
+            gap: currentSize.gap,
           }
-        ]}>
-          {displayLabel}
-        </Text>
+        ]}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: colors.icon }]}>
+          <Ionicons 
+            name="checkmark" 
+            size={currentSize.icon - 4} 
+            color={verification.level === 'unverified' ? '#FFF' : '#1E3A5F'} 
+          />
+        </View>
+        {showLabel && (
+          <Text style={[
+            styles.badgeText,
+            { fontSize: currentSize.text, color: colors.text }
+          ]}>
+            {displayLabel}
+          </Text>
+        )}
+      </View>
+      {onInfoPress && (
+        <TouchableOpacity onPress={onInfoPress} style={styles.infoButton}>
+          <Ionicons name="information-circle-outline" size={20} color="#666" />
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -141,14 +162,38 @@ export const SellerVerificationBadge = ({ sellerScore, size = 'medium' }) => {
 };
 
 const styles = StyleSheet.create({
+  badgeWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  iconCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   badgeText: {
     fontFamily: 'Montserrat_600SemiBold',
+  },
+  infoButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scoreContainer: {
     marginTop: 8,

@@ -17,9 +17,19 @@ export const EarningsScreen = ({ navigation }) => {
   const { myListings } = useListings();
   const [selectedYear, setSelectedYear] = useState('2025');
 
-  const soldListings = myListings.filter(l => l.status === 'sold');
-  const totalEarnings = soldListings.reduce((sum, l) => sum + (l.price || 0), 0);
-  const activeListings = myListings.filter(l => l.status === 'active' || !l.status).length;
+  // Real-time statistics - recalculates whenever myListings changes
+  const soldListings = React.useMemo(() => 
+    myListings.filter(l => l.status === 'sold'), 
+    [myListings]
+  );
+  const totalEarnings = React.useMemo(() => 
+    soldListings.reduce((sum, l) => sum + (l.price || 0), 0), 
+    [soldListings]
+  );
+  const activeListings = React.useMemo(() => 
+    myListings.filter(l => l.status === 'active' || !l.status).length, 
+    [myListings]
+  );
 
   // Mock data for chart (last 7 days)
   const chartData = [

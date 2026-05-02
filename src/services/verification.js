@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { GEMINI_API_KEY } from '../config/gemini';
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -80,18 +80,18 @@ export const verificationService = {
 
   /**
    * Verify AI consistency between image and description
-   * Uses Gemini to cross-check if description matches visual evidence
+   * Uses Gemini 2.5 Flash Lite to cross-check if description matches visual evidence
    */
   async verifyAIConsistency(imageUri, listingData) {
     try {
       console.log('[VERIFICATION] Checking AI consistency...');
       
-      // Convert image to base64 using the correct API for expo-file-system v19+
+      // Convert image to base64 using legacy API
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: 'base64', // Changed from FileSystem.EncodingType.Base64
+        encoding: FileSystem.EncodingType.Base64,
       });
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
       const prompt = `You are a verification AI. Analyze this product image and the provided description.
 
@@ -245,9 +245,20 @@ Respond in JSON format:
    * Get verification level based on score
    */
   getVerificationLevel(score) {
-    if (score >= 90) return 'gold';
-    if (score >= 75) return 'silver';
-    if (score >= 60) return 'bronze';
+    console.log('[VERIFICATION] Calculating level for score:', score);
+    if (score >= 80) {
+      console.log('[VERIFICATION] Level: GOLD');
+      return 'gold';
+    }
+    if (score >= 60) {
+      console.log('[VERIFICATION] Level: SILVER');
+      return 'silver';
+    }
+    if (score >= 40) {
+      console.log('[VERIFICATION] Level: BRONZE');
+      return 'bronze';
+    }
+    console.log('[VERIFICATION] Level: UNVERIFIED');
     return 'unverified';
   },
 
@@ -277,16 +288,9 @@ Respond in JSON format:
         icon: 'shield-outline',
         description: 'Good trust level - Basic verification passed',
       },
-      unverified: {
-        label: 'Unverified',
-        shortLabel: 'Unverified',
-        color: '#999',
-        icon: 'shield-off-outline',
-        description: 'Standard listing - No verification',
-      },
     };
 
-    return badges[level] || badges.unverified;
+    return badges[level] || null; // Return null for unverified instead of badge
   },
 
   /**

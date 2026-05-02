@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,8 +7,10 @@ import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { platformService } from '../services/platforms';
 import { imageEnhancementService } from '../services/imageEnhancement';
+import { draftService } from '../services/draft';
 import { getFPCId, getCategoryNameFromId, isLeafCategory, getParentName, getLeafName, FB_CATEGORY_LIST, FPC_HIERARCHY } from '../constants/facebookCategories';
 import { VerificationBadge, VerificationScore } from '../components/VerificationBadge';
+import { VerificationInfoModal } from '../components/VerificationInfoModal';
 
 export const ListingEditorScreen = ({ navigation, route }) => {
   const { productData, listing } = route.params;
@@ -16,6 +18,36 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const isEditing = !!listing?.id;
   const { addListing, updateListing } = useListings();
   const { user } = useAuth();
+  const [showVerificationInfo, setShowVerificationInfo] = useState(false);
+  
+  // Animation values
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(-20)).current;
+  const progressAnim = React.useRef(new Animated.Value(0)).current;
+  
+  // Animate verification section on mount
+  React.useEffect(() => {
+    if (data.verification) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(progressAnim, {
+          toValue: data.verification.score,
+          duration: 800,
+          delay: 300,
+          useNativeDriver: false, // width can't use native driver
+        }),
+      ]).start();
+    }
+  }, []);
   
   // Initialize state from listing data (works for both new and existing listings)
   const [selectedCategory, setSelectedCategory] = useState(data.category || 'Electronics');
@@ -47,6 +79,50 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const [carousellHashtags, setCarousellHashtags] = useState(data.platformData?.carousell?.hashtags || []);
   const [carousellMeetupLocations, setCarousellMeetupLocations] = useState(data.platformData?.carousell?.meetupLocations || []);
   const [facebookTags, setFacebookTags] = useState(data.platformData?.facebook?.tags || []);
+
+  // Auto-save draft every time user makes changes
+  React.useEffect(() => {
+    const saveDraft = async () => {
+      if (!isEditing) { // Only save drafts for new listings
+        await draftService.saveDraft({
+          productName,
+          brand,
+          imageUri,
+          description,
+          carousellDescription,
+          facebookDescription,
+          shopeeDescription,
+          carousellHashtags,
+          carousellMeetupLocations,
+          facebookTags,
+          carousellPrice,
+          facebookPrice,
+          shopeePrice,
+          price,
+          selectedCategory,
+          selectedCondition,
+          carousellCategory,
+          carousellCondition,
+          facebookCategoryId,
+          facebookCategoryName,
+          facebookHierarchy,
+          facebookCondition,
+          location,
+          selectedPlatforms,
+          verification: data.verification,
+        });
+      }
+    };
+
+    // Debounce: save 2 seconds after user stops typing
+    const timeoutId = setTimeout(saveDraft, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [
+    productName, brand, description, carousellDescription, facebookDescription, 
+    shopeeDescription, carousellPrice, facebookPrice, shopeePrice, price,
+    selectedCategory, selectedCondition, carousellCategory, carousellCondition,
+    facebookCategoryId, facebookCondition, location, selectedPlatforms
+  ]);
 
   React.useEffect(() => {
     console.log('[ListingEditor] Carousell Hashtags:', carousellHashtags);
@@ -195,31 +271,22 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       return;
     }
 
-    // Apply verification enhancements (badge + text) if listing is verified
-    let enhancedImageUri = imageUri;
+    // Apply verification text enhancements if listing is verified
     let enhancedName = productName;
     let enhancedCarousellDesc = carousellDescription;
     let enhancedFacebookDesc = facebookDescription;
     let enhancedShopeeDesc = shopeeDescription;
 
     if (data.verification && data.verification.verified) {
-      try {
-        // Add checkmark badge to image
-        enhancedImageUri = await imageEnhancementService.addVerificationBadge(imageUri, data.verification);
-        
-        // Add checkmark to title
-        enhancedName = imageEnhancementService.addVerificationToTitle(productName, data.verification);
-        
-        // Add verification footer to descriptions
-        enhancedCarousellDesc = imageEnhancementService.addVerificationToDescription(carousellDescription, data.verification);
-        enhancedFacebookDesc = imageEnhancementService.addVerificationToDescription(facebookDescription, data.verification);
-        enhancedShopeeDesc = imageEnhancementService.addVerificationToDescription(shopeeDescription, data.verification);
-        
-        console.log('[ListingEditor] Verification enhancements applied');
-      } catch (error) {
-        console.error('[ListingEditor] Enhancement error:', error);
-        // Continue with original values if enhancement fails
-      }
+      // Add checkmark to title
+      enhancedName = imageEnhancementService.addVerificationToTitle(productName, data.verification);
+      
+      // Add verification footer to descriptions
+      enhancedCarousellDesc = imageEnhancementService.addVerificationToDescription(carousellDescription, data.verification);
+      enhancedFacebookDesc = imageEnhancementService.addVerificationToDescription(facebookDescription, data.verification);
+      enhancedShopeeDesc = imageEnhancementService.addVerificationToDescription(shopeeDescription, data.verification);
+      
+      console.log('[ListingEditor] Verification text added to title and descriptions');
     }
 
     const listingData = {
@@ -235,7 +302,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       },
       category: selectedCategory,
       condition: selectedCondition,
-      imageUri: enhancedImageUri,
+      imageUri: imageUri,
       location: location,
       selectedPlatforms: selectedPlatforms,
       verification: data.verification, // Preserve verification data
@@ -380,6 +447,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
         selectedPlatforms: selectedPlatforms,
         publishResults: publishResults,
       });
+
+      // Clear draft after successful publish
+      await draftService.clearDraft();
     } catch (error) {
       console.error('Publishing error:', error);
       Alert.alert(
@@ -423,50 +493,119 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.sheetContent}
             showsVerticalScrollIndicator={false}
           >
-          {/* Verification Section */}
-          {data.verification && (
-            <View style={styles.verificationSection}>
-              <View style={styles.verificationHeader}>
-                <Ionicons name="shield-checkmark" size={24} color="#10B981" />
-                <Text style={styles.verificationTitle}>Listing Verification</Text>
+          {/* Verification Section - Only show for scores 60+ */}
+          {data.verification && data.verification.score >= 60 && (
+            <Animated.View 
+              style={[
+                styles.verificationSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                }
+              ]}
+            >
+              <View style={styles.ribbonContainer}>
+                <View style={styles.ribbonLeft} />
+                <View style={styles.ribbonRight} />
+                <View style={styles.ribbonContent}>
+                  <VerificationBadge 
+                    verification={data.verification} 
+                    size="large" 
+                    showLabel={true}
+                    variant="full"
+                    onInfoPress={() => setShowVerificationInfo(true)}
+                  />
+                </View>
               </View>
-              <VerificationBadge 
-                verification={data.verification} 
-                size="large" 
-                showLabel={true}
-                variant="full"
-              />
-              <VerificationScore verification={data.verification} />
               
-              {data.verification.checks && (
-                <View style={styles.verificationChecks}>
-                  {data.verification.checks.photoSource && (
-                    <View style={styles.checkItem}>
-                      <Ionicons 
-                        name={data.verification.checks.photoSource.passed ? "checkmark-circle" : "alert-circle"} 
-                        size={16} 
-                        color={data.verification.checks.photoSource.passed ? "#10B981" : "#F59E0B"} 
-                      />
-                      <Text style={styles.checkText}>
-                        {data.verification.checks.photoSource.message}
+              {/* Trust Score Progress */}
+              <View style={styles.trustScoreContainer}>
+                <View style={styles.trustScoreHeader}>
+                  <Text style={styles.trustScoreLabel}>Trust Score</Text>
+                  <Text style={styles.trustScoreValue}>{data.verification.score}%</Text>
+                </View>
+                <View style={styles.progressBarContainer}>
+                  <Animated.View 
+                    style={[
+                      styles.progressBarFill,
+                      { 
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%'],
+                        }),
+                        backgroundColor: data.verification.level === 'gold' ? '#FFD700' : 
+                                       data.verification.level === 'silver' ? '#C0C0C0' : 
+                                       data.verification.level === 'bronze' ? '#CD7F32' : '#999'
+                      }
+                    ]} 
+                  />
+                </View>
+                
+                {/* Score Breakdown */}
+                <View style={styles.scoreBreakdown}>
+                  {data.verification.checks?.photoSource && (
+                    <View style={styles.breakdownItem}>
+                      <View style={styles.breakdownLeft}>
+                        <Ionicons 
+                          name="camera" 
+                          size={16} 
+                          color={data.verification.checks.photoSource.passed ? '#10B981' : '#F59E0B'} 
+                        />
+                        <Text style={styles.breakdownLabel}>Photo Source</Text>
+                      </View>
+                      <Text style={styles.breakdownPoints}>
+                        {data.verification.checks.photoSource.score}/{data.verification.checks.photoSource.score === 25 ? 25 : 25} pts
                       </Text>
                     </View>
                   )}
-                  {data.verification.checks.aiConsistency && (
-                    <View style={styles.checkItem}>
-                      <Ionicons 
-                        name={data.verification.checks.aiConsistency.passed ? "checkmark-circle" : "alert-circle"} 
-                        size={16} 
-                        color={data.verification.checks.aiConsistency.passed ? "#10B981" : "#F59E0B"} 
-                      />
-                      <Text style={styles.checkText}>
-                        {data.verification.checks.aiConsistency.message}
+                  {data.verification.checks?.aiConsistency && (
+                    <View style={styles.breakdownItem}>
+                      <View style={styles.breakdownLeft}>
+                        <Ionicons 
+                          name="sparkles" 
+                          size={16} 
+                          color={data.verification.checks.aiConsistency.passed ? '#10B981' : '#F59E0B'} 
+                        />
+                        <Text style={styles.breakdownLabel}>AI Verification</Text>
+                      </View>
+                      <Text style={styles.breakdownPoints}>
+                        {data.verification.checks.aiConsistency.score}/40 pts
+                      </Text>
+                    </View>
+                  )}
+                  {data.verification.checks?.metadata && (
+                    <View style={styles.breakdownItem}>
+                      <View style={styles.breakdownLeft}>
+                        <Ionicons 
+                          name="information-circle" 
+                          size={16} 
+                          color={data.verification.checks.metadata.passed ? '#10B981' : '#999'} 
+                        />
+                        <Text style={styles.breakdownLabel}>Metadata</Text>
+                      </View>
+                      <Text style={styles.breakdownPoints}>
+                        {data.verification.checks.metadata.score}/15 pts
+                      </Text>
+                    </View>
+                  )}
+                  {data.verification.checks?.timestamp && (
+                    <View style={styles.breakdownItem}>
+                      <View style={styles.breakdownLeft}>
+                        <Ionicons 
+                          name="time" 
+                          size={16} 
+                          color={data.verification.checks.timestamp.passed ? '#10B981' : '#999'} 
+                        />
+                        <Text style={styles.breakdownLabel}>Freshness</Text>
+                      </View>
+                      <Text style={styles.breakdownPoints}>
+                        {data.verification.checks.timestamp.score}/20 pts
                       </Text>
                     </View>
                   )}
                 </View>
-              )}
-            </View>
+              </View>
+            </Animated.View>
           )}
           
           {/* Gallery Section */}
@@ -489,7 +628,14 @@ export const ListingEditorScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.titleRow}>
-            <Text style={styles.productTitle}>{productName}</Text>
+            <View style={styles.titleWithBadge}>
+              <Text style={styles.productTitle}>{productName}</Text>
+              {data.verification && data.verification.verified && (
+                <View style={styles.verifiedCheckmark}>
+                  <Ionicons name="checkmark-circle" size={24} color="#1DA1F2" />
+                </View>
+              )}
+            </View>
             <TouchableOpacity style={styles.editIcon} onPress={() => handleEditPress('title')}>
               <Ionicons name="pencil" size={18} color="#999" />
             </TouchableOpacity>
@@ -1101,6 +1247,12 @@ export const ListingEditorScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Verification Info Modal */}
+      <VerificationInfoModal 
+        visible={showVerificationInfo}
+        onClose={() => setShowVerificationInfo(false)}
+      />
     </View>
   );
 };
@@ -1242,6 +1394,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
     paddingTop: 24,
+  },
+  titleWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  verifiedCheckmark: {
+    marginLeft: 4,
   },
   editIcon: {
     padding: 4,
@@ -1723,23 +1884,100 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_600SemiBold',
   },
   verificationSection: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    padding: 16,
+    position: 'relative',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
   },
-  verificationHeader: {
+  ribbonContainer: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    position: 'relative',
+    overflow: 'visible',
+  },
+  ribbonLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 20,
+    backgroundColor: '#BBDEFB',
+  },
+  ribbonRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 20,
+    backgroundColor: '#BBDEFB',
+  },
+  ribbonContent: {
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trustScoreContainer: {
+    backgroundColor: '#FFF',
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  trustScoreHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  trustScoreLabel: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#666',
+  },
+  trustScoreValue: {
+    fontSize: 20,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#1E3A5F',
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  scoreBreakdown: {
+    gap: 12,
+  },
+  breakdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
   },
-  verificationTitle: {
-    fontSize: 16,
-    fontFamily: 'Montserrat_700Bold',
-    color: '#166534',
+  breakdownLabel: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_500Medium',
+    color: '#333',
+  },
+  breakdownPoints: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#666',
   },
   verificationChecks: {
     marginTop: 12,
@@ -1753,7 +1991,7 @@ const styles = StyleSheet.create({
   checkText: {
     fontSize: 13,
     fontFamily: 'Montserrat_400Regular',
-    color: '#166534',
+    color: '#666',
     flex: 1,
   },
 });

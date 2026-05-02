@@ -33,9 +33,13 @@ export const ProfileScreen = ({ navigation }) => {
     calculateScore();
   }, [user.id, allListings]);
 
-  const totalEarnings = myListings
-    .filter(l => l.status === 'sold')
-    .reduce((sum, l) => sum + (l.price || 0), 0);
+  // Real-time earnings calculation
+  const totalEarnings = React.useMemo(() => 
+    myListings
+      .filter(l => l.status === 'sold')
+      .reduce((sum, l) => sum + (l.price || 0), 0),
+    [myListings]
+  );
 
   const handleOpenImagePicker = async () => {
     setShowImagePicker(true);
@@ -162,10 +166,14 @@ export const ProfileScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton}>
-          <Ionicons name="person-circle-outline" size={26} color="#FFF" />
+          <View style={styles.menuButtonInner}>
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+          </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={22} color="#6F7787" />
+          <Ionicons name="search-outline" size={22} color="#6F7787" />
         </TouchableOpacity>
       </View>
 
@@ -376,6 +384,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1D1F',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  menuButtonInner: {
+    gap: 4,
+  },
+  menuLine: {
+    width: 20,
+    height: 2,
+    backgroundColor: '#FFF',
+    borderRadius: 1,
   },
   searchButton: {
     width: 48,

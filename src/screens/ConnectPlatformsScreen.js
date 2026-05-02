@@ -148,7 +148,7 @@ export const ConnectPlatformsScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={22} color="#6F7787" />
+          <Ionicons name="search-outline" size={22} color="#6F7787" />
         </TouchableOpacity>
       </View>
 
@@ -363,6 +363,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_700Bold',
     color: '#1A1D1F',
     marginBottom: 4,
+    paddingRight: 8,
   },
   platformDescription: {
     fontSize: 13,
