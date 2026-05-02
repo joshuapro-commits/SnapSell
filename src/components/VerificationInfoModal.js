@@ -76,16 +76,13 @@ export const VerificationInfoModal = ({ visible, onClose }) => {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.overlay} 
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View 
-          style={styles.modalContainer}
-          onStartShouldSetResponder={() => true}
-          onTouchEnd={(e) => e.stopPropagation()}
-        >
+      <View style={styles.overlay}>
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={styles.modalContainer}>
           <View style={styles.header}>
             <View style={styles.headerIcon}>
               <Ionicons name="shield-checkmark" size={24} color="#FF6B35" />
@@ -104,6 +101,8 @@ export const VerificationInfoModal = ({ visible, onClose }) => {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             style={styles.scrollView}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
           >
             {SLIDES.map((slide, index) => (
               <View key={index} style={styles.slide}>
@@ -139,7 +138,7 @@ export const VerificationInfoModal = ({ visible, onClose }) => {
             <Text style={styles.gotItText}>Got it!</Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
@@ -150,7 +149,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
   modalContainer: {
     backgroundColor: '#FFF',

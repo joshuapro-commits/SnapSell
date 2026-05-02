@@ -504,25 +504,28 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                 }
               ]}
             >
-              <View style={styles.ribbonContainer}>
-                <View style={styles.ribbonLeft} />
-                <View style={styles.ribbonRight} />
-                <View style={styles.ribbonContent}>
-                  <VerificationBadge 
-                    verification={data.verification} 
-                    size="large" 
-                    showLabel={true}
-                    variant="full"
-                    onInfoPress={() => setShowVerificationInfo(true)}
-                  />
-                </View>
-              </View>
-              
               {/* Trust Score Progress */}
               <View style={styles.trustScoreContainer}>
                 <View style={styles.trustScoreHeader}>
                   <Text style={styles.trustScoreLabel}>Trust Score</Text>
+                  <View style={styles.badgeLevelContainer}>
+                    <View style={[
+                      styles.badgeLevelDot,
+                      { backgroundColor: data.verification.level === 'gold' ? '#FFD700' : 
+                                       data.verification.level === 'silver' ? '#C0C0C0' : '#CD7F32' }
+                    ]} />
+                    <Text style={styles.badgeLevelText}>
+                      {data.verification.level === 'gold' ? 'Gold' : 
+                       data.verification.level === 'silver' ? 'Silver' : 'Bronze'} Badge
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.scoreRow}>
                   <Text style={styles.trustScoreValue}>{data.verification.score}%</Text>
+                  <Text style={styles.scoreDescription}>
+                    {data.verification.level === 'gold' ? 'Excellent trust level' : 
+                     data.verification.level === 'silver' ? 'High trust level' : 'Good trust level'}
+                  </Text>
                 </View>
                 <View style={styles.progressBarContainer}>
                   <Animated.View 
@@ -607,7 +610,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
               </View>
             </Animated.View>
           )}
-          
+
           {/* Gallery Section */}
           <View style={styles.gallerySection}>
             <Text style={styles.galleryTitle}>Gallery</Text>
@@ -627,14 +630,30 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </View>
           </View>
 
+          {/* Verification Badge - Show above title for scores 60+ */}
+          {data.verification && data.verification.score >= 60 && (
+            <Animated.View 
+              style={[
+                styles.verificationBadgeContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                }
+              ]}
+            >
+              <VerificationBadge 
+                verification={data.verification} 
+                size="medium" 
+                showLabel={true}
+                variant="full"
+                onInfoPress={() => setShowVerificationInfo(true)}
+              />
+            </Animated.View>
+          )}
+
           <View style={styles.titleRow}>
             <View style={styles.titleWithBadge}>
               <Text style={styles.productTitle}>{productName}</Text>
-              {data.verification && data.verification.verified && (
-                <View style={styles.verifiedCheckmark}>
-                  <Ionicons name="checkmark-circle" size={24} color="#1DA1F2" />
-                </View>
-              )}
             </View>
             <TouchableOpacity style={styles.editIcon} onPress={() => handleEditPress('title')}>
               <Ionicons name="pencil" size={18} color="#999" />
@@ -1393,7 +1412,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
-    paddingTop: 24,
   },
   titleWithBadge: {
     flexDirection: 'row',
@@ -1693,18 +1711,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_400Regular',
   },
   buttonContainer: {
-    padding: 20,
-    paddingBottom: 30,
+    padding: 16,
+    paddingBottom: 24,
     backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
   },
   publishButton: {
-    borderRadius: 30,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   solidButton: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: '#FF6B35',
   },
@@ -1713,10 +1731,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   publishButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFF',
-    fontFamily: 'Montserrat_700Bold',
+    fontFamily: 'Montserrat_600SemiBold',
+    letterSpacing: 0.3,
   },
   modalBackdrop: {
     flex: 1,
@@ -1886,48 +1905,17 @@ const styles = StyleSheet.create({
   verificationSection: {
     position: 'relative',
     marginBottom: 20,
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
   },
-  ribbonContainer: {
-    backgroundColor: '#E3F2FD',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    position: 'relative',
-    overflow: 'visible',
-  },
-  ribbonLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 20,
-    backgroundColor: '#BBDEFB',
-  },
-  ribbonRight: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 20,
-    backgroundColor: '#BBDEFB',
-  },
-  ribbonContent: {
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+  verificationBadgeContainer: {
+    marginBottom: 12,
+    alignItems: 'flex-start',
   },
   trustScoreContainer: {
     backgroundColor: '#FFF',
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   trustScoreHeader: {
     flexDirection: 'row',
@@ -1936,25 +1924,63 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   trustScoreLabel: {
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: 'Montserrat_600SemiBold',
-    color: '#666',
+    color: '#8B92A7',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  badgeLevelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F8F9FC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+  },
+  badgeLevelDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  badgeLevelText: {
+    fontSize: 10,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#1E3A5F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 14,
   },
   trustScoreValue: {
-    fontSize: 20,
-    fontFamily: 'Montserrat_700Bold',
+    fontSize: 36,
+    fontFamily: 'Montserrat_600SemiBold',
     color: '#1E3A5F',
+    letterSpacing: -1.5,
+    lineHeight: 40,
+  },
+  scoreDescription: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#6B7280',
+    marginTop: 4,
+    letterSpacing: 0.1,
   },
   progressBarContainer: {
-    height: 8,
+    height: 5,
     backgroundColor: '#F0F0F0',
-    borderRadius: 4,
+    borderRadius: 2.5,
     overflow: 'hidden',
     marginBottom: 16,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 2.5,
   },
   scoreBreakdown: {
     gap: 12,
@@ -1971,13 +1997,15 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 13,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#333',
+    fontFamily: 'Montserrat_400Regular',
+    color: '#374151',
+    letterSpacing: 0.1,
   },
   breakdownPoints: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: 'Montserrat_600SemiBold',
-    color: '#666',
+    color: '#6B7280',
+    letterSpacing: 0.2,
   },
   verificationChecks: {
     marginTop: 12,

@@ -363,18 +363,11 @@ export const CarousellWebView = ({ navigation, route }) => {
     // Check if we're on a Carousell page (not login page)
     if (currentUrl && currentUrl.includes(domain) && !currentUrl.includes('/login')) {
       console.log('[CAROUSELL_AUTO_DETECT] 🎉 Already logged in! URL:', currentUrl);
-      console.log('[CAROUSELL_AUTO_DETECT] Scheduling cookie extraction in 3 seconds...');
+      console.log('[CAROUSELL_AUTO_DETECT] Extracting cookies immediately...');
       
-      const timer = setTimeout(() => {
-        if (!hasExtractedCookies.current) {
-          console.log('[CAROUSELL_AUTO_DETECT] Extracting cookies now...');
-          hasExtractedCookies.current = true;
-          hasFinishedLogin.current = true;
-          injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
-        }
-      }, 3000);
-      
-      return () => clearTimeout(timer);
+      hasExtractedCookies.current = true;
+      hasFinishedLogin.current = true;
+      injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
     }
   }, [currentUrl, mode, domain]); // Watch for URL changes
   
@@ -511,18 +504,16 @@ export const CarousellWebView = ({ navigation, route }) => {
       
       if (isSuccessfulLogin) {
         console.log('[CAROUSELL_NAV] ✅ Login success detected at:', url);
-        console.log('[CAROUSELL_NAV] Extracting session and username...');
+        console.log('[CAROUSELL_NAV] Extracting session immediately...');
         hasFinishedLogin.current = true;
         setShowLoginPrompt(false);
         
-        // Wait for page to fully render before extracting
-        setTimeout(() => {
-          if (!hasExtractedCookies.current) {
-            console.log('[CAROUSELL_NAV] Injecting cookie extraction script...');
-            hasExtractedCookies.current = true;
-            injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
-          }
-        }, 3000); // Increased to 3 seconds for better reliability
+        // Extract immediately, no delay
+        if (!hasExtractedCookies.current) {
+          console.log('[CAROUSELL_NAV] Injecting cookie extraction script...');
+          hasExtractedCookies.current = true;
+          injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
+        }
       }
     }
     
@@ -566,46 +557,32 @@ export const CarousellWebView = ({ navigation, route }) => {
       
       switch (data.type) {
         case 'SESSION_ESTABLISHED':
-          // Show success overlay
-          setShowLoadingOverlay(false);
-          setShowSuccessOverlay(true);
-          
           const userName = data.userName || 'Carousell User';
-          console.log('[CAROUSELL_MSG] ✅ Session established for user:', userName);
-          console.log('[CAROUSELL_MSG] Region:', region);
-          console.log('[CAROUSELL_MSG] Domain:', domain);
+          console.log('[CAROUSELL_MSG] ✅ Session established, saving and navigating...');
+          
+          // Show blur overlay immediately
+          setShowLoadingOverlay(true);
           
           // Save session and connection data
-          const saved = await saveSession(data.cookies);
-          if (saved) {
-            // Save connection to platform tokens
-            const connectionData = {
-              connected: true,
-              connectedAt: new Date().toISOString(),
-              userName: userName,
-              region: region?.id || 'ph',
-              regionName: region?.name || 'Philippines',
-              domain: domain,
-            };
-            
-            console.log('[CAROUSELL_MSG] 💾 Saving connection data:', connectionData);
-            await storageService.savePlatformToken(userId, 'carousell', connectionData);
-            console.log('[CAROUSELL_MSG] ✅ Connection saved successfully!');
-            
-            // Verify it was saved
-            const tokens = await storageService.getPlatformTokens(userId);
-            console.log('[CAROUSELL_MSG] 🔍 Verification - Carousell token:', tokens.carousell);
-            
-            // Wait 1.5 seconds to show success message
-            setTimeout(() => {
-              console.log('[CAROUSELL_MSG] 🔙 Navigating back to ConnectPlatformsScreen...');
-              // Hide WebView first, then navigate
-              hideWebView();
-              setTimeout(() => {
-                navigation.goBack();
-              }, 100);
-            }, 1500);
-          }
+          const connectionData = {
+            connected: true,
+            connectedAt: new Date().toISOString(),
+            userName: userName,
+            region: region?.id || 'ph',
+            regionName: region?.name || 'Philippines',
+            domain: domain,
+          };
+          
+          await Promise.all([
+            saveSession(data.cookies),
+            storageService.savePlatformToken(userId, 'carousell', connectionData)
+          ]);
+          
+          console.log('[CAROUSELL_MSG] ✅ Saved, navigating back...');
+          
+          // Quick navigation
+          hideWebView();
+          setTimeout(() => navigation.goBack(), 50);
           break;
           
         case 'SESSION_VERIFIED':
@@ -745,28 +722,13 @@ export const CarousellWebView = ({ navigation, route }) => {
       
       {/* WebView Container - Just a placeholder, actual WebView rendered by context */}
       <View style={styles.webviewContainer}>
-        {/* Loading overlay */}
+        {/* Blur Loading overlay */}
         {showLoadingOverlay && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#D32F2F" />
-            <Text style={styles.loadingText}>
-              {isPrewarmed ? 'Loading...' : 'Pre-warming Carousell...'}
-            </Text>
-            {!isPrewarmed && (
-              <Text style={styles.loadingSubtext}>First load optimized for speed</Text>
-            )}
-          </View>
-        )}
-        
-        {/* Success overlay */}
-        {showSuccessOverlay && (
-          <View style={styles.successOverlay}>
-            <View style={styles.successIconContainer}>
-              <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+          <View style={styles.blurOverlay}>
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color="#D32F2F" />
+              <Text style={styles.loadingText}>Connecting...</Text>
             </View>
-            <Text style={styles.successTitle}>Connected Successfully!</Text>
-            <Text style={styles.successSubtext}>Redirecting you back...</Text>
-            <ActivityIndicator size="small" color="#10B981" style={{ marginTop: 16 }} />
           </View>
         )}
         
@@ -860,53 +822,33 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_600SemiBold',
   },
 
-  loadingOverlay: {
+  blurOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    zIndex: 999,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999,
+  },
+  loadingContent: {
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 32,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: '#333',
     fontFamily: 'Montserrat_600SemiBold',
-  },
-  loadingSubtext: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#999',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  successOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  successIconContainer: {
-    marginBottom: 24,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontFamily: 'Montserrat_700Bold',
-    color: '#10B981',
-    marginBottom: 8,
-  },
-  successSubtext: {
-    fontSize: 15,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#666',
   },
   loginPromptOverlay: {
     position: 'absolute',
