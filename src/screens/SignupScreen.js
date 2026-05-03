@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,7 +54,9 @@ export const SignupScreen = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.logo}>📸</Text>
+          <View style={styles.iconContainer}>
+            <Ionicons name="person-add-outline" size={80} color="#FF6B35" />
+          </View>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join Snap & Sell today</Text>
         </View>
@@ -124,8 +127,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
-  logo: {
-    fontSize: 64,
+  iconContainer: {
     marginBottom: SPACING.md,
   },
   title: {

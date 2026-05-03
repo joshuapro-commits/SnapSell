@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useListings } from '../contexts/ListingsContext';
 import { verificationService } from '../services/verification';
 import { SellerVerificationBadge } from '../components/VerificationBadge';
+import { storageService } from '../services/storage';
 import * as ImagePicker from 'expo-image-picker';
 
 export const ProfileScreen = ({ navigation }) => {
@@ -103,6 +104,36 @@ export const ProfileScreen = ({ navigation }) => {
       console.error('Error:', error);
       Alert.alert('Error', 'Failed to open photo library: ' + error.message);
     }
+  };
+
+  const handleClearAllData = () => {
+    Alert.alert(
+      '⚠️ Clear All Data',
+      'This will delete ALL app data including:\n\n• All users and accounts\n• All listings\n• Platform connections\n• Settings\n\nThis action cannot be undone!',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Everything',
+          style: 'destructive',
+          onPress: async () => {
+            await storageService.clearAppData();
+            Alert.alert(
+              'Data Cleared',
+              'All app data has been deleted. The app will restart.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    // Force logout and restart
+                    logout();
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   const menuItems = [
@@ -259,6 +290,23 @@ export const ProfileScreen = ({ navigation }) => {
             </View>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#FF4444" />
+        </TouchableOpacity>
+
+        {/* Clear All Data Button - Development Only */}
+        <TouchableOpacity
+          style={[styles.logoutCard, { backgroundColor: '#FFF3E0', marginTop: 8 }]}
+          onPress={handleClearAllData}
+        >
+          <View style={styles.menuCardLeft}>
+            <View style={[styles.menuIconContainer, { backgroundColor: '#FFE8E8' }]}>
+              <Ionicons name="trash-outline" size={28} color="#FF6B35" />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={[styles.menuLabel, { color: '#FF6B35' }]}>Clear All Data</Text>
+              <Text style={styles.menuDescription}>Delete all app data (Dev only)</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#FF6B35" />
         </TouchableOpacity>
 
         <Text style={styles.footer}>v1.2.0 - BUILT FOR THE PINOY SELLER.</Text>

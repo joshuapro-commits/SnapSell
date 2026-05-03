@@ -27,7 +27,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Check if this is first launch and if onboarding is complete
+    // Check if this is first launch for onboarding only
     const checkAppState = async () => {
       try {
         const isFirstLaunch = await AsyncStorage.getItem(FIRST_LAUNCH_KEY);
@@ -46,7 +46,7 @@ export default function App() {
           setShowSplash(true);
           setShowOnboarding(true);
         } else {
-          // Returning user - skip splash and onboarding
+          // Returning user - skip splash and onboarding, but NO session restore
           setShowSplash(false);
           setShowOnboarding(false);
         }

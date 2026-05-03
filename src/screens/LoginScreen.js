@@ -26,52 +26,24 @@ export const LoginScreen = ({ navigation }) => {
   }, []);
 
   const handlePhoneEmail = async () => {
-    // Auto-login for development
-    setLoading(true);
-    
-    // Check if any users exist
-    const users = await storageService.getAllUsers();
-    
-    if (users.length > 0) {
-      // Login with first user
-      const user = users[0];
-      const { password: _, ...userWithoutPassword } = user;
-      await storageService.saveUser(userWithoutPassword);
-      await login(user.email, user.password);
-    } else {
-      // Create a default user and login
-      const defaultUser = {
-        id: Date.now().toString(),
-        email: 'user@snapsell.com',
-        name: 'SnapSell User',
-        password: 'password123',
-        avatar: '👤',
-        createdAt: new Date().toISOString(),
-      };
-      
-      await storageService.addUser(defaultUser);
-      const { password: _, ...userWithoutPassword } = defaultUser;
-      await storageService.saveUser(userWithoutPassword);
-      await login(defaultUser.email, defaultUser.password);
-    }
-    
-    setLoading(false);
+    // Navigate to login form instead of auto-login
+    navigation.navigate('LoginForm');
   };
 
   const handleGoogleSignup = async () => {
-    await handlePhoneEmail();
+    navigation.navigate('LoginForm');
   };
 
   const handleFacebookSignup = async () => {
-    await handlePhoneEmail();
+    navigation.navigate('LoginForm');
   };
 
   const handleAppleSignup = async () => {
-    await handlePhoneEmail();
+    navigation.navigate('LoginForm');
   };
 
   const handleCreateAccount = async () => {
-    await handlePhoneEmail();
+    navigation.navigate('Signup');
   };
 
   return (

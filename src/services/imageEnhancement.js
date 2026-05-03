@@ -20,8 +20,8 @@ export const imageEnhancementService = {
       return title;
     }
 
-    // Add Instagram-style blue checkmark
-    return `${title} ✓`;
+    // Add checkmark and "Verified by SnapSell" badge with dash
+    return `${title} - ✅ Verified by SnapSell`;
   },
 
   /**

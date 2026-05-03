@@ -80,6 +80,35 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   const [carousellMeetupLocations, setCarousellMeetupLocations] = useState(data.platformData?.carousell?.meetupLocations || []);
   const [facebookTags, setFacebookTags] = useState(data.platformData?.facebook?.tags || []);
 
+  // Apply verification enhancements for display
+  const displayProductName = React.useMemo(() => {
+    if (data.verification && data.verification.verified) {
+      return imageEnhancementService.addVerificationToTitle(productName, data.verification);
+    }
+    return productName;
+  }, [productName, data.verification]);
+
+  const displayCarousellDescription = React.useMemo(() => {
+    if (data.verification && data.verification.verified) {
+      return imageEnhancementService.addVerificationToDescription(carousellDescription, data.verification);
+    }
+    return carousellDescription;
+  }, [carousellDescription, data.verification]);
+
+  const displayFacebookDescription = React.useMemo(() => {
+    if (data.verification && data.verification.verified) {
+      return imageEnhancementService.addVerificationToDescription(facebookDescription, data.verification);
+    }
+    return facebookDescription;
+  }, [facebookDescription, data.verification]);
+
+  const displayShopeeDescription = React.useMemo(() => {
+    if (data.verification && data.verification.verified) {
+      return imageEnhancementService.addVerificationToDescription(shopeeDescription, data.verification);
+    }
+    return shopeeDescription;
+  }, [shopeeDescription, data.verification]);
+
   // Auto-save draft every time user makes changes
   React.useEffect(() => {
     const saveDraft = async () => {
@@ -287,6 +316,8 @@ export const ListingEditorScreen = ({ navigation, route }) => {
       enhancedShopeeDesc = imageEnhancementService.addVerificationToDescription(shopeeDescription, data.verification);
       
       console.log('[ListingEditor] Verification text added to title and descriptions');
+      console.log('[ListingEditor] Enhanced name:', enhancedName);
+      console.log('[ListingEditor] Enhanced FB desc (first 100 chars):', enhancedFacebookDesc.substring(0, 100));
     }
 
     const listingData = {
@@ -653,7 +684,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
 
           <View style={styles.titleRow}>
             <View style={styles.titleWithBadge}>
-              <Text style={styles.productTitle}>{productName}</Text>
+              <Text style={styles.productTitle}>{displayProductName}</Text>
             </View>
             <TouchableOpacity style={styles.editIcon} onPress={() => handleEditPress('title')}>
               <Ionicons name="pencil" size={18} color="#999" />
@@ -758,7 +789,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                     <Ionicons name="pencil" size={14} color="#999" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.descriptionText}>{carousellDescription}</Text>
+                <Text style={styles.descriptionText}>{displayCarousellDescription}</Text>
               </View>
               
               {/* Price */}
@@ -875,7 +906,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                     <Ionicons name="pencil" size={14} color="#999" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.descriptionText}>{facebookDescription}</Text>
+                <Text style={styles.descriptionText}>{displayFacebookDescription}</Text>
               </View>
               
               {/* Price */}
@@ -1008,7 +1039,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
                     <Ionicons name="pencil" size={14} color="#999" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.descriptionText}>{shopeeDescription}</Text>
+                <Text style={styles.descriptionText}>{displayShopeeDescription}</Text>
               </View>
               
               {/* Price */}

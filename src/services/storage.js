@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = {
-  USER: '@snap_sell_user',
   USERS: '@snap_sell_users',
   LISTINGS: '@snap_sell_listings',
   MY_LISTINGS: '@snap_sell_my_listings',
@@ -13,31 +12,8 @@ const KEYS = {
 };
 
 export const storageService = {
-  async saveUser(user) {
-    try {
-      await AsyncStorage.setItem(KEYS.USER, JSON.stringify(user));
-    } catch (error) {
-      console.error('Error saving user:', error);
-    }
-  },
-
-  async getUser() {
-    try {
-      const user = await AsyncStorage.getItem(KEYS.USER);
-      return user ? JSON.parse(user) : null;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
-    }
-  },
-
-  async removeUser() {
-    try {
-      await AsyncStorage.removeItem(KEYS.USER);
-    } catch (error) {
-      console.error('Error removing user:', error);
-    }
-  },
+  // Remove all user session methods - no persistence
+  // Keep only data storage methods
 
   async saveListings(listings) {
     try {
@@ -163,7 +139,7 @@ export const storageService = {
     }
   },
 
-  // Onboarding
+  // Onboarding - keep this for first-time experience
   async setOnboardingComplete() {
     try {
       await AsyncStorage.setItem(KEYS.ONBOARDING_COMPLETE, 'true');
@@ -185,9 +161,23 @@ export const storageService = {
   // Clear all data (for testing/reset)
   async clearAll() {
     try {
+      console.log('[STORAGE] Clearing ALL AsyncStorage data...');
       await AsyncStorage.clear();
+      console.log('[STORAGE] All data cleared successfully');
     } catch (error) {
       console.error('Error clearing all data:', error);
+    }
+  },
+
+  // Clear only app-specific data (keeps system data)
+  async clearAppData() {
+    try {
+      console.log('[STORAGE] Clearing ALL AsyncStorage data...');
+      await AsyncStorage.clear();
+      console.log('[STORAGE] All AsyncStorage cleared');
+    } catch (error) {
+      console.error('Error clearing app data:', error);
+      throw error;
     }
   },
 

@@ -5,27 +5,15 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    try {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      console.error('Error checking user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // No auto-restore on mount - user must login every time
 
   const login = async (email, password) => {
     const result = await authService.login(email, password);
     if (result.success) {
       setUser(result.user);
+      // Don't save to AsyncStorage for session persistence
     }
     return result;
   };
@@ -34,6 +22,7 @@ export const AuthProvider = ({ children }) => {
     const result = await authService.signup(email, password, name);
     if (result.success) {
       setUser(result.user);
+      // Don't save to AsyncStorage for session persistence
     }
     return result;
   };

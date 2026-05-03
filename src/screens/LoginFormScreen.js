@@ -22,13 +22,10 @@ export const LoginFormScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
+    console.log('[LOGIN] Button pressed, email:', email, 'password:', password);
     setLoading(true);
     const result = await login(email, password);
+    console.log('[LOGIN] Result:', result);
     setLoading(false);
 
     if (!result.success) {
@@ -50,7 +47,9 @@ export const LoginFormScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.logo}>📸</Text>
+          <View style={styles.iconContainer}>
+            <Ionicons name="person-circle-outline" size={80} color="#FF6B35" />
+          </View>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Login to your account</Text>
         </View>
@@ -115,8 +114,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
-  logo: {
-    fontSize: 64,
+  iconContainer: {
     marginBottom: SPACING.md,
   },
   title: {

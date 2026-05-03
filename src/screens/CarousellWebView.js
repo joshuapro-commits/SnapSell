@@ -363,13 +363,22 @@ export const CarousellWebView = ({ navigation, route }) => {
     // Check if we're on a Carousell page (not login page)
     if (currentUrl && currentUrl.includes(domain) && !currentUrl.includes('/login')) {
       console.log('[CAROUSELL_AUTO_DETECT] 🎉 Already logged in! URL:', currentUrl);
-      console.log('[CAROUSELL_AUTO_DETECT] Extracting cookies immediately...');
+      console.log('[CAROUSELL_AUTO_DETECT] Platform:', Platform.OS);
+      console.log('[CAROUSELL_AUTO_DETECT] Extracting cookies with platform-specific delay...');
       
       hasExtractedCookies.current = true;
       hasFinishedLogin.current = true;
-      injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
+      
+      // iOS needs longer delay for DOM to be ready
+      const delay = Platform.OS === 'ios' ? 1500 : 500;
+      console.log('[CAROUSELL_AUTO_DETECT] Using delay:', delay + 'ms');
+      
+      setTimeout(() => {
+        console.log('[CAROUSELL_AUTO_DETECT] Injecting cookie extraction script NOW');
+        injectJavaScript(COOKIE_EXTRACTION_SCRIPT);
+      }, delay);
     }
-  }, [currentUrl, mode, domain]); // Watch for URL changes
+  }, [currentUrl, mode, domain, injectJavaScript]);
   
   const checkExistingSession = async () => {
     try {

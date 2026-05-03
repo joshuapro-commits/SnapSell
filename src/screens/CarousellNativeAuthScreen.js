@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { authenticateWithGoogle, injectCookiesIntoWebView } from '../services/carousellAuth';
 import { storageService } from '../services/storage';
 
@@ -145,242 +146,175 @@ export const CarousellNativeAuthScreen = ({ navigation, route }) => {
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => navigation.goBack()}
-          disabled={loading}
-        >
-          <Ionicons name="close" size={28} color="#000" />
-        </TouchableOpacity>
-        
-        <Text style={styles.headerTitle}>Connect Carousell</Text>
-        
-        <View style={{ width: 40 }} />
-      </View>
-      
-      {/* Content */}
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="cart" size={64} color="#D32F2F" />
+    <LinearGradient
+      colors={['#FFE8E8', '#FFF5F5', '#FFFFFF']}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => navigation.goBack()}
+            disabled={loading}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1A1D1F" />
+          </TouchableOpacity>
         </View>
         
-        <Text style={styles.title}>Connect Your Carousell Account</Text>
-        <Text style={styles.subtitle}>
-          Sign in with your Carousell email and password
-        </Text>
-        
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <Ionicons name="shield-checkmark" size={20} color="#10B981" />
-          <Text style={styles.infoText}>
-            Your login is secure. We'll automatically detect when you're signed in.
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Icon */}
+          <View style={styles.iconContainer}>
+            <Ionicons name="cart" size={72} color="#D32F2F" />
+          </View>
+          
+          {/* Title */}
+          <Text style={styles.title}>Connect to{"\n"}Carousell</Text>
+          
+          {/* Subtitle */}
+          <Text style={styles.subtitle}>
+            Reach millions of buyers across Southeast Asia.{"\n"}
+            List once, sell fast.
           </Text>
         </View>
         
-        {/* Primary Login Button */}
-        <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
-          onPress={handleWebViewAuth}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <>
-              <Ionicons name="mail" size={24} color="#FFF" />
-              <View style={styles.buttonTextContainer}>
-                <Text style={styles.buttonText}>Sign in with Email & Password</Text>
-                <Text style={styles.buttonSubtext}>Fast & Reliable</Text>
-              </View>
-              <Ionicons name="arrow-forward" size={20} color="#FFF" />
-            </>
-          )}
-        </TouchableOpacity>
-        
-        {/* How it Works */}
-        <View style={styles.howItWorksBox}>
-          <Text style={styles.howItWorksTitle}>How it works:</Text>
-          <View style={styles.howItWorksStep}>
-            <Text style={styles.stepNumber}>1</Text>
-            <Text style={styles.stepText}>Enter your Carousell email and password</Text>
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          {/* Info Box */}
+          <View style={styles.infoBox}>
+            <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+            <Text style={styles.infoText}>
+              Your login is secure. We'll automatically detect when you're signed in.
+            </Text>
           </View>
-          <View style={styles.howItWorksStep}>
-            <Text style={styles.stepNumber}>2</Text>
-            <Text style={styles.stepText}>We'll automatically detect when you're logged in</Text>
-          </View>
-          <View style={styles.howItWorksStep}>
-            <Text style={styles.stepNumber}>3</Text>
-            <Text style={styles.stepText}>Start publishing listings instantly!</Text>
-          </View>
+          
+          {/* Primary Button */}
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleWebViewAuth}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <>
+                <Ionicons name="mail" size={22} color="#FFF" />
+                <Text style={styles.primaryButtonText}>Sign in with Email & Password</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   closeButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: 'Montserrat_700Bold',
-    color: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingHorizontal: 32,
+    paddingTop: 60,
+    alignItems: 'center',
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#FFE8E8',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize: 36,
     fontFamily: 'Montserrat_700Bold',
-    color: '#000',
+    color: '#1A1D1F',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    lineHeight: 44,
   },
   subtitle: {
-    fontSize: 15,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: '#D32F2F',
-  },
-  secondaryButton: {
-    backgroundColor: '#FFF',
-    borderWidth: 2,
-    borderColor: '#D32F2F',
-  },
-  buttonTextContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  buttonText: {
     fontSize: 16,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#FFF',
-  },
-  buttonSubtext: {
-    fontSize: 12,
     fontFamily: 'Montserrat_400Regular',
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+    color: '#6F7787',
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: 8,
   },
-  secondaryButtonText: {
-    color: '#D32F2F',
-  },
-  secondaryButtonSubtext: {
-    color: '#999',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#999',
+  bottomSection: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 13,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#15803D',
+    fontFamily: 'Montserrat_500Medium',
+    color: '#1A1D1F',
     lineHeight: 20,
   },
-  howItWorksBox: {
-    marginTop: 32,
-    padding: 20,
-    backgroundColor: '#F8F9FC',
-    borderRadius: 12,
-  },
-  howItWorksTitle: {
-    fontSize: 16,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#1A1D1F',
-    marginBottom: 16,
-  },
-  howItWorksStep: {
+  primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    justifyContent: 'center',
     backgroundColor: '#D32F2F',
-    color: '#FFF',
-    fontSize: 14,
-    fontFamily: 'Montserrat_600SemiBold',
-    textAlign: 'center',
-    lineHeight: 28,
-    marginRight: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    gap: 12,
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  stepText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#6F7787',
-    lineHeight: 20,
+  primaryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#FFF',
   },
 });

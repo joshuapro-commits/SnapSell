@@ -77,36 +77,47 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
       if (isLoginSuccess) {
         console.log('[FB_LOGIN] Login successful detected!');
         console.log('[FB_LOGIN] Final URL:', navState.url);
+        setHasConnected(true);
         
-        // Wait 2 seconds to ensure page is fully loaded and session is stable
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Verify session by checking for profile elements
-        const verifyScript = `
+        // Extract profile immediately without verification delay
+        const profileScript = `
           (function() {
             try {
-              // Check if we're actually logged in by looking for profile indicators
-              const hasProfileButton = document.querySelector('[aria-label*="Account"], [aria-label*="Profile"], [aria-label*="Menu"]');
-              const hasNavigation = document.querySelector('[role="navigation"]');
-              const isLoggedIn = hasProfileButton || hasNavigation;
+              let userName = '';
               
+              const profileButton = document.querySelector('div[aria-label*="Account"], div[aria-label*="Profile"]');
+              if (profileButton) {
+                userName = profileButton.getAttribute('aria-label') || '';
+              }
+
+              if (!userName) {
+                const profileLinks = document.querySelectorAll('a[href*="/profile"], a[href*="/user"]');
+                for (let link of profileLinks) {
+                  const ariaLabel = link.getAttribute('aria-label');
+                  if (ariaLabel && ariaLabel.length > 0 && ariaLabel.length < 50) {
+                    userName = ariaLabel;
+                    break;
+                  }
+                }
+              }
+
               window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'SESSION_VERIFIED',
-                isLoggedIn: isLoggedIn,
-                url: window.location.href,
+                type: 'PROFILE_EXTRACTED',
+                userName: userName.trim() || 'Facebook User',
               }));
             } catch (error) {
               window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'SESSION_VERIFIED',
-                isLoggedIn: false,
-                error: error.toString(),
+                type: 'PROFILE_EXTRACTED',
+                userName: 'Facebook User',
               }));
             }
           })();
           true;
         `;
         
-        webViewRef.current?.injectJavaScript(verifyScript);
+        // Wait just 1 second for DOM to be ready, then extract profile
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        webViewRef.current?.injectJavaScript(profileScript);
       }
     } else if (mode === 'sell') {
       // Sell mode: Auto-fill form when marketplace create page loads
@@ -162,8 +173,24 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
 
         // Wait longer for Facebook's React to render the form
         setTimeout(() => {
+          const listingName = (listingData?.name || '').replace(/"/g, '\\"').replace(/\n/g, ' ');
+          const fbDescription = (listingData?.descriptions?.facebook || listingData?.description || '').replace(/"/g, '\\"').replace(/\n/g, ' ');
+          const fbPrice = String(listingData?.platformData?.facebook?.price || listingData?.price || '');
+          const fbCategoryId = String(listingData?.platformData?.facebook?.categoryId || '536');
+          const fbCategoryName = String(listingData?.platformData?.facebook?.categoryName || 'Home & garden');
+          const fbHierarchy = JSON.stringify(listingData?.platformData?.facebook?.hierarchy || null);
+          const fbCondition = String(listingData?.platformData?.facebook?.condition || listingData?.condition || 'Good');
+          const fbTags = JSON.stringify(listingData?.platformData?.facebook?.tags || []);
+          const fbAttributes = JSON.stringify(listingData?.attributes || {});
+          const hasVerification = !!listingData?.verification;
+          
           const fillFormScript = `
             (function() {
+              // Debug: Log the listing data we received
+              console.log('[FB_FILL] Listing name:', "${listingName}");
+              console.log('[FB_FILL] FB Description:', "${fbDescription.substring(0, 100)}");
+              console.log('[FB_FILL] Has verification:', ${hasVerification});
+              
               const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
               // ── Kill switch: stop everything if Facebook challenges the user ────────
@@ -1108,7 +1135,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Fill Title - with longer pre-field pause
                   await wait(800 + Math.random() * 700); // 0.8-1.5s thinking before first field
                   if (killSwitchTriggered) return;
-                  if (!await fillTextField('Title', "${listingData?.name || ''}")) {
+                  if (!await fillTextField('Title', "${listingName}")) {
                     success = false;
                     failedFields.push('Title');
                   }
@@ -1120,7 +1147,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Fill Price - variable delay between fields
                   await wait(1200 + Math.random() * 800); // 1.2-2 seconds between fields
                   if (killSwitchTriggered) return;
-                  if (!await fillTextField('Price', "${listingData?.platformData?.facebook?.price || listingData?.price || ''}")) {
+                  if (!await fillTextField('Price', "${fbPrice}")) {
                     success = false;
                     failedFields.push('Price');
                   }
@@ -1132,9 +1159,9 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Select Category - longer pause before dropdown interaction
                   await wait(2000 + Math.random() * 1000); // 2-3 seconds
                   if (killSwitchTriggered) return;
-                  const fpcId = "${listingData?.platformData?.facebook?.categoryId || '536'}";
-                  const fpcName = "${listingData?.platformData?.facebook?.categoryName || 'Home & garden'}";
-                  const fpcHierarchy = ${JSON.stringify(listingData?.platformData?.facebook?.hierarchy || null)};
+                  const fpcId = "${fbCategoryId}";
+                  const fpcName = "${fbCategoryName}";
+                  const fpcHierarchy = ${fbHierarchy};
                   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'CATEGORY_MAPPING', fpcId, fpcName, fpcHierarchy }));
 
                   // Start MutationObserver to watch for dynamic fields (Brand, Size, etc.)
@@ -1154,7 +1181,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Poll up to 3s for dynamic fields injected by FB after category selection
                   // (e.g. Brand, Model for Electronics; Size, Color for Clothing)
                   const dynamicLabels = ['Brand', 'Model', 'Size', 'Color', 'Gender'];
-                  const attributes = ${JSON.stringify(listingData?.attributes || {})};
+                  const attributes = ${fbAttributes};
                   let dynamicWait = 0;
                   while (dynamicWait < 3000) {
                     await wait(400);
@@ -1187,7 +1214,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Select Condition
                   await wait(2000 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  if (!await selectDropdown('Condition', "${listingData?.platformData?.facebook?.condition || listingData?.condition || 'Good'}")) {
+                  if (!await selectDropdown('Condition', "${fbCondition}")) {
                     success = false;
                     failedFields.push('Condition');
                   }
@@ -1204,7 +1231,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Fill Description
                   await wait(2000 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  if (!await fillDescription("${listingData?.description || ''}")) {
+                  if (!await fillDescription("${fbDescription}")) {
                     success = false;
                     failedFields.push('Description');
                   }
@@ -1212,46 +1239,10 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   // Fill Product Tags with Total Interception script
                   await wait(1500 + Math.random() * 500);
                   if (killSwitchTriggered) return;
-                  const tags = ${JSON.stringify(listingData?.platformData?.facebook?.tags || [])};
+                  const tags = ${fbTags};
                   if (tags && tags.length > 0) {
                     // Install continuous monitoring script that re-binds on every FB re-render
-                    const tagInterceptionScript = \`
-                      (function() {
-                        function forceTag(input) {
-                          if (input.dataset.tagHooked) return;
-                          input.dataset.tagHooked = "true";
-
-                          input.addEventListener('input', function(e) {
-                            const val = e.target.value;
-                            // If comma or space typed, force Enter lifecycle
-                            if (val.endsWith(',') || val.endsWith(' ')) {
-                              e.target.value = val.slice(0, -1); // Remove delimiter
-                              
-                              // Fire complete event sequence
-                              ['keydown', 'keypress', 'keyup'].forEach(type => {
-                                const event = new KeyboardEvent(type, {
-                                  key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-                                  bubbles: true, cancelable: true
-                                });
-                                e.target.dispatchEvent(event);
-                              });
-
-                              // Hack: Facebook sometimes only commits on blur
-                              e.target.blur();
-                              setTimeout(() => e.target.focus(), 10);
-                            }
-                          });
-                        }
-
-                        // Continuously check for tag input (FB re-renders frequently)
-                        setInterval(() => {
-                          const tagInput = document.querySelector('input[placeholder*="Tag"]') || 
-                                         document.querySelector('label[aria-label*="Tag"] input') ||
-                                         document.querySelector('[role="textbox"][aria-label*="Tag"]');
-                          if (tagInput) forceTag(tagInput);
-                        }, 1000);
-                      })();
-                    \`;
+                    const tagInterceptionScript = '(function() { function forceTag(input) { if (input.dataset.tagHooked) return; input.dataset.tagHooked = "true"; input.addEventListener("input", function(e) { const val = e.target.value; if (val.endsWith(",") || val.endsWith(" ")) { e.target.value = val.slice(0, -1); ["keydown", "keypress", "keyup"].forEach(type => { const event = new KeyboardEvent(type, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }); e.target.dispatchEvent(event); }); e.target.blur(); setTimeout(function() { e.target.focus(); }, 10); } }); } setInterval(function() { const tagInput = document.querySelector("input[placeholder*=Tag]") || document.querySelector("label[aria-label*=Tag] input") || document.querySelector("[role=textbox][aria-label*=Tag]"); if (tagInput) forceTag(tagInput); }, 1000); })();';
                     
                     // Inject the interception script first
                     eval(tagInterceptionScript);
@@ -1417,57 +1408,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
       const data = JSON.parse(event.nativeEvent.data);
       console.log(`[FB_${mode.toUpperCase()}] Message received:`, data);
 
-      if (mode === 'login' && data.type === 'SESSION_VERIFIED') {
-        if (data.isLoggedIn) {
-          console.log('[FB_LOGIN] Session verified successfully!');
-          setHasConnected(true);
-
-          // Extract profile info
-          const profileScript = `
-            (function() {
-              try {
-                let userName = '';
-                
-                const profileButton = document.querySelector('div[aria-label*="Account"], div[aria-label*="Profile"]');
-                if (profileButton) {
-                  userName = profileButton.getAttribute('aria-label') || '';
-                }
-
-                if (!userName) {
-                  const profileLinks = document.querySelectorAll('a[href*="/profile"], a[href*="/user"]');
-                  for (let link of profileLinks) {
-                    const ariaLabel = link.getAttribute('aria-label');
-                    if (ariaLabel && ariaLabel.length > 0 && ariaLabel.length < 50) {
-                      userName = ariaLabel;
-                      break;
-                    }
-                  }
-                }
-
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'PROFILE_EXTRACTED',
-                  userName: userName.trim() || 'Facebook User',
-                }));
-              } catch (error) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'PROFILE_EXTRACTED',
-                  userName: 'Facebook User',
-                }));
-              }
-            })();
-            true;
-          `;
-          
-          webViewRef.current?.injectJavaScript(profileScript);
-        } else {
-          console.log('[FB_LOGIN] Session verification failed - not actually logged in');
-          Alert.alert(
-            'Login Incomplete',
-            'Please complete the Facebook login process.',
-            [{ text: 'OK' }]
-          );
-        }
-      } else if (mode === 'login' && data.type === 'PROFILE_EXTRACTED') {
+      if (data.type === 'PROFILE_EXTRACTED') {
         console.log('[FB_LOGIN] Profile extracted:', data.userName);
         
         // Save connection with profile info

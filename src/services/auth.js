@@ -9,7 +9,7 @@ export const authService = {
 
       if (user && user.password === password) {
         const { password: _, ...userWithoutPassword } = user;
-        await storageService.saveUser(userWithoutPassword);
+        // Don't save current user to AsyncStorage
         return { success: true, user: userWithoutPassword };
       }
 
@@ -41,7 +41,7 @@ export const authService = {
       await storageService.addUser(newUser);
       
       const { password: _, ...userWithoutPassword } = newUser;
-      await storageService.saveUser(userWithoutPassword);
+      // Don't save current user to AsyncStorage
       
       return { success: true, user: userWithoutPassword };
     } catch (error) {
@@ -52,7 +52,7 @@ export const authService = {
 
   async logout() {
     try {
-      await storageService.removeUser();
+      // No need to remove user from AsyncStorage since we don't save it
       return { success: true };
     } catch (error) {
       console.error('Logout error:', error);
@@ -61,11 +61,7 @@ export const authService = {
   },
 
   async getCurrentUser() {
-    try {
-      return await storageService.getUser();
-    } catch (error) {
-      console.error('Get current user error:', error);
-      return null;
-    }
+    // Always return null - no session persistence
+    return null;
   },
 };
