@@ -1408,13 +1408,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   gallerySection: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   galleryTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#000',
-    marginBottom: 12,
+    marginBottom: 16,
     fontFamily: 'Montserrat_700Bold',
   },
   thumbnailRow: {
@@ -1442,7 +1442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   titleWithBadge: {
     flexDirection: 'row',
@@ -1938,7 +1938,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   verificationBadgeContainer: {
-    marginBottom: 12,
+    marginBottom: 20,
     alignItems: 'flex-start',
   },
   trustScoreContainer: {
