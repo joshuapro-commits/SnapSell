@@ -70,11 +70,11 @@ export const verificationService = {
     const isCamera = photoSource === 'camera';
     return {
       passed: isCamera,
-      score: isCamera ? 25 : 10, // Camera = 25 points, Gallery = 10 points
+      score: isCamera ? 25 : 5, // Camera = 25 points, Gallery = 5 points (reduced from 10)
       source: photoSource,
       message: isCamera 
         ? 'Photo taken with camera (high trust)' 
-        : 'Photo uploaded from gallery (medium trust)',
+        : 'Photo uploaded from gallery (low trust)',
     };
   },
 
@@ -171,13 +171,12 @@ Respond in JSON format:
    * Verify photo metadata (EXIF data)
    */
   verifyMetadata(exifData) {
-    // For now, give partial credit since EXIF extraction isn't implemented yet
-    // Camera photos should get some credit even without full EXIF
+    // Gallery photos without EXIF get 0 points (likely downloaded/stock)
     if (!exifData) {
       return {
         passed: false,
-        score: 5, // Give 5 points instead of 0 for attempting verification
-        message: 'Basic metadata check passed',
+        score: 0, // No credit without metadata
+        message: 'No metadata found (possible stock photo)',
       };
     }
 
@@ -186,14 +185,14 @@ Respond in JSON format:
     
     return {
       passed: hasDeviceInfo,
-      score: hasDeviceInfo ? 15 : 5,
+      score: hasDeviceInfo ? 15 : 0,
       deviceInfo: {
         make: exifData.make,
         model: exifData.model,
       },
       message: hasDeviceInfo 
         ? `Photo taken with ${exifData.make} ${exifData.model}`
-        : 'Limited device information',
+        : 'No device information found',
     };
   },
 
@@ -201,13 +200,12 @@ Respond in JSON format:
    * Verify photo timestamp (recent photos are more trustworthy)
    */
   verifyTimestamp(exifData) {
-    // If no EXIF data, assume photo is recent (just taken)
-    // This is reasonable for camera photos taken in-app
+    // If no EXIF data, give minimal points (could be old/downloaded photo)
     if (!exifData || !exifData.dateTime) {
       return {
-        passed: true,
-        score: 15, // Give 15 points (recent photo assumption)
-        message: 'Photo assumed to be recent',
+        passed: false,
+        score: 5, // Minimal points without timestamp
+        message: 'No timestamp data (unknown age)',
       };
     }
 
