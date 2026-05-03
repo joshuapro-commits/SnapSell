@@ -69,188 +69,113 @@ const SESSION_VERIFICATION_SCRIPT = `
 
 // ROBUST Auto-click Sell button script with multiple fallback strategies
 const AUTO_CLICK_SELL_FAB_SCRIPT = `
-  (function() {
-    console.log('[CAROUSELL_SELL] 🔍 Starting robust Sell button search...');
-    console.log('[CAROUSELL_SELL] Current URL:', window.location.href);
-    console.log('[CAROUSELL_SELL] Page title:', document.title);
+(function() {
+  try {
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'SELL_SCRIPT_STARTED',
+      url: window.location.href
+    }));
     
     let attemptCount = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 8;
     
     function findAndClickSellButton() {
       attemptCount++;
-      console.log('[CAROUSELL_SELL] Attempt', attemptCount, 'of', maxAttempts);
+      
+      // Get all clickable elements
+      const allLinks = Array.from(document.querySelectorAll('a'));
+      const allButtons = Array.from(document.querySelectorAll('button'));
+      const allClickable = [...allLinks, ...allButtons];
       
       // Strategy 1: Find by href containing '/sell'
-      let sellButton = document.querySelector('a[href*="/sell"]');
-      if (sellButton && isVisible(sellButton)) {
-        console.log('[CAROUSELL_SELL] ✅ Strategy 1: Found by href');
-        clickButton(sellButton);
+      let sellButton = allLinks.find(a => a.href && a.href.includes('/sell'));
+      if (sellButton) {
+        sellButton.click();
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SELL_BUTTON_CLICKED',
+          success: true,
+          strategy: 'href',
+          attempt: attemptCount
+        }));
         return true;
       }
       
-      // Strategy 2: Find by aria-label containing 'Sell'
-      sellButton = document.querySelector('button[aria-label*="Sell" i], a[aria-label*="Sell" i]');
-      if (sellButton && isVisible(sellButton)) {
-        console.log('[CAROUSELL_SELL] ✅ Strategy 2: Found by aria-label');
-        clickButton(sellButton);
-        return true;
-      }
-      
-      // Strategy 3: Find by data-testid
-      sellButton = document.querySelector('[data-testid*="sell" i], [data-testid*="fab" i]');
-      if (sellButton && isVisible(sellButton)) {
-        console.log('[CAROUSELL_SELL] ✅ Strategy 3: Found by data-testid');
-        clickButton(sellButton);
-        return true;
-      }
-      
-      // Strategy 4: Find by text content 'Sell' (case insensitive)
-      const allButtons = Array.from(document.querySelectorAll('a, button'));
-      sellButton = allButtons.find(el => {
+      // Strategy 2: Find by text content 'Sell'
+      sellButton = allClickable.find(el => {
         const text = el.textContent.trim().toLowerCase();
-        return text === 'sell' || text.includes('sell');
-      });
-      if (sellButton && isVisible(sellButton)) {
-        console.log('[CAROUSELL_SELL] ✅ Strategy 4: Found by text content');
-        clickButton(sellButton);
-        return true;
-      }
-      
-      // Strategy 5: Find floating action button (FAB) by position
-      // FABs are typically positioned at bottom-right corner
-      const fabCandidates = allButtons.filter(el => {
-        const rect = el.getBoundingClientRect();
-        const isBottomRight = rect.bottom > window.innerHeight - 200 && 
-                             rect.right > window.innerWidth - 200;
-        const hasCircularShape = rect.width > 40 && rect.height > 40 && 
-                                Math.abs(rect.width - rect.height) < 10;
-        return isBottomRight && hasCircularShape && isVisible(el);
-      });
-      
-      if (fabCandidates.length > 0) {
-        console.log('[CAROUSELL_SELL] ✅ Strategy 5: Found FAB by position');
-        clickButton(fabCandidates[0]);
-        return true;
-      }
-      
-      // Strategy 6: Find by role="button" with Sell text
-      sellButton = Array.from(document.querySelectorAll('[role="button"]')).find(el => {
-        const text = el.textContent.trim().toLowerCase();
-        return text.includes('sell') && isVisible(el);
+        return text === 'sell' || text === 'sell now';
       });
       if (sellButton) {
-        console.log('[CAROUSELL_SELL] ✅ Strategy 6: Found by role="button"');
-        clickButton(sellButton);
+        sellButton.click();
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SELL_BUTTON_CLICKED',
+          success: true,
+          strategy: 'text',
+          attempt: attemptCount
+        }));
         return true;
       }
       
-      // Strategy 7: Find by SVG icon (Carousell uses SVG for FAB)
-      const svgButtons = Array.from(document.querySelectorAll('button, a')).filter(el => {
-        return el.querySelector('svg') && isVisible(el);
+      // Strategy 3: Find FAB at bottom-right
+      const fabButton = allClickable.find(el => {
+        const rect = el.getBoundingClientRect();
+        return rect.bottom > window.innerHeight - 150 && 
+               rect.right > window.innerWidth - 150 &&
+               rect.width > 40 && rect.height > 40;
       });
-      
-      for (const btn of svgButtons) {
-        const rect = btn.getBoundingClientRect();
-        const isBottomRight = rect.bottom > window.innerHeight - 200;
-        if (isBottomRight) {
-          console.log('[CAROUSELL_SELL] ✅ Strategy 7: Found SVG button at bottom');
-          clickButton(btn);
-          return true;
-        }
+      if (fabButton) {
+        fabButton.click();
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SELL_BUTTON_CLICKED',
+          success: true,
+          strategy: 'fab-position',
+          attempt: attemptCount
+        }));
+        return true;
       }
       
-      // Debug: Log all buttons on page
-      const allButtons = Array.from(document.querySelectorAll('a, button'));
-      console.log('[CAROUSELL_SELL] ❌ Sell button not found in attempt', attemptCount);
-      console.log('[CAROUSELL_SELL] Total buttons on page:', allButtons.length);
-      const buttonSamples = allButtons.slice(0, 10).map(b => ({
-        tag: b.tagName,
-        text: b.textContent.trim().substring(0, 30),
-        href: b.href ? b.href.substring(0, 50) : null,
-        ariaLabel: b.getAttribute('aria-label'),
-        visible: isVisible(b)
-      }));
-      console.log('[CAROUSELL_SELL] Button samples:', buttonSamples);
-      
-      // Send debug info back to React Native
+      // Debug on first attempt
       if (attemptCount === 1) {
+        const samples = allClickable.slice(0, 10).map(el => ({
+          tag: el.tagName,
+          text: el.textContent.trim().substring(0, 30),
+          href: el.href || null
+        }));
+        
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_DEBUG',
-          totalButtons: allButtons.length,
-          samples: buttonSamples
+          totalButtons: allClickable.length,
+          samples: samples
         }));
       }
       
       return false;
     }
     
-    // Helper: Check if element is visible
-    function isVisible(el) {
-      if (!el) return false;
-      const style = window.getComputedStyle(el);
-      const rect = el.getBoundingClientRect();
-      return style.display !== 'none' && 
-             style.visibility !== 'hidden' && 
-             style.opacity !== '0' &&
-             rect.width > 0 && 
-             rect.height > 0;
-    }
-    
-    // Helper: Click button with multiple methods
-    function clickButton(button) {
-      try {
-        // Method 1: Direct click
-        button.click();
-        
-        // Method 2: Dispatch mouse events (for React)
-        button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-        button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        
-        // Method 3: Dispatch touch events (for mobile)
-        button.dispatchEvent(new TouchEvent('touchstart', { bubbles: true }));
-        button.dispatchEvent(new TouchEvent('touchend', { bubbles: true }));
-        
-        console.log('[CAROUSELL_SELL] ✅ Button clicked successfully');
-        
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'SELL_BUTTON_CLICKED',
-          success: true
-        }));
-      } catch (error) {
-        console.error('[CAROUSELL_SELL] Click error:', error);
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'SELL_BUTTON_CLICKED',
-          success: false,
-          error: error.message
-        }));
-      }
-    }
-    
-    // Retry logic with exponential backoff
     function attemptClick() {
       const found = findAndClickSellButton();
       
       if (!found && attemptCount < maxAttempts) {
-        // Exponential backoff: 500ms, 1s, 2s, 3s, 4s...
-        const delay = Math.min(500 * attemptCount, 5000);
-        console.log('[CAROUSELL_SELL] Retrying in', delay, 'ms...');
-        setTimeout(attemptClick, delay);
+        setTimeout(attemptClick, 1000);
       } else if (!found) {
-        console.log('[CAROUSELL_SELL] ❌ Failed after', maxAttempts, 'attempts');
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_CLICKED',
           success: false,
-          error: 'Button not found after ' + maxAttempts + ' attempts'
+          error: 'Not found after ' + maxAttempts + ' attempts'
         }));
       }
     }
     
-    // Start after initial page load delay
-    setTimeout(attemptClick, 2000);
-  })();
-  true;
+    setTimeout(attemptClick, 1000);
+    
+  } catch (error) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'SELL_SCRIPT_ERROR',
+      error: error.message
+    }));
+  }
+})();
+true;
 `;
 
 // Auto-fill listing script - Semi-Auto approach (user taps final submit)
@@ -815,6 +740,7 @@ export const CarousellWebView = ({ navigation, route }) => {
         case 'SELL_BUTTON_CLICKED':
           if (data.success) {
             console.log('[CAROUSELL_MSG] ✅ Sell button clicked successfully');
+            console.log('[CAROUSELL_MSG] Strategy:', data.strategy, 'Attempt:', data.attempt);
             // Wait for sell form to load, then auto-fill
             setTimeout(() => {
               if (listingData) {
@@ -844,6 +770,14 @@ export const CarousellWebView = ({ navigation, route }) => {
         case 'TEST_INJECTION':
           console.log('[CAROUSELL_TEST] ✅ Injection works!');
           console.log('[CAROUSELL_TEST] Links:', data.totalLinks, 'Buttons:', data.totalButtons);
+          break;
+          
+        case 'SELL_SCRIPT_STARTED':
+          console.log('[CAROUSELL_SELL] 🚀 Auto-click script started');
+          break;
+          
+        case 'SELL_SCRIPT_ERROR':
+          console.log('[CAROUSELL_SELL] ❌ Script error:', data.error);
           break;
       }
     } catch (error) {
