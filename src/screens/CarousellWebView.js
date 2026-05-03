@@ -71,6 +71,8 @@ const SESSION_VERIFICATION_SCRIPT = `
 const AUTO_CLICK_SELL_FAB_SCRIPT = `
   (function() {
     console.log('[CAROUSELL_SELL] 🔍 Starting robust Sell button search...');
+    console.log('[CAROUSELL_SELL] Current URL:', window.location.href);
+    console.log('[CAROUSELL_SELL] Page title:', document.title);
     
     let attemptCount = 0;
     const maxAttempts = 10;
@@ -158,7 +160,28 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
         }
       }
       
+      // Debug: Log all buttons on page
+      const allButtons = Array.from(document.querySelectorAll('a, button'));
       console.log('[CAROUSELL_SELL] ❌ Sell button not found in attempt', attemptCount);
+      console.log('[CAROUSELL_SELL] Total buttons on page:', allButtons.length);
+      const buttonSamples = allButtons.slice(0, 10).map(b => ({
+        tag: b.tagName,
+        text: b.textContent.trim().substring(0, 30),
+        href: b.href ? b.href.substring(0, 50) : null,
+        ariaLabel: b.getAttribute('aria-label'),
+        visible: isVisible(b)
+      }));
+      console.log('[CAROUSELL_SELL] Button samples:', buttonSamples);
+      
+      // Send debug info back to React Native
+      if (attemptCount === 1) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SELL_BUTTON_DEBUG',
+          totalButtons: allButtons.length,
+          samples: buttonSamples
+        }));
+      }
+      
       return false;
     }
     
@@ -665,9 +688,35 @@ export const CarousellWebView = ({ navigation, route }) => {
     // Auto-click Sell button when on Carousell home/main page in sell mode
     if (mode === 'sell' && !url.includes('/sell/') && isCarousellMainPage(url)) {
       console.log('[CAROUSELL_NAV] 🎯 On main page, auto-clicking Sell button...');
+      console.log('[CAROUSELL_NAV] Injecting test script first...');
+      
+      // First inject a simple test to verify injection works
       setTimeout(() => {
-        injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
+        console.log('[CAROUSELL_NAV] Injecting TEST script');
+        injectJavaScript(`
+          (function() {
+            console.log('[CAROUSELL_TEST] Script injection WORKS!');
+            console.log('[CAROUSELL_TEST] URL:', window.location.href);
+            console.log('[CAROUSELL_TEST] Total links:', document.querySelectorAll('a').length);
+            console.log('[CAROUSELL_TEST] Total buttons:', document.querySelectorAll('button').length);
+            
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'TEST_INJECTION',
+              success: true,
+              totalLinks: document.querySelectorAll('a').length,
+              totalButtons: document.querySelectorAll('button').length
+            }));
+          })();
+          true;
+        `);
       }, 1000);
+      
+      // Then inject the actual auto-click script
+      setTimeout(() => {
+        console.log('[CAROUSELL_NAV] NOW injecting AUTO_CLICK_SELL_FAB_SCRIPT');
+        injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
+        console.log('[CAROUSELL_NAV] Script injected');
+      }, 2000);
     }
     
     // Detect successful listing
@@ -780,6 +829,21 @@ export const CarousellWebView = ({ navigation, route }) => {
               [{ text: 'OK' }]
             );
           }
+          break;
+          
+        case 'SELL_BUTTON_DEBUG':
+          console.log('[CAROUSELL_DEBUG] Total buttons:', data.totalButtons);
+          console.log('[CAROUSELL_DEBUG] Button samples:', data.samples);
+          Alert.alert(
+            'Debug: Buttons Found',
+            `Found ${data.totalButtons} buttons on page. Check console for details.`,
+            [{ text: 'OK' }]
+          );
+          break;
+          
+        case 'TEST_INJECTION':
+          console.log('[CAROUSELL_TEST] ✅ Injection works!');
+          console.log('[CAROUSELL_TEST] Links:', data.totalLinks, 'Buttons:', data.totalButtons);
           break;
       }
     } catch (error) {
