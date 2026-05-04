@@ -100,6 +100,11 @@ export const aiService = {
     Return the MEDIAN price in PHP as a number. Be realistic based on ACTUAL market data, not estimates.",
   "platformData": {
     "carousell": {
+      "categoryHierarchy": {
+        "level1": "EXACT parent category name from Carousell. Examples: 'Furniture & Home Living', 'Computers & Tech', 'Fashion', 'Audio', 'Babies & Kids', 'Beauty & Personal Care', 'Business Services', 'Car Parts & Accessories', 'Cars for Sale', 'Commercial & Industrial', 'Everything Else', 'Food & Drinks', 'Gaming & Hobbies', 'Health & Nutrition', 'Home Appliances', 'Luxury', 'Men's Fashion', 'Mobile Phones & Gadgets', 'Pet Supplies', 'Property', 'Services', 'Sports & Outdoors', 'Tickets & Vouchers', 'Toys & Games', 'Women's Fashion'",
+        "level2": "EXACT sub-category name. Examples under 'Furniture & Home Living': 'Furniture', 'Home Decor', 'Gardening', 'Kitchenware & Tableware', 'Lighting & Fans', 'Bathroom & Kitchen Fixtures', 'Bedding & Towels', 'Cleaning & Homecare Supplies', 'Home Fragrance', 'Home Improvement & Organization', 'Office Furniture & Fixtures', 'Outdoor Furniture', 'Security & Locks'. Examples under 'Computers & Tech': 'Laptops', 'Desktops', 'Computer Accessories', 'Printers & Scanners', 'Networking Equipment', 'Software & Games'",
+        "level3": "EXACT leaf category name. Examples under 'Furniture': 'Shelves, Cabinets & Racks', 'Chairs', 'Sofas', 'Tables & Sets', 'Bed Frames & Mattresses', 'TV Consoles', 'Other Home Furniture'. Examples under 'Laptops': 'Gaming Laptops', 'Business Laptops', 'Ultrabooks', 'Chromebooks', 'Other Laptops'. CRITICAL: Return the EXACT text that appears in Carousell's dropdown menu. Use proper capitalization and punctuation."
+      },
       "hashtags": ["Research and return AT LEAST 15 MOST RELEVANT and POPULAR search terms for this product on Carousell Philippines. Think like a buyer searching. Include: 1) Brand name, 2) Product type/category, 3) Condition keywords (authentic, brandnew, preloved), 4) Model/variant names, 5) Trending search terms, 6) Color/size/material variants, 7) Use-case keywords, 8) Location tags (PH, Philippines, Manila), 9) Price-related tags (sale, deal), 10) Complementary product terms. NO # symbol. MINIMUM 15 tags required. Examples: For iPhone → ['iPhone13Pro', 'ApplePhone', 'Authentic', 'OriginalBox', 'iPhonePH', 'Smartphone', 'Unlocked', 'iOS', 'Apple', 'Preloved', 'Gadget', 'MobilePhone', 'iPhoneForSale', 'TechPH', 'BrandNew']"],
       "meetupLocations": ["2-3 Metro Manila areas: Makati, BGC, QC, Ortigas, Manila"]
     },
@@ -204,10 +209,23 @@ export const aiService = {
       // Ensure carousell data exists with hashtags fallback
       if (!productData.platformData.carousell) {
         productData.platformData.carousell = {
+          categoryHierarchy: {
+            level1: 'Everything Else',
+            level2: 'Others',
+            level3: 'Others'
+          },
           hashtags: [productData.brand || 'Item', productData.category || 'ForSale'],
           meetupLocations: ['Makati', 'BGC', 'Quezon City'],
         };
       } else {
+        // Ensure categoryHierarchy exists
+        if (!productData.platformData.carousell.categoryHierarchy) {
+          productData.platformData.carousell.categoryHierarchy = {
+            level1: 'Everything Else',
+            level2: 'Others',
+            level3: 'Others'
+          };
+        }
         // Ensure hashtags exist even if carousell object exists
         if (!productData.platformData.carousell.hashtags || productData.platformData.carousell.hashtags.length === 0) {
           productData.platformData.carousell.hashtags = [productData.brand || 'Item', productData.category || 'ForSale'];

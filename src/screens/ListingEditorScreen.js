@@ -177,9 +177,9 @@ export const ListingEditorScreen = ({ navigation, route }) => {
   // 3-Tier Pricing State
   const [selectedPriceOption, setSelectedPriceOption] = useState('recommended');
   const priceOptions = data.priceOptions || {
-    quickSale: { price: Math.round((data.suggestedPrice || 0) * 0.82), label: 'Quick Sale', icon: 'flash', color: '#F59E0B', description: 'Sell faster with competitive pricing', badge: '18% off max' },
-    recommended: { price: data.suggestedPrice || 0, label: 'Recommended', icon: 'checkmark-circle', color: '#10B981', description: 'Based on real-time market research', badge: 'BEST VALUE', isDefault: true },
-    maxValue: { price: Math.round((data.suggestedPrice || 0) * 1.14), label: 'Max Value', icon: 'trending-up', color: '#8B5CF6', description: 'Maximize profit, may take longer', badge: '+14% premium' },
+    quickSale: { price: Math.round((data.suggestedPrice || 0) * 0.72), label: 'Quick Sale', icon: 'flash', color: '#F59E0B', description: 'Priced to sell fast — a sold item at ₱800 beats an unsold one at ₱1,200', badge: '28% below market' },
+    recommended: { price: Math.round((data.suggestedPrice || 0) * 0.88), label: 'Recommended', icon: 'checkmark-circle', color: '#10B981', description: 'Slightly below market to attract buyers quickly without leaving too much on the table', badge: 'BEST VALUE', isDefault: true },
+    maxValue: { price: data.suggestedPrice || 0, label: 'Max Value', icon: 'trending-up', color: '#8B5CF6', description: 'At market price — may take longer to sell', badge: 'At market rate' },
   };
 
   // Use FB_CATEGORY_LIST for all platforms to ensure consistency
@@ -713,7 +713,7 @@ export const ListingEditorScreen = ({ navigation, route }) => {
           {/* 3-Tier Pricing Section */}
           <View style={styles.pricingSection}>
             <Text style={styles.sectionTitle}>Choose Your Price</Text>
-            <Text style={styles.sectionSubtitle}>Select the pricing strategy that fits your goal</Text>
+            <Text style={styles.sectionSubtitle}>All prices are set below market — because a fast sale always beats no sale 💡</Text>
             
             <View style={styles.priceOptionsContainer}>
               {/* Quick Sale Card */}

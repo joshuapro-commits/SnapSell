@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Pla
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import * as FileSystem from 'expo-file-system/legacy';
 import { storageService } from '../services/storage';
 import { useCarousellWebView } from '../contexts/CarousellWebViewContext';
 
@@ -213,163 +214,66 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
 true;
 `;
 
-// Auto-upload photo script - clicks "Select photos" button and uploads image
-const getAutoUploadPhotoScript = (imageBase64) => `
-(function() {
+// Programmatic image injection script - bypasses file picker entirely
+const getImageInjectionScript = (base64Data) => `
+(async function() {
   try {
-    console.log('[CAROUSELL_UPLOAD] Starting photo upload process...');
+    console.log('[CAROUSELL_IMAGE] Starting programmatic image injection...');
     window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: 'UPLOAD_SCRIPT_STARTED',
+      type: 'IMAGE_INJECTION_STARTED',
       url: window.location.href
     }));
     
-    let attemptCount = 0;
-    const maxAttempts = 10;
-    
-    function findAndTriggerFileInput() {
-      attemptCount++;
-      console.log('[CAROUSELL_UPLOAD] Attempt', attemptCount, 'of', maxAttempts);
-      
-      // Strategy 1: Find hidden file input and trigger it directly
-      const fileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
-      console.log('[CAROUSELL_UPLOAD] Found', fileInputs.length, 'file inputs');
-      
-      if (fileInputs.length > 0) {
-        const fileInput = fileInputs[0];
-        console.log('[CAROUSELL_UPLOAD] Triggering file input directly');
-        console.log('[CAROUSELL_UPLOAD] File input accept:', fileInput.accept);
-        console.log('[CAROUSELL_UPLOAD] File input multiple:', fileInput.multiple);
-        
-        // Create a synthetic click event
-        const clickEvent = new MouseEvent('click', {
-          view: window,
-          bubbles: true,
-          cancelable: true
-        });
-        
-        fileInput.dispatchEvent(clickEvent);
-        
-        // Also try direct click
-        fileInput.click();
-        
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'FILE_INPUT_TRIGGERED',
-          success: true,
-          accept: fileInput.accept,
-          multiple: fileInput.multiple,
-          attempt: attemptCount
-        }));
-        return true;
-      }
-      
-      // Strategy 2: Find and click the "Select photos" button which should trigger file input
-      const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
-      console.log('[CAROUSELL_UPLOAD] Found', allButtons.length, 'buttons');
-      
-      const selectButton = allButtons.find(btn => {
-        const text = btn.textContent.trim().toLowerCase();
-        return text.includes('select') && text.includes('photo');
-      });
-      
-      if (selectButton) {
-        console.log('[CAROUSELL_UPLOAD] Found "Select photos" button, clicking...');
-        
-        // Try multiple click methods
-        selectButton.click();
-        
-        const clickEvent = new MouseEvent('click', {
-          view: window,
-          bubbles: true,
-          cancelable: true
-        });
-        selectButton.dispatchEvent(clickEvent);
-        
-        // Try touch event for mobile
-        const touchEvent = new TouchEvent('touchstart', {
-          bubbles: true,
-          cancelable: true
-        });
-        selectButton.dispatchEvent(touchEvent);
-        
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'SELECT_BUTTON_CLICKED',
-          success: true,
-          attempt: attemptCount
-        }));
-        
-        // After clicking button, wait and check for file input again
-        setTimeout(() => {
-          const newFileInputs = document.querySelectorAll('input[type="file"]');
-          console.log('[CAROUSELL_UPLOAD] After button click, file inputs:', newFileInputs.length);
-          if (newFileInputs.length > 0) {
-            newFileInputs[0].click();
-          }
-        }, 500);
-        
-        return true;
-      }
-      
-      // Strategy 3: Find the upload area/dropzone and click it
-      const dropzones = Array.from(document.querySelectorAll('[class*="drop"], [class*="upload"], [class*="photo"]'));
-      console.log('[CAROUSELL_UPLOAD] Found', dropzones.length, 'potential dropzones');
-      
-      if (dropzones.length > 0) {
-        const dropzone = dropzones[0];
-        console.log('[CAROUSELL_UPLOAD] Clicking dropzone');
-        dropzone.click();
-        
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'DROPZONE_CLICKED',
-          success: true,
-          attempt: attemptCount
-        }));
-        return true;
-      }
-      
-      // Debug logging
-      if (attemptCount === 1 || attemptCount % 3 === 0) {
-        const buttonSamples = allButtons.slice(0, 10).map(btn => ({
-          text: btn.textContent.trim().substring(0, 50),
-          ariaLabel: btn.getAttribute('aria-label'),
-          className: btn.className
-        }));
-        
-        console.log('[CAROUSELL_UPLOAD] Button samples:', buttonSamples);
-        
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'UPLOAD_DEBUG',
-          totalButtons: allButtons.length,
-          fileInputs: fileInputs.length,
-          dropzones: dropzones.length,
-          samples: buttonSamples
-        }));
-      }
-      
-      return false;
+    // Convert Base64 to Blob using atob() (CSP-safe)
+    const b64 = "${base64Data}";
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
     }
     
-    function attemptTrigger() {
-      const found = findAndTriggerFileInput();
-      
-      if (!found && attemptCount < maxAttempts) {
-        setTimeout(attemptTrigger, 600);
-      } else if (!found) {
-        console.log('[CAROUSELL_UPLOAD] Failed to trigger file input after', maxAttempts, 'attempts');
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'FILE_INPUT_TRIGGERED',
-          success: false,
-          error: 'File input not found after ' + maxAttempts + ' attempts'
-        }));
-      }
+    // Create File object
+    const blob = new Blob([bytes], { type: 'image/jpeg' });
+    const file = new File([blob], 'product.jpg', { type: 'image/jpeg' });
+    
+    console.log('[CAROUSELL_IMAGE] File created:', file.name, file.size, 'bytes');
+    
+    // Find file input
+    const fileInput = document.querySelector('input[type="file"][accept*="image"]') ||
+                     document.querySelector('input[type="file"]');
+    
+    if (!fileInput) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'IMAGE_INJECTION_FAILED',
+        reason: 'No file input found'
+      }));
+      return;
     }
     
-    setTimeout(attemptTrigger, 500);
+    console.log('[CAROUSELL_IMAGE] File input found, injecting image...');
+    
+    // Use DataTransfer API to bypass security restrictions
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    fileInput.files = dataTransfer.files;
+    
+    // Trigger React events
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    console.log('[CAROUSELL_IMAGE] ✅ Image injected successfully!');
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'IMAGE_INJECTED',
+      success: true,
+      fileName: file.name,
+      fileSize: file.size
+    }));
     
   } catch (error) {
-    console.error('[CAROUSELL_UPLOAD] Error:', error);
+    console.error('[CAROUSELL_IMAGE] Error:', error);
     window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: 'UPLOAD_SCRIPT_ERROR',
-      error: error.message
+      type: 'IMAGE_INJECTION_FAILED',
+      reason: error.toString()
     }));
   }
 })();
@@ -927,58 +831,27 @@ export const CarousellWebView = ({ navigation, route }) => {
           }
           break;
           
-        case 'FILE_INPUT_TRIGGERED':
-          if (data.success) {
-            console.log('[CAROUSELL_MSG] ✅ File input triggered successfully');
-            console.log('[CAROUSELL_MSG] Accept:', data.accept, 'Multiple:', data.multiple, 'Attempt:', data.attempt);
-            // File picker should now be open - user needs to select image
-            // TODO: We may need to programmatically inject the image
-          } else {
-            console.log('[CAROUSELL_MSG] ⚠️ File input not found:', data.error);
-            Alert.alert(
-              'Manual Action Required',
-              'Please tap the photo upload area manually to select your image.',
-              [{ text: 'OK' }]
-            );
-          }
+        case 'IMAGE_INJECTION_STARTED':
+          console.log('[CAROUSELL_MSG] 🚀 Image injection started');
           break;
           
-        case 'SELECT_BUTTON_CLICKED':
-          console.log('[CAROUSELL_MSG] ✅ Select button clicked, attempt:', data.attempt);
+        case 'IMAGE_INJECTED':
+          console.log('[CAROUSELL_MSG] ✅ Image injected successfully!');
+          console.log('[CAROUSELL_MSG] File:', data.fileName, 'Size:', data.fileSize, 'bytes');
+          Alert.alert(
+            '✅ Image Uploaded',
+            'Your product image has been uploaded. Fill in the remaining details and tap "List Now" to publish.',
+            [{ text: 'OK' }]
+          );
           break;
           
-        case 'DROPZONE_CLICKED':
-          console.log('[CAROUSELL_MSG] ✅ Dropzone clicked, attempt:', data.attempt);
-          break;
-          
-        case 'SELECT_PHOTOS_CLICKED':
-          if (data.success) {
-            console.log('[CAROUSELL_MSG] ✅ Select photos clicked successfully');
-            console.log('[CAROUSELL_MSG] Strategy:', data.strategy, 'Attempt:', data.attempt);
-            // TODO: Handle file picker - this will open native file picker
-            // We'll need to handle the image upload after file selection
-          } else {
-            console.log('[CAROUSELL_MSG] ⚠️ Select photos button not found:', data.error);
-            Alert.alert(
-              'Manual Action Required',
-              'Please tap "Select photos" manually to upload your image.',
-              [{ text: 'OK' }]
-            );
-          }
-          break;
-          
-        case 'UPLOAD_SCRIPT_STARTED':
-          console.log('[CAROUSELL_MSG] 🚀 Photo upload script started');
-          break;
-          
-        case 'UPLOAD_DEBUG':
-          console.log('[CAROUSELL_DEBUG] Upload page - Total buttons:', data.totalButtons);
-          console.log('[CAROUSELL_DEBUG] File inputs found:', data.fileInputs);
-          console.log('[CAROUSELL_DEBUG] Button samples:', JSON.stringify(data.samples, null, 2));
-          break;
-          
-        case 'UPLOAD_SCRIPT_ERROR':
-          console.log('[CAROUSELL_MSG] ❌ Upload script error:', data.error);
+        case 'IMAGE_INJECTION_FAILED':
+          console.log('[CAROUSELL_MSG] ❌ Image injection failed:', data.reason);
+          Alert.alert(
+            'Image Upload Failed',
+            'Please upload your image manually by tapping the photo area.',
+            [{ text: 'OK' }]
+          );
           break;
           
         case 'FORM_FILLED':
@@ -1004,10 +877,10 @@ export const CarousellWebView = ({ navigation, route }) => {
             console.log('[CAROUSELL_MSG] Strategy:', data.strategy, 'Attempt:', data.attempt);
             // Hide manual button since auto-click worked
             setShowManualSellButton(false);
-            // Wait for photo upload page to load, then trigger photo upload
-            setTimeout(() => {
-              console.log('[CAROUSELL_MSG] Triggering photo upload...');
-              injectJavaScript(getAutoUploadPhotoScript());
+            // Wait for photo upload page to load, then inject image programmatically
+            setTimeout(async () => {
+              console.log('[CAROUSELL_MSG] Injecting image programmatically...');
+              await handleImageInjection();
             }, 2000);
           } else {
             console.log('[CAROUSELL_MSG] ⚠️ Sell button not found:', data.error);
@@ -1080,6 +953,39 @@ export const CarousellWebView = ({ navigation, route }) => {
     
     console.log('[CAROUSELL_AUTO] Starting auto-fill with:', autoFillData);
     injectJavaScript(getAutoFillScript(autoFillData));
+  };
+  
+  // Handle programmatic image injection
+  const handleImageInjection = async () => {
+    try {
+      const imageUri = listingData?.imageUri;
+      if (!imageUri) {
+        console.log('[CAROUSELL_IMAGE] No image URI found');
+        Alert.alert(
+          'No Image',
+          'Please add your product image manually.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      console.log('[CAROUSELL_IMAGE] Converting image to Base64...');
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: 'base64'
+      });
+      
+      console.log('[CAROUSELL_IMAGE] Base64 length:', base64.length);
+      console.log('[CAROUSELL_IMAGE] Injecting image into WebView...');
+      
+      injectJavaScript(getImageInjectionScript(base64));
+    } catch (error) {
+      console.error('[CAROUSELL_IMAGE] Error:', error);
+      Alert.alert(
+        'Image Upload Failed',
+        'Please upload your image manually.',
+        [{ text: 'OK' }]
+      );
+    }
   };
   
   // Manual sell button click
