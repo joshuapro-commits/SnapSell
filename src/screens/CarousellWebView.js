@@ -280,6 +280,186 @@ const getImageInjectionScript = (base64Data) => `
 true;
 `;
 
+// Category hierarchy selection script - navigates through 3-level dropdown
+const getCategorySelectionScript = (level1, level2, level3) => `
+(async function() {
+  try {
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    console.log('[CAROUSELL_CATEGORY] Starting category selection...');
+    console.log('[CAROUSELL_CATEGORY] Target:', '${level1}', '>', '${level2}', '>', '${level3}');
+    
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'CATEGORY_SELECTION_STARTED',
+      level1: '${level1}',
+      level2: '${level2}',
+      level3: '${level3}'
+    }));
+    
+    // Helper: Find and click element by text
+    function findByText(text, selector = '*') {
+      const elements = Array.from(document.querySelectorAll(selector));
+      return elements.find(el => {
+        const elText = el.textContent.trim();
+        return elText === text || elText.toLowerCase() === text.toLowerCase();
+      });
+    }
+    
+    // Helper: Click with multiple event types
+    async function humanClick(element) {
+      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      await wait(300);
+      
+      // Dispatch multiple event types for compatibility
+      element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      await wait(50);
+      element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      element.click();
+      
+      await wait(500);
+    }
+    
+    // Step 1: Find and click "Select a category" dropdown
+    console.log('[CAROUSELL_CATEGORY] Step 1: Finding category dropdown...');
+    let categoryDropdown = findByText('Select a category', 'div, button, [role="button"]');
+    
+    if (!categoryDropdown) {
+      // Try finding by placeholder or label
+      const inputs = Array.from(document.querySelectorAll('input, select'));
+      categoryDropdown = inputs.find(el => 
+        el.placeholder?.includes('category') || 
+        el.getAttribute('aria-label')?.includes('category')
+      );
+    }
+    
+    if (!categoryDropdown) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'CATEGORY_SELECTION_FAILED',
+        reason: 'Category dropdown not found',
+        step: 1
+      }));
+      return;
+    }
+    
+    console.log('[CAROUSELL_CATEGORY] Found dropdown, clicking...');
+    await humanClick(categoryDropdown);
+    await wait(1000); // Wait for menu to open
+    
+    // Step 2: Select Level 1 (Parent Category)
+    console.log('[CAROUSELL_CATEGORY] Step 2: Selecting level 1:', '${level1}');
+    let level1Element = findByText('${level1}', 'div, li, [role="option"]');
+    
+    if (!level1Element) {
+      // Try case-insensitive search
+      const allOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'));
+      level1Element = allOptions.find(el => 
+        el.textContent.trim().toLowerCase() === '${level1}'.toLowerCase()
+      );
+    }
+    
+    if (!level1Element) {
+      const availableOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'))
+        .map(el => el.textContent.trim())
+        .filter(text => text.length > 0 && text.length < 100)
+        .slice(0, 20);
+      
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'CATEGORY_SELECTION_FAILED',
+        reason: 'Level 1 category not found',
+        step: 2,
+        target: '${level1}',
+        availableOptions: availableOptions
+      }));
+      return;
+    }
+    
+    console.log('[CAROUSELL_CATEGORY] Found level 1, clicking...');
+    await humanClick(level1Element);
+    await wait(1500); // Wait for sub-menu to load
+    
+    // Step 3: Select Level 2 (Sub-category)
+    console.log('[CAROUSELL_CATEGORY] Step 3: Selecting level 2:', '${level2}');
+    let level2Element = findByText('${level2}', 'div, li, [role="option"]');
+    
+    if (!level2Element) {
+      const allOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'));
+      level2Element = allOptions.find(el => 
+        el.textContent.trim().toLowerCase() === '${level2}'.toLowerCase()
+      );
+    }
+    
+    if (!level2Element) {
+      const availableOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'))
+        .map(el => el.textContent.trim())
+        .filter(text => text.length > 0 && text.length < 100)
+        .slice(0, 20);
+      
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'CATEGORY_SELECTION_FAILED',
+        reason: 'Level 2 category not found',
+        step: 3,
+        target: '${level2}',
+        availableOptions: availableOptions
+      }));
+      return;
+    }
+    
+    console.log('[CAROUSELL_CATEGORY] Found level 2, clicking...');
+    await humanClick(level2Element);
+    await wait(1500); // Wait for leaf menu to load
+    
+    // Step 4: Select Level 3 (Leaf Category)
+    console.log('[CAROUSELL_CATEGORY] Step 4: Selecting level 3:', '${level3}');
+    let level3Element = findByText('${level3}', 'div, li, [role="option"]');
+    
+    if (!level3Element) {
+      const allOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'));
+      level3Element = allOptions.find(el => 
+        el.textContent.trim().toLowerCase() === '${level3}'.toLowerCase()
+      );
+    }
+    
+    if (!level3Element) {
+      const availableOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'))
+        .map(el => el.textContent.trim())
+        .filter(text => text.length > 0 && text.length < 100)
+        .slice(0, 20);
+      
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'CATEGORY_SELECTION_FAILED',
+        reason: 'Level 3 category not found',
+        step: 4,
+        target: '${level3}',
+        availableOptions: availableOptions
+      }));
+      return;
+    }
+    
+    console.log('[CAROUSELL_CATEGORY] Found level 3, clicking...');
+    await humanClick(level3Element);
+    await wait(1000);
+    
+    console.log('[CAROUSELL_CATEGORY] ✅ Category selection complete!');
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'CATEGORY_SELECTED',
+      success: true,
+      level1: '${level1}',
+      level2: '${level2}',
+      level3: '${level3}'
+    }));
+    
+  } catch (error) {
+    console.error('[CAROUSELL_CATEGORY] Error:', error);
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'CATEGORY_SELECTION_FAILED',
+      reason: error.toString()
+    }));
+  }
+})();
+true;
+`;
+
 // Auto-fill listing script - Semi-Auto approach (user taps final submit)
 const getAutoFillScript = (listingData) => `
   (function() {
@@ -838,18 +1018,38 @@ export const CarousellWebView = ({ navigation, route }) => {
         case 'IMAGE_INJECTED':
           console.log('[CAROUSELL_MSG] ✅ Image injected successfully!');
           console.log('[CAROUSELL_MSG] File:', data.fileName, 'Size:', data.fileSize, 'bytes');
+          
+          // After image injection, trigger category selection
+          setTimeout(async () => {
+            console.log('[CAROUSELL_MSG] Starting category selection...');
+            await handleCategorySelection();
+          }, 2000);
+          break;
+          
+        case 'CATEGORY_SELECTION_STARTED':
+          console.log('[CAROUSELL_MSG] 🚀 Category selection started');
+          console.log('[CAROUSELL_MSG] Hierarchy:', data.level1, '>', data.level2, '>', data.level3);
+          break;
+          
+        case 'CATEGORY_SELECTED':
+          console.log('[CAROUSELL_MSG] ✅ Category selected successfully!');
+          console.log('[CAROUSELL_MSG] Final:', data.level1, '>', data.level2, '>', data.level3);
           Alert.alert(
-            '✅ Image Uploaded',
-            'Your product image has been uploaded. Fill in the remaining details and tap "List Now" to publish.',
+            '✅ Listing Ready',
+            'Image uploaded and category selected! Fill in the remaining details and tap "List Now" to publish.',
             [{ text: 'OK' }]
           );
           break;
           
-        case 'IMAGE_INJECTION_FAILED':
-          console.log('[CAROUSELL_MSG] ❌ Image injection failed:', data.reason);
+        case 'CATEGORY_SELECTION_FAILED':
+          console.log('[CAROUSELL_MSG] ❌ Category selection failed:', data.reason);
+          console.log('[CAROUSELL_MSG] Step:', data.step, 'Target:', data.target);
+          if (data.availableOptions) {
+            console.log('[CAROUSELL_MSG] Available options:', data.availableOptions);
+          }
           Alert.alert(
-            'Image Upload Failed',
-            'Please upload your image manually by tapping the photo area.',
+            'Category Selection Failed',
+            `Could not select category automatically. Please select "${data.target || 'category'}" manually.`,
             [{ text: 'OK' }]
           );
           break;
@@ -983,6 +1183,47 @@ export const CarousellWebView = ({ navigation, route }) => {
       Alert.alert(
         'Image Upload Failed',
         'Please upload your image manually.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+  
+  // Handle category hierarchy selection
+  const handleCategorySelection = async () => {
+    try {
+      const categoryHierarchy = listingData?.platformData?.carousell?.categoryHierarchy;
+      
+      if (!categoryHierarchy) {
+        console.log('[CAROUSELL_CATEGORY] No category hierarchy found in listing data');
+        Alert.alert(
+          'Category Required',
+          'Please select a category manually.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      const { level1, level2, level3 } = categoryHierarchy;
+      
+      if (!level1 || !level2 || !level3) {
+        console.log('[CAROUSELL_CATEGORY] Incomplete category hierarchy:', categoryHierarchy);
+        Alert.alert(
+          'Category Required',
+          'Please select a category manually.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      console.log('[CAROUSELL_CATEGORY] Category hierarchy:', level1, '>', level2, '>', level3);
+      console.log('[CAROUSELL_CATEGORY] Injecting category selection script...');
+      
+      injectJavaScript(getCategorySelectionScript(level1, level2, level3));
+    } catch (error) {
+      console.error('[CAROUSELL_CATEGORY] Error:', error);
+      Alert.alert(
+        'Category Selection Failed',
+        'Please select your category manually.',
         [{ text: 'OK' }]
       );
     }
