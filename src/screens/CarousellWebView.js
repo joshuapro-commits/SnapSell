@@ -77,19 +77,23 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
     }));
     
     let attemptCount = 0;
-    const maxAttempts = 8;
+    const maxAttempts = 10;
     
     function findAndClickSellButton() {
       attemptCount++;
+      console.log('[CAROUSELL_CLICK] Attempt', attemptCount, 'of', maxAttempts);
       
       // Get all clickable elements
       const allLinks = Array.from(document.querySelectorAll('a'));
       const allButtons = Array.from(document.querySelectorAll('button'));
       const allClickable = [...allLinks, ...allButtons];
       
+      console.log('[CAROUSELL_CLICK] Found', allLinks.length, 'links and', allButtons.length, 'buttons');
+      
       // Strategy 1: Find by href containing '/sell'
       let sellButton = allLinks.find(a => a.href && a.href.includes('/sell'));
       if (sellButton) {
+        console.log('[CAROUSELL_CLICK] Found by href:', sellButton.href);
         sellButton.click();
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_CLICKED',
@@ -103,9 +107,10 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
       // Strategy 2: Find by text content 'Sell'
       sellButton = allClickable.find(el => {
         const text = el.textContent.trim().toLowerCase();
-        return text === 'sell' || text === 'sell now';
+        return text === 'sell' || text === 'sell now' || text.includes('sell');
       });
       if (sellButton) {
+        console.log('[CAROUSELL_CLICK] Found by text:', sellButton.textContent);
         sellButton.click();
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_CLICKED',
@@ -116,14 +121,16 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
         return true;
       }
       
-      // Strategy 3: Find FAB at bottom-right
+      // Strategy 3: Find FAB at bottom-right (more lenient)
       const fabButton = allClickable.find(el => {
         const rect = el.getBoundingClientRect();
-        return rect.bottom > window.innerHeight - 150 && 
-               rect.right > window.innerWidth - 150 &&
-               rect.width > 40 && rect.height > 40;
+        const isBottomRight = rect.bottom > window.innerHeight - 200 && 
+                             rect.right > window.innerWidth - 200;
+        const hasSize = rect.width > 30 && rect.height > 30;
+        return isBottomRight && hasSize;
       });
       if (fabButton) {
+        console.log('[CAROUSELL_CLICK] Found FAB by position');
         fabButton.click();
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_CLICKED',
@@ -134,18 +141,44 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
         return true;
       }
       
-      // Debug on first attempt
-      if (attemptCount === 1) {
-        const samples = allClickable.slice(0, 10).map(el => ({
-          tag: el.tagName,
-          text: el.textContent.trim().substring(0, 30),
-          href: el.href || null
+      // Strategy 4: Find by aria-label
+      sellButton = allClickable.find(el => {
+        const ariaLabel = el.getAttribute('aria-label');
+        return ariaLabel && ariaLabel.toLowerCase().includes('sell');
+      });
+      if (sellButton) {
+        console.log('[CAROUSELL_CLICK] Found by aria-label');
+        sellButton.click();
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SELL_BUTTON_CLICKED',
+          success: true,
+          strategy: 'aria-label',
+          attempt: attemptCount
         }));
+        return true;
+      }
+      
+      // Debug on first and every 3rd attempt
+      if (attemptCount === 1 || attemptCount % 3 === 0) {
+        const samples = allClickable.slice(0, 15).map(el => {
+          const rect = el.getBoundingClientRect();
+          return {
+            tag: el.tagName,
+            text: el.textContent.trim().substring(0, 30),
+            href: el.href || null,
+            ariaLabel: el.getAttribute('aria-label'),
+            position: { bottom: Math.round(rect.bottom), right: Math.round(rect.right) },
+            size: { w: Math.round(rect.width), h: Math.round(rect.height) }
+          };
+        });
+        
+        console.log('[CAROUSELL_CLICK] Button samples:', samples);
         
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_DEBUG',
           totalButtons: allClickable.length,
-          samples: samples
+          samples: samples,
+          windowSize: { w: window.innerWidth, h: window.innerHeight }
         }));
       }
       
@@ -156,8 +189,9 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
       const found = findAndClickSellButton();
       
       if (!found && attemptCount < maxAttempts) {
-        setTimeout(attemptClick, 1000);
+        setTimeout(attemptClick, 600);
       } else if (!found) {
+        console.log('[CAROUSELL_CLICK] Failed after', maxAttempts, 'attempts');
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'SELL_BUTTON_CLICKED',
           success: false,
@@ -166,11 +200,175 @@ const AUTO_CLICK_SELL_FAB_SCRIPT = `
       }
     }
     
-    setTimeout(attemptClick, 1000);
+    setTimeout(attemptClick, 500);
     
   } catch (error) {
+    console.error('[CAROUSELL_CLICK] Error:', error);
     window.ReactNativeWebView.postMessage(JSON.stringify({
       type: 'SELL_SCRIPT_ERROR',
+      error: error.message
+    }));
+  }
+})();
+true;
+`;
+
+// Auto-upload photo script - clicks "Select photos" button and uploads image
+const getAutoUploadPhotoScript = (imageBase64) => `
+(function() {
+  try {
+    console.log('[CAROUSELL_UPLOAD] Starting photo upload process...');
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'UPLOAD_SCRIPT_STARTED',
+      url: window.location.href
+    }));
+    
+    let attemptCount = 0;
+    const maxAttempts = 10;
+    
+    function findAndTriggerFileInput() {
+      attemptCount++;
+      console.log('[CAROUSELL_UPLOAD] Attempt', attemptCount, 'of', maxAttempts);
+      
+      // Strategy 1: Find hidden file input and trigger it directly
+      const fileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
+      console.log('[CAROUSELL_UPLOAD] Found', fileInputs.length, 'file inputs');
+      
+      if (fileInputs.length > 0) {
+        const fileInput = fileInputs[0];
+        console.log('[CAROUSELL_UPLOAD] Triggering file input directly');
+        console.log('[CAROUSELL_UPLOAD] File input accept:', fileInput.accept);
+        console.log('[CAROUSELL_UPLOAD] File input multiple:', fileInput.multiple);
+        
+        // Create a synthetic click event
+        const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        
+        fileInput.dispatchEvent(clickEvent);
+        
+        // Also try direct click
+        fileInput.click();
+        
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'FILE_INPUT_TRIGGERED',
+          success: true,
+          accept: fileInput.accept,
+          multiple: fileInput.multiple,
+          attempt: attemptCount
+        }));
+        return true;
+      }
+      
+      // Strategy 2: Find and click the "Select photos" button which should trigger file input
+      const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
+      console.log('[CAROUSELL_UPLOAD] Found', allButtons.length, 'buttons');
+      
+      const selectButton = allButtons.find(btn => {
+        const text = btn.textContent.trim().toLowerCase();
+        return text.includes('select') && text.includes('photo');
+      });
+      
+      if (selectButton) {
+        console.log('[CAROUSELL_UPLOAD] Found "Select photos" button, clicking...');
+        
+        // Try multiple click methods
+        selectButton.click();
+        
+        const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        selectButton.dispatchEvent(clickEvent);
+        
+        // Try touch event for mobile
+        const touchEvent = new TouchEvent('touchstart', {
+          bubbles: true,
+          cancelable: true
+        });
+        selectButton.dispatchEvent(touchEvent);
+        
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SELECT_BUTTON_CLICKED',
+          success: true,
+          attempt: attemptCount
+        }));
+        
+        // After clicking button, wait and check for file input again
+        setTimeout(() => {
+          const newFileInputs = document.querySelectorAll('input[type="file"]');
+          console.log('[CAROUSELL_UPLOAD] After button click, file inputs:', newFileInputs.length);
+          if (newFileInputs.length > 0) {
+            newFileInputs[0].click();
+          }
+        }, 500);
+        
+        return true;
+      }
+      
+      // Strategy 3: Find the upload area/dropzone and click it
+      const dropzones = Array.from(document.querySelectorAll('[class*="drop"], [class*="upload"], [class*="photo"]'));
+      console.log('[CAROUSELL_UPLOAD] Found', dropzones.length, 'potential dropzones');
+      
+      if (dropzones.length > 0) {
+        const dropzone = dropzones[0];
+        console.log('[CAROUSELL_UPLOAD] Clicking dropzone');
+        dropzone.click();
+        
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'DROPZONE_CLICKED',
+          success: true,
+          attempt: attemptCount
+        }));
+        return true;
+      }
+      
+      // Debug logging
+      if (attemptCount === 1 || attemptCount % 3 === 0) {
+        const buttonSamples = allButtons.slice(0, 10).map(btn => ({
+          text: btn.textContent.trim().substring(0, 50),
+          ariaLabel: btn.getAttribute('aria-label'),
+          className: btn.className
+        }));
+        
+        console.log('[CAROUSELL_UPLOAD] Button samples:', buttonSamples);
+        
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'UPLOAD_DEBUG',
+          totalButtons: allButtons.length,
+          fileInputs: fileInputs.length,
+          dropzones: dropzones.length,
+          samples: buttonSamples
+        }));
+      }
+      
+      return false;
+    }
+    
+    function attemptTrigger() {
+      const found = findAndTriggerFileInput();
+      
+      if (!found && attemptCount < maxAttempts) {
+        setTimeout(attemptTrigger, 600);
+      } else if (!found) {
+        console.log('[CAROUSELL_UPLOAD] Failed to trigger file input after', maxAttempts, 'attempts');
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'FILE_INPUT_TRIGGERED',
+          success: false,
+          error: 'File input not found after ' + maxAttempts + ' attempts'
+        }));
+      }
+    }
+    
+    setTimeout(attemptTrigger, 500);
+    
+  } catch (error) {
+    console.error('[CAROUSELL_UPLOAD] Error:', error);
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'UPLOAD_SCRIPT_ERROR',
       error: error.message
     }));
   }
@@ -193,7 +391,7 @@ const getAutoFillScript = (listingData) => `
       ).set;
       
       element.focus();
-      await wait(randomDelay(200, 400));
+      await wait(randomDelay(100, 200));
       
       let currentValue = '';
       for (let i = 0; i < text.length; i++) {
@@ -201,12 +399,12 @@ const getAutoFillScript = (listingData) => `
         nativeSetter.call(element, currentValue);
         element.dispatchEvent(new Event('input', { bubbles: true }));
         
-        // Variable typing speed (40-120ms per character)
-        await wait(randomDelay(40, 120));
+        // Variable typing speed (20-50ms per character)
+        await wait(randomDelay(20, 50));
         
         // Occasional pause (simulates thinking)
-        if (i > 0 && i % 15 === 0 && Math.random() < 0.3) {
-          await wait(randomDelay(300, 600));
+        if (i > 0 && i % 20 === 0 && Math.random() < 0.2) {
+          await wait(randomDelay(150, 300));
         }
       }
       
@@ -244,13 +442,13 @@ const getAutoFillScript = (listingData) => `
             const trigger = parent.querySelector('button, [role="button"], select, [role="combobox"]');
             if (trigger) {
               trigger.click();
-              await wait(randomDelay(800, 1200));
+              await wait(randomDelay(400, 600));
               
               const options = Array.from(document.querySelectorAll('[role="option"], option, li'));
               for (const option of options) {
                 if (option.textContent.trim().toLowerCase().includes(optionText.toLowerCase())) {
                   option.click();
-                  await wait(randomDelay(400, 600));
+                  await wait(randomDelay(200, 300));
                   return true;
                 }
               }
@@ -268,7 +466,7 @@ const getAutoFillScript = (listingData) => `
         console.log('[CAROUSELL_AUTO] Starting form fill...');
         
         // Wait for page to fully load
-        await wait(randomDelay(2000, 3000));
+        await wait(randomDelay(800, 1200));
         
         // 1. Fill Title
         const titleInput = findFieldByLabel('title') || 
@@ -276,21 +474,21 @@ const getAutoFillScript = (listingData) => `
         if (titleInput) {
           console.log('[CAROUSELL_AUTO] Filling title...');
           await humanType(titleInput, ${JSON.stringify(listingData.title)});
-          await wait(randomDelay(1000, 1500));
+          await wait(randomDelay(300, 500));
         }
         
         // 2. Select Category
         if (${JSON.stringify(listingData.category)}) {
           console.log('[CAROUSELL_AUTO] Selecting category...');
           await selectDropdown('category', ${JSON.stringify(listingData.category)});
-          await wait(randomDelay(1000, 1500));
+          await wait(randomDelay(300, 500));
         }
         
         // 3. Select Condition
         if (${JSON.stringify(listingData.condition)}) {
           console.log('[CAROUSELL_AUTO] Selecting condition...');
           await selectDropdown('condition', ${JSON.stringify(listingData.condition)});
-          await wait(randomDelay(1000, 1500));
+          await wait(randomDelay(300, 500));
         }
         
         // 4. Fill Price
@@ -299,7 +497,7 @@ const getAutoFillScript = (listingData) => `
         if (priceInput) {
           console.log('[CAROUSELL_AUTO] Filling price...');
           await humanType(priceInput, ${JSON.stringify(String(listingData.price))});
-          await wait(randomDelay(1000, 1500));
+          await wait(randomDelay(300, 500));
         }
         
         // 5. Fill Description
@@ -308,7 +506,7 @@ const getAutoFillScript = (listingData) => `
         if (descInput) {
           console.log('[CAROUSELL_AUTO] Filling description...');
           await humanType(descInput, ${JSON.stringify(listingData.description)});
-          await wait(randomDelay(1000, 1500));
+          await wait(randomDelay(300, 500));
         }
         
         console.log('[CAROUSELL_AUTO] Form filled successfully!');
@@ -360,6 +558,7 @@ export const CarousellWebView = ({ navigation, route }) => {
   const [formFilled, setFormFilled] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [showManualSellButton, setShowManualSellButton] = useState(false);
   
   const domain = region?.domain || 'carousell.sg';
   const secureStoreKey = `carousell_session_${userId}_${region?.id || 'sg'}`;
@@ -394,15 +593,30 @@ export const CarousellWebView = ({ navigation, route }) => {
       console.log('[CAROUSELL_INIT] ⚡ WebView pre-warmed, instant display!');
       setShowLoadingOverlay(false);
     } else {
-      // CRITICAL: Longer timeout to allow OAuth to complete
+      // CRITICAL: Shorter timeout for better UX
       loadingTimeoutRef.current = setTimeout(() => {
         console.log('[CAROUSELL_TIMEOUT] Forcing overlay hide');
         setShowLoadingOverlay(false);
-      }, 15000); // Increased from 10s to 15s for OAuth
+      }, 5000); // Reduced from 15s to 5s
     }
     
     if (mode === 'sell') {
       checkExistingSession();
+      
+      // FALLBACK: Inject auto-click script after 3 seconds regardless of loading state
+      const fallbackTimer = setTimeout(() => {
+        console.log('[CAROUSELL_FALLBACK] Injecting auto-click script (fallback)');
+        injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
+        
+        // Show manual button after 6 seconds total
+        setTimeout(() => {
+          setShowManualSellButton(true);
+        }, 3000);
+      }, 3000);
+      
+      return () => {
+        clearTimeout(fallbackTimer);
+      };
     }
     
     // Show login prompt for Android login mode after page loads
@@ -551,7 +765,6 @@ export const CarousellWebView = ({ navigation, route }) => {
     });
     
     // CRITICAL: Hide loading overlay when ANY page finishes loading
-    // This ensures we don't hide the WebView during OAuth
     if (!loading) {
       setShowLoadingOverlay(false);
     }
@@ -561,6 +774,11 @@ export const CarousellWebView = ({ navigation, route }) => {
     
     // Only proceed when page fully loaded
     if (loading) return;
+    
+    console.log('[CAROUSELL_NAV] Page loaded, checking conditions...');
+    console.log('[CAROUSELL_NAV] Mode:', mode);
+    console.log('[CAROUSELL_NAV] URL includes /sell/:', url.includes('/sell/'));
+    console.log('[CAROUSELL_NAV] Is main page:', isCarousellMainPage(url));
     
     // Detect successful login - ONLY ONCE
     if (mode === 'login' && !hasFinishedLogin.current) {
@@ -607,41 +825,30 @@ export const CarousellWebView = ({ navigation, route }) => {
       
       setTimeout(() => {
         injectJavaScript(SESSION_VERIFICATION_SCRIPT);
-      }, 2000);
+      }, 800);
     }
     
     // Auto-click Sell button when on Carousell home/main page in sell mode
-    if (mode === 'sell' && !url.includes('/sell/') && isCarousellMainPage(url)) {
-      console.log('[CAROUSELL_NAV] 🎯 On main page, auto-clicking Sell button...');
-      console.log('[CAROUSELL_NAV] Injecting test script first...');
+    if (mode === 'sell' && !url.includes('/sell/')) {
+      const isMainPage = isCarousellMainPage(url);
+      console.log('[CAROUSELL_NAV] Checking if main page:', isMainPage, 'URL:', url);
       
-      // First inject a simple test to verify injection works
-      setTimeout(() => {
-        console.log('[CAROUSELL_NAV] Injecting TEST script');
-        injectJavaScript(`
-          (function() {
-            console.log('[CAROUSELL_TEST] Script injection WORKS!');
-            console.log('[CAROUSELL_TEST] URL:', window.location.href);
-            console.log('[CAROUSELL_TEST] Total links:', document.querySelectorAll('a').length);
-            console.log('[CAROUSELL_TEST] Total buttons:', document.querySelectorAll('button').length);
-            
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'TEST_INJECTION',
-              success: true,
-              totalLinks: document.querySelectorAll('a').length,
-              totalButtons: document.querySelectorAll('button').length
-            }));
-          })();
-          true;
-        `);
-      }, 1000);
-      
-      // Then inject the actual auto-click script
-      setTimeout(() => {
-        console.log('[CAROUSELL_NAV] NOW injecting AUTO_CLICK_SELL_FAB_SCRIPT');
-        injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
-        console.log('[CAROUSELL_NAV] Script injected');
-      }, 2000);
+      if (isMainPage) {
+        console.log('[CAROUSELL_NAV] 🎯 On main page, auto-clicking Sell button...');
+        
+        // Inject auto-click script immediately
+        setTimeout(() => {
+          console.log('[CAROUSELL_NAV] Injecting AUTO_CLICK_SELL_FAB_SCRIPT');
+          injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
+        }, 800);
+        
+        // Show manual button after 3 seconds if auto-click fails
+        setTimeout(() => {
+          setShowManualSellButton(true);
+        }, 3000);
+      } else {
+        console.log('[CAROUSELL_NAV] ⚠️ NOT on main page, skipping auto-click');
+      }
     }
     
     // Detect successful listing
@@ -720,6 +927,60 @@ export const CarousellWebView = ({ navigation, route }) => {
           }
           break;
           
+        case 'FILE_INPUT_TRIGGERED':
+          if (data.success) {
+            console.log('[CAROUSELL_MSG] ✅ File input triggered successfully');
+            console.log('[CAROUSELL_MSG] Accept:', data.accept, 'Multiple:', data.multiple, 'Attempt:', data.attempt);
+            // File picker should now be open - user needs to select image
+            // TODO: We may need to programmatically inject the image
+          } else {
+            console.log('[CAROUSELL_MSG] ⚠️ File input not found:', data.error);
+            Alert.alert(
+              'Manual Action Required',
+              'Please tap the photo upload area manually to select your image.',
+              [{ text: 'OK' }]
+            );
+          }
+          break;
+          
+        case 'SELECT_BUTTON_CLICKED':
+          console.log('[CAROUSELL_MSG] ✅ Select button clicked, attempt:', data.attempt);
+          break;
+          
+        case 'DROPZONE_CLICKED':
+          console.log('[CAROUSELL_MSG] ✅ Dropzone clicked, attempt:', data.attempt);
+          break;
+          
+        case 'SELECT_PHOTOS_CLICKED':
+          if (data.success) {
+            console.log('[CAROUSELL_MSG] ✅ Select photos clicked successfully');
+            console.log('[CAROUSELL_MSG] Strategy:', data.strategy, 'Attempt:', data.attempt);
+            // TODO: Handle file picker - this will open native file picker
+            // We'll need to handle the image upload after file selection
+          } else {
+            console.log('[CAROUSELL_MSG] ⚠️ Select photos button not found:', data.error);
+            Alert.alert(
+              'Manual Action Required',
+              'Please tap "Select photos" manually to upload your image.',
+              [{ text: 'OK' }]
+            );
+          }
+          break;
+          
+        case 'UPLOAD_SCRIPT_STARTED':
+          console.log('[CAROUSELL_MSG] 🚀 Photo upload script started');
+          break;
+          
+        case 'UPLOAD_DEBUG':
+          console.log('[CAROUSELL_DEBUG] Upload page - Total buttons:', data.totalButtons);
+          console.log('[CAROUSELL_DEBUG] File inputs found:', data.fileInputs);
+          console.log('[CAROUSELL_DEBUG] Button samples:', JSON.stringify(data.samples, null, 2));
+          break;
+          
+        case 'UPLOAD_SCRIPT_ERROR':
+          console.log('[CAROUSELL_MSG] ❌ Upload script error:', data.error);
+          break;
+          
         case 'FORM_FILLED':
           if (data.success) {
             setFormFilled(true);
@@ -741,12 +1002,13 @@ export const CarousellWebView = ({ navigation, route }) => {
           if (data.success) {
             console.log('[CAROUSELL_MSG] ✅ Sell button clicked successfully');
             console.log('[CAROUSELL_MSG] Strategy:', data.strategy, 'Attempt:', data.attempt);
-            // Wait for sell form to load, then auto-fill
+            // Hide manual button since auto-click worked
+            setShowManualSellButton(false);
+            // Wait for photo upload page to load, then trigger photo upload
             setTimeout(() => {
-              if (listingData) {
-                handleAutoFill();
-              }
-            }, 3000);
+              console.log('[CAROUSELL_MSG] Triggering photo upload...');
+              injectJavaScript(getAutoUploadPhotoScript());
+            }, 2000);
           } else {
             console.log('[CAROUSELL_MSG] ⚠️ Sell button not found:', data.error);
             Alert.alert(
@@ -759,12 +1021,8 @@ export const CarousellWebView = ({ navigation, route }) => {
           
         case 'SELL_BUTTON_DEBUG':
           console.log('[CAROUSELL_DEBUG] Total buttons:', data.totalButtons);
-          console.log('[CAROUSELL_DEBUG] Button samples:', data.samples);
-          Alert.alert(
-            'Debug: Buttons Found',
-            `Found ${data.totalButtons} buttons on page. Check console for details.`,
-            [{ text: 'OK' }]
-          );
+          console.log('[CAROUSELL_DEBUG] Window size:', data.windowSize);
+          console.log('[CAROUSELL_DEBUG] Button samples:', JSON.stringify(data.samples, null, 2));
           break;
           
         case 'TEST_INJECTION':
@@ -824,6 +1082,13 @@ export const CarousellWebView = ({ navigation, route }) => {
     injectJavaScript(getAutoFillScript(autoFillData));
   };
   
+  // Manual sell button click
+  const handleManualSellClick = () => {
+    console.log('[CAROUSELL_MANUAL] User tapped manual Sell button');
+    setShowManualSellButton(false);
+    injectJavaScript(AUTO_CLICK_SELL_FAB_SCRIPT);
+  };
+  
   
   const getHeaderTitle = () => {
     if (mode === 'login') return `Connect Carousell ${region?.name || ''}`;
@@ -879,6 +1144,31 @@ export const CarousellWebView = ({ navigation, route }) => {
         {/* Singleton WebView rendered by CarousellWebViewProvider */}
         {/* This container is just a spacer - WebView is absolutely positioned */}
       </View>
+      
+      {/* Manual Sell Button - Fallback if auto-click fails */}
+      {mode === 'sell' && showManualSellButton && (
+        <View style={styles.manualSellOverlay}>
+          <View style={styles.manualSellCard}>
+            <Ionicons name="hand-left" size={48} color="#D32F2F" />
+            <Text style={styles.manualSellTitle}>Tap the Sell Button</Text>
+            <Text style={styles.manualSellMessage}>
+              Please tap the red Sell button on the page to create your listing
+            </Text>
+            <TouchableOpacity
+              style={styles.manualSellButton}
+              onPress={handleManualSellClick}
+            >
+              <Text style={styles.manualSellButtonText}>Try Auto-Click Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.dismissButton}
+              onPress={() => setShowManualSellButton(false)}
+            >
+              <Text style={styles.dismissButtonText}>I'll do it manually</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       
       {/* Login Prompt for Android - OUTSIDE webviewContainer */}
       {Platform.OS === 'android' && mode === 'login' && showLoginPrompt && (
@@ -1060,6 +1350,68 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontFamily: 'Montserrat_600SemiBold',
+    textAlign: 'center',
+  },
+  manualSellOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
+    zIndex: 9998,
+    elevation: 9998,
+  },
+  manualSellCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  manualSellTitle: {
+    fontSize: 20,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  manualSellMessage: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  manualSellButton: {
+    backgroundColor: '#D32F2F',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    width: '100%',
+    marginBottom: 12,
+  },
+  manualSellButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontFamily: 'Montserrat_600SemiBold',
+    textAlign: 'center',
+  },
+  dismissButton: {
+    paddingVertical: 8,
+  },
+  dismissButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontFamily: 'Montserrat_500Medium',
     textAlign: 'center',
   },
 });

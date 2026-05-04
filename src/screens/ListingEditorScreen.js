@@ -174,6 +174,14 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     }
   );
 
+  // 3-Tier Pricing State
+  const [selectedPriceOption, setSelectedPriceOption] = useState('recommended');
+  const priceOptions = data.priceOptions || {
+    quickSale: { price: Math.round((data.suggestedPrice || 0) * 0.82), label: 'Quick Sale', icon: 'flash', color: '#F59E0B', description: 'Sell faster with competitive pricing', badge: '18% off max' },
+    recommended: { price: data.suggestedPrice || 0, label: 'Recommended', icon: 'checkmark-circle', color: '#10B981', description: 'Based on real-time market research', badge: 'BEST VALUE', isDefault: true },
+    maxValue: { price: Math.round((data.suggestedPrice || 0) * 1.14), label: 'Max Value', icon: 'trending-up', color: '#8B5CF6', description: 'Maximize profit, may take longer', badge: '+14% premium' },
+  };
+
   // Use FB_CATEGORY_LIST for all platforms to ensure consistency
   const categories = FB_CATEGORY_LIST.map(cat => ({
     name: cat.name,
@@ -271,6 +279,17 @@ export const ListingEditorScreen = ({ navigation, route }) => {
     setEditModalVisible(false);
     setEditingField(null);
     setTempValue('');
+  };
+
+  const handlePriceSelect = (option) => {
+    setSelectedPriceOption(option);
+    const selectedPrice = priceOptions[option].price.toString();
+    
+    // Update all platform prices
+    setPrice(selectedPrice);
+    setCarousellPrice(selectedPrice);
+    setFacebookPrice(selectedPrice);
+    setShopeePrice(selectedPrice);
   };
 
 
@@ -691,18 +710,86 @@ export const ListingEditorScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Price */}
-          <View style={styles.priceSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.priceLabel}>Price</Text>
-              <TouchableOpacity style={styles.editIcon} onPress={() => handleEditPress('price')}>
-                <Ionicons name="pencil" size={16} color="#999" />
+          {/* 3-Tier Pricing Section */}
+          <View style={styles.pricingSection}>
+            <Text style={styles.sectionTitle}>Choose Your Price</Text>
+            <Text style={styles.sectionSubtitle}>Select the pricing strategy that fits your goal</Text>
+            
+            <View style={styles.priceOptionsContainer}>
+              {/* Quick Sale Card */}
+              <TouchableOpacity 
+                style={[
+                  styles.priceCard,
+                  selectedPriceOption === 'quickSale' && styles.priceCardSelected
+                ]}
+                onPress={() => handlePriceSelect('quickSale')}
+              >
+                <View style={styles.priceCardHeader}>
+                  <Ionicons name="flash" size={20} color="#F59E0B" />
+                  <Text style={styles.priceCardLabel}>Quick Sale</Text>
+                </View>
+                <Text style={styles.priceCardAmount}>₱{priceOptions.quickSale.price.toLocaleString()}</Text>
+                <Text style={styles.priceCardDescription}>
+                  {priceOptions.quickSale.description}
+                </Text>
+                <View style={styles.priceCardBadge}>
+                  <Text style={styles.priceCardBadgeText}>{priceOptions.quickSale.badge}</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Recommended Card (Default) */}
+              <TouchableOpacity 
+                style={[
+                  styles.priceCard,
+                  styles.priceCardRecommended,
+                  selectedPriceOption === 'recommended' && styles.priceCardSelected
+                ]}
+                onPress={() => handlePriceSelect('recommended')}
+              >
+                <View style={styles.recommendedBadge}>
+                  <Ionicons name="star" size={12} color="#FFF" />
+                  <Text style={styles.recommendedBadgeText}>BEST VALUE</Text>
+                </View>
+                <View style={styles.priceCardHeader}>
+                  <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                  <Text style={styles.priceCardLabel}>Recommended</Text>
+                </View>
+                <Text style={styles.priceCardAmount}>₱{priceOptions.recommended.price.toLocaleString()}</Text>
+                <Text style={styles.priceCardDescription}>
+                  {priceOptions.recommended.description}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Max Value Card */}
+              <TouchableOpacity 
+                style={[
+                  styles.priceCard,
+                  selectedPriceOption === 'maxValue' && styles.priceCardSelected
+                ]}
+                onPress={() => handlePriceSelect('maxValue')}
+              >
+                <View style={styles.priceCardHeader}>
+                  <Ionicons name="trending-up" size={20} color="#8B5CF6" />
+                  <Text style={styles.priceCardLabel}>Max Value</Text>
+                </View>
+                <Text style={styles.priceCardAmount}>₱{priceOptions.maxValue.price.toLocaleString()}</Text>
+                <Text style={styles.priceCardDescription}>
+                  {priceOptions.maxValue.description}
+                </Text>
+                <View style={styles.priceCardBadge}>
+                  <Text style={styles.priceCardBadgeText}>{priceOptions.maxValue.badge}</Text>
+                </View>
               </TouchableOpacity>
             </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.price}>₱{price}</Text>
-              <Text style={styles.originalPrice}>₱690.50</Text>
-            </View>
+
+            {/* Custom Price Option */}
+            <TouchableOpacity 
+              style={styles.customPriceButton}
+              onPress={() => handleEditPress('price')}
+            >
+              <Text style={styles.customPriceText}>Set custom price</Text>
+              <Ionicons name="pencil" size={16} color="#666" />
+            </TouchableOpacity>
           </View>
 
           {/* Platform Selection */}
@@ -2052,5 +2139,101 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat_400Regular',
     color: '#666',
     flex: 1,
+  },
+  // 3-Tier Pricing Styles
+  pricingSection: {
+    marginBottom: 24,
+  },
+  priceOptionsContainer: {
+    gap: 12,
+    marginTop: 16,
+  },
+  priceCard: {
+    backgroundColor: '#F8F9FC',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  priceCardSelected: {
+    borderColor: '#FF6B35',
+    backgroundColor: '#FFF',
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  priceCardRecommended: {
+    backgroundColor: '#FFF',
+    borderColor: '#E0E0E0',
+    position: 'relative',
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  recommendedBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#FFF',
+    letterSpacing: 0.5,
+  },
+  priceCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  priceCardLabel: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#333',
+  },
+  priceCardAmount: {
+    fontSize: 32,
+    fontFamily: 'Montserrat_700Bold',
+    color: '#000',
+    marginBottom: 8,
+  },
+  priceCardDescription: {
+    fontSize: 13,
+    fontFamily: 'Montserrat_400Regular',
+    color: '#666',
+    lineHeight: 18,
+  },
+  priceCardBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  priceCardBadgeText: {
+    fontSize: 11,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#666',
+  },
+  customPriceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  customPriceText: {
+    fontSize: 14,
+    fontFamily: 'Montserrat_500Medium',
+    color: '#666',
   },
 });

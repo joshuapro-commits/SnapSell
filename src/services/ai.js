@@ -93,9 +93,9 @@ export const aiService = {
     
     Find 5-10 actual listings, calculate the MEDIAN price for the detected condition:
     - If condition is 'New': Use retail prices from official stores
-    - If condition is 'Used – like new': Use 80-90% of retail or median of 'like new' listings
-    - If condition is 'Used – good': Use 60-75% of retail or median of 'good condition' listings  
-    - If condition is 'Used – fair': Use 40-55% of retail or median of 'fair condition' listings
+    - If condition is 'Used – like new': Use 70-80% of retail or median of 'like new' listings
+    - If condition is 'Used – good': Use 50-65% of retail or median of 'good condition' listings  
+    - If condition is 'Used – fair': Use 30-45% of retail or median of 'fair condition' listings
     
     Return the MEDIAN price in PHP as a number. Be realistic based on ACTUAL market data, not estimates.",
   "platformData": {
@@ -317,9 +317,9 @@ Condition multipliers: New=100%, Like new=85%, Good=70%, Fair=50%`;
    */
   generate3TierPricing(basePrice) {
     // Calculate 3-tier range with smart rounding
-    const quickSalePrice = Math.round(basePrice * 0.82); // -18% for urgency
-    const recommendedPrice = basePrice;
-    const maxValuePrice = Math.round(basePrice * 1.14); // +14% for premium
+    const quickSalePrice = Math.round(basePrice * 0.72); // -28% for fast sale
+    const recommendedPrice = Math.round(basePrice * 0.88); // -12% below market for quick movement
+    const maxValuePrice = Math.round(basePrice * 1.00); // at market price (was +14%)
 
     // Calculate percentage differences
     const quickSaleDiscount = Math.round((1 - quickSalePrice / maxValuePrice) * 100);

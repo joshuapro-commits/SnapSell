@@ -201,8 +201,11 @@ export const CarousellWebViewProvider = ({ children }) => {
   };
   
   const handleLoadEnd = () => {
+    const urlToCheck = currentUrl || '';
+    console.log('[PREWARM_MANAGER] ✅ Load complete for URL:', urlToCheck.substring(0, 80));
+    
     // Don't mark as pre-warmed if we're on Google OAuth pages
-    if (currentUrl.includes('google.com')) {
+    if (urlToCheck.includes('google.com')) {
       console.log('[PREWARM_MANAGER] ⏸️ Skipping pre-warm complete (on Google OAuth)');
       return;
     }
@@ -212,13 +215,15 @@ export const CarousellWebViewProvider = ({ children }) => {
     setIsPrewarmed(true);
   };
   
-  const handleLoadStart = () => {
+  const handleLoadStart = (navState) => {
+    const urlToCheck = navState?.url || '';
+    console.log('[PREWARM_MANAGER] 🔄 Load start:', urlToCheck.substring(0, Math.min(80, urlToCheck.length)));
+    
     // Don't log or update state if we're on Google OAuth pages
-    if (currentUrl.includes('google.com')) {
+    if (urlToCheck.includes('google.com')) {
       console.log('[PREWARM_MANAGER] ⏸️ Skipping load start (on Google OAuth)');
       return;
     }
-    console.log('[PREWARM_MANAGER] 🔄 Loading:', currentDomain);
   };
   
   const handleNavigationStateChange = (navState) => {
@@ -271,26 +276,27 @@ export const CarousellWebViewProvider = ({ children }) => {
     
     console.log('[PREWARM_MANAGER] 🧭 Target URL:', targetUrl);
     
-    // Always navigate to target URL when showing WebView
+    // Update domain if changed
     if (domain !== currentDomain) {
       console.log('[PREWARM_MANAGER] 🔄 Domain changed, updating state');
       setCurrentDomain(domain);
       setIsPrewarmed(false);
     }
     
-    // Show WebView first, then navigate
+    // Show WebView immediately
     setIsVisible(true);
     console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
     
-    // Navigate after a brief delay to ensure WebView is visible
-    setTimeout(() => {
+    // Navigate immediately if URL is different
+    if (!currentUrl || !currentUrl.includes(domain)) {
       console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
       webViewRef.current?.injectJavaScript(`
-        console.log('[WEBVIEW_INJECT] Navigating to: ${targetUrl}');
         window.location.href='${targetUrl}';
         true;
       `);
-    }, 100);
+    } else {
+      console.log('[PREWARM_MANAGER] ✅ Already on correct domain, no navigation needed');
+    }
   };
   
   const hideWebView = () => {
@@ -408,10 +414,17 @@ export const CarousellWebViewProvider = ({ children }) => {
             // Events
             onLoadStart={handleLoadStart}
             onLoadEnd={handleLoadEnd}
+            onLoad={() => {
+              const urlToCheck = currentUrl || '';
+              console.log('[PREWARM_MANAGER] ✅ onLoad fired for:', urlToCheck.substring(0, Math.min(80, urlToCheck.length)));
+            }}
             onNavigationStateChange={handleNavigationStateChange}
             onMessage={handleMessage}
             onError={(e) => {
               console.error('[PREWARM_MANAGER] ❌ Error:', e.nativeEvent.description);
+            }}
+            onHttpError={(e) => {
+              console.error('[PREWARM_MANAGER] ❌ HTTP Error:', e.nativeEvent.statusCode, e.nativeEvent.url);
             }}
             
             style={styles.webview}
