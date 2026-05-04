@@ -43,7 +43,10 @@ export const aiService = {
 
   async analyzeImage(imageUri) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        tools: [{ googleSearch: {} }], // Enable real-time Google Search
+      });
 
       // Convert image URI to base64
       const imageResponse = await fetch(imageUri);
@@ -83,15 +86,26 @@ export const aiService = {
     "shopee": "E-commerce style with bullet points. Highlight features and benefits. Example: '✨ iPhone 13 Pro - Premium Condition\\n\\n📱 Product Highlights:\\n• 95% Battery Health\\n• Zero Scratches or Dents\\n• Complete with Original Box & Charger\\n• Fully Tested & Working\\n\\n🚚 Fast Shipping Available\\n💯 100% Authentic'",
     "generic": "Balanced 2-3 sentences. Example: 'iPhone 13 Pro in excellent condition. 95% battery health, no scratches. Includes original box.'"
   },
-  "suggestedPrice": PHP price number (research PH market: New=retail, Like new=80-90%, Good=60-75%, Fair=40-55%),
+  "suggestedPrice": "CRITICAL: Use Google Search to find REAL-TIME prices for this exact product in Philippines. Search queries to use:
+    1. '[brand] [product name] price Philippines Facebook Marketplace'
+    2. '[brand] [product name] price Carousell Philippines'
+    3. '[brand] [product name] preloved price Manila'
+    
+    Find 5-10 actual listings, calculate the MEDIAN price for the detected condition:
+    - If condition is 'New': Use retail prices from official stores
+    - If condition is 'Used – like new': Use 80-90% of retail or median of 'like new' listings
+    - If condition is 'Used – good': Use 60-75% of retail or median of 'good condition' listings  
+    - If condition is 'Used – fair': Use 40-55% of retail or median of 'fair condition' listings
+    
+    Return the MEDIAN price in PHP as a number. Be realistic based on ACTUAL market data, not estimates.",
   "platformData": {
     "carousell": {
-      "hashtags": ["Research and return 5-7 MOST RELEVANT and POPULAR search terms for this product on Carousell Philippines. Think like a buyer searching. Include: 1) Brand name (if known), 2) Product type/category, 3) Condition keywords (authentic, brandnew, preloved), 4) Popular model/variant names, 5) Trending search terms. NO # symbol. Examples: For iPhone → ['iPhone13Pro', 'ApplePhone', 'Authentic', 'OriginalBox', 'iPhonePH']. For Nike shoes → ['NikeShoes', 'Sneakers', 'AirMax', 'Authentic', 'BrandNew']. For watch → ['Watch', 'Timepiece', 'Authentic', 'LuxuryWatch', 'WatchPH']"],
+      "hashtags": ["Research and return AT LEAST 15 MOST RELEVANT and POPULAR search terms for this product on Carousell Philippines. Think like a buyer searching. Include: 1) Brand name, 2) Product type/category, 3) Condition keywords (authentic, brandnew, preloved), 4) Model/variant names, 5) Trending search terms, 6) Color/size/material variants, 7) Use-case keywords, 8) Location tags (PH, Philippines, Manila), 9) Price-related tags (sale, deal), 10) Complementary product terms. NO # symbol. MINIMUM 15 tags required. Examples: For iPhone → ['iPhone13Pro', 'ApplePhone', 'Authentic', 'OriginalBox', 'iPhonePH', 'Smartphone', 'Unlocked', 'iOS', 'Apple', 'Preloved', 'Gadget', 'MobilePhone', 'iPhoneForSale', 'TechPH', 'BrandNew']"],
       "meetupLocations": ["2-3 Metro Manila areas: Makati, BGC, QC, Ortigas, Manila"]
     },
     "facebook": {
       "shippingAvailable": true|false,
-      "tags": ["Research and return 5-7 MOST RELEVANT search keywords for Facebook Marketplace. Think like a buyer searching. Include: 1) Brand name, 2) Product type, 3) Model/variant, 4) Key features, 5) Condition. NO # symbol. Examples: For iPhone → ['iPhone', 'Apple', 'Smartphone', '13Pro', 'Unlocked']. For Nike shoes → ['Nike', 'Sneakers', 'AirMax', 'Running', 'Authentic']. For watch → ['Watch', 'Timepiece', 'Luxury', 'Authentic', 'Designer']"]
+      "tags": ["Research and return AT LEAST 15 MOST RELEVANT search keywords for Facebook Marketplace. Think like a buyer searching. Include: 1) Brand name, 2) Product type, 3) Model/variant, 4) Key features, 5) Condition, 6) Color/size/material, 7) Use-case keywords, 8) Buyer intent terms (for sale, buy, cheap), 9) Related accessories/products, 10) Category-specific terms. NO # symbol. MINIMUM 15 tags required. Examples: For iPhone → ['iPhone', 'Apple', 'Smartphone', '13Pro', 'Unlocked', 'iOS', 'Mobile', 'Phone', 'Gadget', 'Preloved', 'Authentic', 'OriginalBox', 'ForSale', 'iPhoneForSale', 'TechDeals']"]
     },
     "shopee": {
       "category": "Electronics|Fashion|Home & Living|Health & Beauty|Sports & Outdoors|Toys & Games|Automotive|Books & Media|Other",
@@ -215,6 +229,9 @@ export const aiService = {
         tags: productData.platformData.facebook.tags || [productData.brand, productData.category, productData.condition].filter(Boolean),
       };
 
+      // Generate 3-tier pricing options
+      const priceOptions = this.generate3TierPricing(productData.suggestedPrice);
+
       // Enhance image quality
       const enhancementResult = await this.enhanceImage(imageUri);
 
@@ -227,6 +244,7 @@ export const aiService = {
           condition: productData.condition,
           descriptions: productData.descriptions,
           suggestedPrice: productData.suggestedPrice,
+          priceOptions: priceOptions,
           platformData: productData.platformData,
           attributes: productData.attributes,
           imageUri: enhancementResult.enhancedImage,
@@ -290,5 +308,52 @@ Condition multipliers: New=100%, Like new=85%, Good=70%, Fair=50%`;
         },
       };
     }
+  },
+
+  /**
+   * Generate 3-tier pricing options
+   * @param {number} basePrice - AI-suggested recommended price
+   * @returns {Object} Price options with quick sale, recommended, and max value
+   */
+  generate3TierPricing(basePrice) {
+    // Calculate 3-tier range with smart rounding
+    const quickSalePrice = Math.round(basePrice * 0.82); // -18% for urgency
+    const recommendedPrice = basePrice;
+    const maxValuePrice = Math.round(basePrice * 1.14); // +14% for premium
+
+    // Calculate percentage differences
+    const quickSaleDiscount = Math.round((1 - quickSalePrice / maxValuePrice) * 100);
+    const maxValuePremium = Math.round((maxValuePrice / quickSalePrice - 1) * 100);
+
+    return {
+      quickSale: {
+        price: quickSalePrice,
+        label: 'Quick Sale',
+        icon: 'flash',
+        color: '#F59E0B',
+        description: 'Sell faster with competitive pricing',
+        badge: `${quickSaleDiscount}% off max`,
+        strategy: 'urgency',
+      },
+      recommended: {
+        price: recommendedPrice,
+        label: 'Recommended',
+        icon: 'checkmark-circle',
+        color: '#10B981',
+        description: 'Based on real-time market research',
+        badge: 'BEST VALUE',
+        isDefault: true,
+        strategy: 'balanced',
+      },
+      maxValue: {
+        price: maxValuePrice,
+        label: 'Max Value',
+        icon: 'trending-up',
+        color: '#8B5CF6',
+        description: 'Maximize profit, may take longer',
+        badge: `+${maxValuePremium}% premium`,
+        strategy: 'premium',
+      },
+    };
   },
 };
