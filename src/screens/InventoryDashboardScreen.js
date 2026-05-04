@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,16 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ListingsContext } from '../contexts/ListingsContext';
-import { AuthContext } from '../contexts/AuthContext';
+import { useListings } from '../contexts/ListingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { COLORS } from '../constants/theme';
 import { calculateRelistStatus, getListingsNeedingRelist } from '../utils/relistHelper';
 
 const InventoryDashboardScreen = ({ navigation }) => {
-  const { listings } = useContext(ListingsContext);
-  const { user } = useContext(AuthContext);
+  const { myListings } = useListings();
+  const { user } = useAuth();
 
-  const userListings = useMemo(
-    () => listings.filter((l) => l.userId === user?.id),
-    [listings, user]
-  );
+  const userListings = myListings;
 
   const stats = useMemo(() => {
     const active = userListings.filter((l) => l.status === 'active');
