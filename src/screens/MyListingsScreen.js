@@ -15,8 +15,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { RelistBanner } from '../components/RelistBanner';
+import { RelistModal } from '../components/RelistModal';
 import { useListings } from '../contexts/ListingsContext';
 import { useAuth } from '../contexts/AuthContext';
+import { getRelistCount, getListingsNeedingRelist } from '../utils/relistHelper';
+import { relistService } from '../services/relistService';
 import * as ImagePicker from 'expo-image-picker';
 
 export const MyListingsScreen = ({ navigation }) => {
@@ -27,8 +31,13 @@ export const MyListingsScreen = ({ navigation }) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
+  const [showRelistModal, setShowRelistModal] = useState(false);
+  const [relistingListing, setRelistingListing] = useState(null);
   const slideAnim = React.useRef(new Animated.Value(300)).current;
   const menuSlideAnim = React.useRef(new Animated.Value(300)).current;
+
+  // Calculate relist count
+  const relistCount = getRelistCount(myListings.filter(l => l.status === 'active' || !l.status));
 
   const activeCount = myListings.filter(l => l.status === 'active' || !l.status).length;
   const soldCount = myListings.filter(l => l.status === 'sold').length;
@@ -163,6 +172,58 @@ export const MyListingsScreen = ({ navigation }) => {
       );
     }, 300);
   };
+  
+  // Relist handlers
+  const handleRelistSingle = (listing) => {
+    setRelistingListing(listing);
+    setShowRelistModal(true);
+  };
+  
+  const handleRelistAll = async () => {
+    const listingsToRelist = getListingsNeedingRelist(myListings.filter(l => l.status === 'active' || !l.status));
+    
+    if (listingsToRelist.length === 0) {
+      Alert.alert('No Listings', 'No listings need relisting at this time.');
+      return;
+    }
+    
+    Alert.alert(
+      'Relist All Listings',
+      `Relist ${listingsToRelist.length} listing${listingsToRelist.length > 1 ? 's' : ''}? This will push them back to the top of search results.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Relist All',
+          onPress: async () => {
+            // For now, just relist the first one as a demo
+            // In production, you'd batch relist all
+            if (listingsToRelist.length > 0) {
+              handleRelistSingle(listingsToRelist[0]);
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+  const handleConfirmRelist = async () => {
+    setShowRelistModal(false);
+    
+    if (!relistingListing) return;
+    
+    const platforms = relistingListing.relistStatus?.platforms || [];
+    
+    // Relist to first platform (for demo)
+    if (platforms.includes('facebook')) {
+      await relistService.relistToFacebook(relistingListing, navigation, user.id);
+    } else if (platforms.includes('carousell')) {
+      await relistService.relistToCarousell(relistingListing, navigation, user.id, { id: 'ph', name: 'Philippines', domain: 'carousell.ph' });
+    } else if (platforms.includes('shopee')) {
+      await relistService.relistToShopee(relistingListing, navigation, user.id);
+    }
+    
+    setRelistingListing(null);
+  };
 
   if (loading) {
     return <LoadingSpinner />;
@@ -272,6 +333,14 @@ export const MyListingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         ))}
       </View>
+      
+      {/* Relist Banner - Only show on Active tab */}
+      {selectedTab === 'Active' && relistCount > 0 && (
+        <RelistBanner 
+          count={relistCount}
+          onRelistAll={handleRelistAll}
+        />
+      )}
 
       <FlatList
         data={filteredListings}
@@ -453,6 +522,17 @@ export const MyListingsScreen = ({ navigation }) => {
           </Animated.View>
         </TouchableOpacity>
       </Modal>
+      
+      {/* Relist Modal */}
+      <RelistModal
+        visible={showRelistModal}
+        listing={relistingListing}
+        onConfirm={handleConfirmRelist}
+        onCancel={() => {
+          setShowRelistModal(false);
+          setRelistingListing(null);
+        }}
+      />
     </SafeAreaView>
   );
 };
