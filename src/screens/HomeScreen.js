@@ -4,6 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useListings } from '../contexts/ListingsContext';
+import { RelistBanner } from '../components/RelistBanner';
+import { RelistModal } from '../components/RelistModal';
+import { getRelistCount, getListingsNeedingRelist } from '../utils/relistHelper';
+import { relistService } from '../services/relistService';
 import * as ImagePicker from 'expo-image-picker';
 
 export const HomeScreen = ({ navigation }) => {
@@ -11,7 +15,15 @@ export const HomeScreen = ({ navigation }) => {
   const { myListings, allListings } = useListings();
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [imagePickerVisible, setImagePickerVisible] = React.useState(false);
+  const [showRelistModal, setShowRelistModal] = React.useState(false);
+  const [relistingListing, setRelistingListing] = React.useState(null);
   const slideAnim = React.useRef(new Animated.Value(300)).current;
+  
+  // Calculate relist count for active listings
+  const relistCount = React.useMemo(() => 
+    getRelistCount(myListings.filter(l => l.status === 'active' || !l.status)),
+    [myListings]
+  );
 
   // Real-time statistics - based on MY listings only
   const totalListings = React.useMemo(() => myListings.length, [myListings]);
@@ -119,6 +131,28 @@ export const HomeScreen = ({ navigation }) => {
       handleCloseImagePicker();
     }
   };
+  
+  // Relist handlers
+  const handleRelistAll = async () => {
+    const listingsToRelist = getListingsNeedingRelist(myListings.filter(l => l.status === 'active' || !l.status));
+    
+    if (listingsToRelist.length === 0) {
+      Alert.alert('No Listings', 'No listings need relisting at this time.');
+      return;
+    }
+    
+    Alert.alert(
+      'Relist All Listings',
+      `Relist ${listingsToRelist.length} listing${listingsToRelist.length > 1 ? 's' : ''}? This will push them back to the top of search results.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'View Listings',
+          onPress: () => navigation.navigate('MyListings'),
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -136,6 +170,14 @@ export const HomeScreen = ({ navigation }) => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Relist Banner - Show if there are listings needing relist */}
+        {relistCount > 0 && (
+          <RelistBanner 
+            count={relistCount}
+            onRelistAll={handleRelistAll}
+          />
+        )}
+        
         <View style={styles.content}>
           <Text style={styles.title}>
             Start <Text style={styles.titleBold}>Selling</Text> in{' \n'}
