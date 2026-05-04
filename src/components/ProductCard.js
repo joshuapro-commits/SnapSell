@@ -1,14 +1,19 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
 import { formatPrice, formatDate } from '../utils/helpers';
 import { createFadeIn, createScale, pressAnimation } from '../utils/animations';
 import { VerificationBadge } from './VerificationBadge';
+import { calculateRelistStatus, formatDaysOld } from '../utils/relistHelper';
 
-export const ProductCard = ({ listing, onPress }) => {
+export const ProductCard = ({ listing, onPress, onRelist, showRelistButton = false }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const pressScale = useRef(new Animated.Value(1)).current;
+  
+  // Calculate relist status
+  const relistStatus = calculateRelistStatus(listing);
 
   useEffect(() => {
     Animated.parallel([
@@ -30,6 +35,11 @@ export const ProductCard = ({ listing, onPress }) => {
     pressAnimation(pressScale);
     onPress?.();
   };
+  
+  const handleRelistPress = (e) => {
+    e.stopPropagation(); // Prevent card press
+    onRelist?.(listing);
+  };
 
   return (
     <Animated.View style={[{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
@@ -44,6 +54,21 @@ export const ProductCard = ({ listing, onPress }) => {
         style={styles.image}
         resizeMode="cover"
       />
+      
+      {/* Relist Button Badge - Shows if listing needs relisting */}
+      {showRelistButton && relistStatus.needsRelist && (
+        <TouchableOpacity 
+          style={styles.relistBadge}
+          onPress={handleRelistPress}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="refresh" size={14} color="#FFF" />
+          <Text style={styles.relistText}>
+            Relist ({relistStatus.daysOld}d)
+          </Text>
+        </TouchableOpacity>
+      )}
+      
       <View style={styles.content}>
         <Text style={styles.name} numberOfLines={1}>
           {listing.name}
@@ -140,5 +165,27 @@ const styles = StyleSheet.create({
     color: COLORS.surface,
     fontWeight: '600',
     textTransform: 'capitalize',
+  },
+  relistBadge: {
+    position: 'absolute',
+    top: SPACING.sm,
+    left: SPACING.sm,
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  relistText: {
+    fontSize: 12,
+    color: '#FFF',
+    fontWeight: '600',
   },
 });
