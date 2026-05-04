@@ -43,6 +43,17 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
     if (mode === 'login') return 'https://www.facebook.com/login';
     if (mode === 'view') return route.params.viewUrl || 'https://www.facebook.com/marketplace/you/selling';
     if (mode === 'sell') return 'https://www.facebook.com/marketplace/create/item';
+    if (mode === 'relist') {
+      // Relist mode: Navigate to existing listing edit page
+      const listingUrl = route.params.listingUrl;
+      if (listingUrl) {
+        // Extract listing ID from URL and navigate to edit page
+        // Facebook edit URL format: /marketplace/item/{id}/edit
+        return listingUrl.replace(/\/item\//, '/item/').replace(/\/$/, '') + '/edit';
+      }
+      // Fallback to marketplace home if no URL provided
+      return 'https://www.facebook.com/marketplace/you/selling';
+    }
     return 'https://www.facebook.com';
   };
 
@@ -1745,6 +1756,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
   const getHeaderTitle = () => {
     if (mode === 'login') return 'Connect Facebook';
     if (mode === 'sell') return 'Publish to Facebook';
+    if (mode === 'relist') return 'Relist on Facebook';
     if (mode === 'view') return 'Your Listing';
     return 'Facebook';
   };

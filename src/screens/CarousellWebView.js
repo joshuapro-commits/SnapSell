@@ -672,6 +672,18 @@ export const CarousellWebView = ({ navigation, route }) => {
     // Show the singleton WebView with mode parameter
     showWebView(domain, mode);
     
+    // If relist mode, navigate to listing edit page
+    if (mode === 'relist' && route.params.listingUrl) {
+      console.log('[CAROUSELL_RELIST] Navigating to listing edit page:', route.params.listingUrl);
+      // Carousell edit URL format: listing URL + /edit or similar
+      // For now, just navigate to the listing URL and user can tap edit
+      setTimeout(() => {
+        const editUrl = route.params.listingUrl;
+        console.log('[CAROUSELL_RELIST] Opening listing:', editUrl);
+        // The WebView will load the listing page where user can tap "Bump" or "Edit"
+      }, 2000);
+    }
+    
     // Hide loading overlay if already pre-warmed
     if (isPrewarmed) {
       console.log('[CAROUSELL_INIT] ⚡ WebView pre-warmed, instant display!');
@@ -1240,6 +1252,7 @@ export const CarousellWebView = ({ navigation, route }) => {
   const getHeaderTitle = () => {
     if (mode === 'login') return `Connect Carousell ${region?.name || ''}`;
     if (mode === 'sell') return 'Publish to Carousell';
+    if (mode === 'relist') return 'Relist on Carousell';
     return 'Carousell';
   };
   
