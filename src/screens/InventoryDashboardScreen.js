@@ -12,7 +12,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { COLORS } from '../constants/theme';
 import { calculateRelistStatus, getListingsNeedingRelist } from '../utils/relistHelper';
 
-export default function InventoryDashboardScreen({ navigation }) {
+const InventoryDashboardScreen = ({ navigation }) => {
   const { listings } = useContext(ListingsContext);
   const { user } = useContext(AuthContext);
 
@@ -189,7 +189,9 @@ export default function InventoryDashboardScreen({ navigation }) {
       </View>
     </ScrollView>
   );
-}
+};
+
+export default InventoryDashboardScreen;
 
 const styles = StyleSheet.create({
   container: {
