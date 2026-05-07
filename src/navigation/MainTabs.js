@@ -5,8 +5,6 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { CameraScreen } from '../screens/CameraScreen';
 import { MyListingsScreen } from '../screens/MyListingsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import InventoryDashboardScreen from '../screens/InventoryDashboardScreen';
-
 const Tab = createBottomTabNavigator();
 
 export const MainTabs = () => {
@@ -47,15 +45,6 @@ export const MainTabs = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="list" size={20} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Inventory"
-        component={InventoryDashboardScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics" size={20} color={color} />
           ),
         }}
       />

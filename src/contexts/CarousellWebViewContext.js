@@ -265,21 +265,24 @@ export const CarousellWebViewProvider = ({ children }) => {
     }
   };
   
-  const showWebView = (domain = 'carousell.sg', mode = 'login') => {
-    console.log('[PREWARM_MANAGER] 👁️ Showing WebView for', domain, 'mode:', mode);
+  const showWebView = (domain, mode = 'login') => {
+    // Use provided domain, fallback to currentDomain, then default
+    const safeDomain = domain || currentDomain || 'carousell.ph';
+    
+    console.log('[PREWARM_MANAGER] 👁️ Showing WebView for', safeDomain, 'mode:', mode);
     console.log('[PREWARM_MANAGER] 📱 Platform:', Platform.OS);
     console.log('[PREWARM_MANAGER] 📏 StatusBar height:', StatusBar.currentHeight);
     
     const targetUrl = mode === 'login' 
-      ? `https://www.${domain}/login/` 
-      : `https://www.${domain}`;
+      ? `https://www.${safeDomain}/login/` 
+      : `https://www.${safeDomain}`;
     
     console.log('[PREWARM_MANAGER] 🧭 Target URL:', targetUrl);
     
     // Update domain if changed
-    if (domain !== currentDomain) {
+    if (safeDomain !== currentDomain) {
       console.log('[PREWARM_MANAGER] 🔄 Domain changed, updating state');
-      setCurrentDomain(domain);
+      setCurrentDomain(safeDomain);
       setIsPrewarmed(false);
     }
     
@@ -288,7 +291,7 @@ export const CarousellWebViewProvider = ({ children }) => {
     console.log('[PREWARM_MANAGER] ✅ WebView visibility set to TRUE');
     
     // Navigate immediately if URL is different
-    if (!currentUrl || !currentUrl.includes(domain)) {
+    if (!currentUrl || !currentUrl.includes(safeDomain)) {
       console.log('[PREWARM_MANAGER] 🚀 Navigating to:', targetUrl);
       webViewRef.current?.injectJavaScript(`
         window.location.href='${targetUrl}';
@@ -357,24 +360,18 @@ export const CarousellWebViewProvider = ({ children }) => {
       {children}
       
       {/* Singleton Pre-warmed WebView - Always mounted, visibility controlled */}
-      {/* CRITICAL: Absolutely positioned overlay that renders OVER the screen */}
+      {/* CRITICAL: Absolutely positioned overlay that renders BELOW the screen's header */}
       <View 
         style={[
           styles.prewarmContainer,
           isVisible ? styles.visible : styles.hidden
         ]}
       >
-        {/* Add top margin to push WebView below the screen's header */}
-        {/* The screen renders: SafeAreaView + StatusBar + Header (60px) */}
-        <View style={{
-          marginTop: 60, // Just the header height - screen handles status bar
-          flex: 1,
-          backgroundColor: '#FFF',
-        }}>
-          <WebView
-            ref={webViewRef}
-            source={{ uri: `https://www.${currentDomain}` }}
-            userAgent={USER_AGENT}
+        {/* WebView fills remaining space below header */}
+        <WebView
+          ref={webViewRef}
+          source={{ uri: `https://www.${currentDomain}` }}
+          userAgent={USER_AGENT}
             
             // JavaScript & Storage
             javaScriptEnabled={true}
@@ -427,9 +424,8 @@ export const CarousellWebViewProvider = ({ children }) => {
               console.error('[PREWARM_MANAGER] ❌ HTTP Error:', e.nativeEvent.statusCode, e.nativeEvent.url);
             }}
             
-            style={styles.webview}
-          />
-        </View>
+          style={styles.webview}
+        />
       </View>
     </CarousellWebViewContext.Provider>
   );
@@ -446,14 +442,15 @@ export const useCarousellWebView = () => {
 const styles = StyleSheet.create({
   prewarmContainer: {
     position: 'absolute',
-    top: 0,
+    top: 0, // Start from top, let content flow naturally
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 9999,
-    elevation: 9999, // CRITICAL: Android requires elevation for z-index to work
+    zIndex: 1, // Below header (header has zIndex: 10)
+    elevation: 1, // Below header on Android
     backgroundColor: '#FFF',
     overflow: 'hidden',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 60 : 60, // Push content below header
   },
   hidden: {
     display: 'none', // CRITICAL: Use display:none instead of opacity/size for Android

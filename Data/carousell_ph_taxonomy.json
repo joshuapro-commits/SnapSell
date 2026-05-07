@@ -1,0 +1,2394 @@
+{
+  "categories": [
+    {
+      "name": "Audio",
+      "subcategories": [
+        {
+          "name": "Earphones",
+          "subcategories": []
+        },
+        {
+          "name": "Headphones & Headsets",
+          "subcategories": []
+        },
+        {
+          "name": "Microphones",
+          "subcategories": []
+        },
+        {
+          "name": "Other Audio Equipment",
+          "subcategories": []
+        },
+        {
+          "name": "Portable Audio Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Portable Music Players",
+          "subcategories": []
+        },
+        {
+          "name": "Soundbars, Speakers & Amplifiers",
+          "subcategories": []
+        },
+        {
+          "name": "Voice Recorders",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Babies & Kids",
+      "subcategories": [
+        {
+          "name": "Babies & Kids Fashion",
+          "subcategories": []
+        },
+        {
+          "name": "Baby Monitors",
+          "subcategories": []
+        },
+        {
+          "name": "Baby Nursery & Kids Furniture",
+          "subcategories": [
+            {
+              "name": "Bed Guards",
+              "subcategories": []
+            },
+            {
+              "name": "Changing Tables & Stations",
+              "subcategories": []
+            },
+            {
+              "name": "Children's Beds",
+              "subcategories": []
+            },
+            {
+              "name": "Cots & Cribs",
+              "subcategories": []
+            },
+            {
+              "name": "Kids Tables & Chairs",
+              "subcategories": []
+            },
+            {
+              "name": "Kids Wardrobes & Storage",
+              "subcategories": []
+            },
+            {
+              "name": "Nursery Lighting & Decor",
+              "subcategories": []
+            },
+            {
+              "name": "Other Kids Furniture",
+              "subcategories": []
+            },
+            {
+              "name": "Safety Gates, Locks & Protectors",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Bathing & Changing",
+          "subcategories": [
+            {
+              "name": "Baby Toiletries & Grooming",
+              "subcategories": []
+            },
+            {
+              "name": "Bathtub & Bath Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Changing Mats & Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Diapers & Baby Wipes",
+              "subcategories": []
+            },
+            {
+              "name": "Other Baby Bathing & Changing Needs",
+              "subcategories": []
+            },
+            {
+              "name": "Toilet Training",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Going Out",
+          "subcategories": [
+            {
+              "name": "Car Seats",
+              "subcategories": []
+            },
+            {
+              "name": "Carriers & Slings",
+              "subcategories": []
+            },
+            {
+              "name": "Diaper Bags & Wetbags",
+              "subcategories": []
+            },
+            {
+              "name": "Other Babies Going Out Needs",
+              "subcategories": []
+            },
+            {
+              "name": "Strollers",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Infant Playtime",
+          "subcategories": []
+        },
+        {
+          "name": "Maternity Care",
+          "subcategories": []
+        },
+        {
+          "name": "Nursing & Feeding",
+          "subcategories": [
+            {
+              "name": "Baby High Chairs",
+              "subcategories": []
+            },
+            {
+              "name": "Breastfeeding & Bottle Feeding",
+              "subcategories": []
+            },
+            {
+              "name": "Soothers & Pacifiers",
+              "subcategories": []
+            },
+            {
+              "name": "Weaning & Toddler Feeding",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Beauty & Personal Care",
+      "subcategories": [
+        {
+          "name": "Bath & Body",
+          "subcategories": [
+            {
+              "name": "Bath",
+              "subcategories": []
+            },
+            {
+              "name": "Body Care",
+              "subcategories": []
+            },
+            {
+              "name": "Hair Removal",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Ear Care",
+          "subcategories": []
+        },
+        {
+          "name": "Face",
+          "subcategories": [
+            {
+              "name": "Face Care",
+              "subcategories": []
+            },
+            {
+              "name": "Makeup",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Foot Care",
+          "subcategories": []
+        },
+        {
+          "name": "Fragrance & Deodorants",
+          "subcategories": []
+        },
+        {
+          "name": "Hair",
+          "subcategories": []
+        },
+        {
+          "name": "Hands & Nails",
+          "subcategories": []
+        },
+        {
+          "name": "Men's Grooming",
+          "subcategories": []
+        },
+        {
+          "name": "Oral Care",
+          "subcategories": []
+        },
+        {
+          "name": "Sanitary Hygiene",
+          "subcategories": []
+        },
+        {
+          "name": "Sanitizers & Disinfectants",
+          "subcategories": []
+        },
+        {
+          "name": "Vision Care",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Business Services",
+      "subcategories": [
+        {
+          "name": "Admin, Finance, Legal",
+          "subcategories": []
+        },
+        {
+          "name": "Design & Marketing",
+          "subcategories": []
+        },
+        {
+          "name": "IT & Programming",
+          "subcategories": []
+        },
+        {
+          "name": "Industrial Equipment Rental",
+          "subcategories": []
+        },
+        {
+          "name": "Others",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Car Parts & Accessories",
+      "subcategories": [
+        {
+          "name": "Audio, Video, Alarm and other Electronic Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Body Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Emblem, Sticker and Decals",
+          "subcategories": []
+        },
+        {
+          "name": "Engine and Aircon Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Lightings, Horns, and other Electrical Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Mags and Tires",
+          "subcategories": []
+        },
+        {
+          "name": "Maintenance Fluids and Filters",
+          "subcategories": []
+        },
+        {
+          "name": "Mufflers and Exhaust Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Other Automotive Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Steering, Brakes, Control Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Suspension Parts and Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Upholstery, Seatcovers and Other Interior Parts and Accessories",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Car Services",
+      "subcategories": []
+    },
+    {
+      "name": "Cars for Sale",
+      "subcategories": [
+        {
+          "name": "New Cars",
+          "subcategories": []
+        },
+        {
+          "name": "Used Cars",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Commercial & Industrial",
+      "subcategories": [
+        {
+          "name": "Construction & Building Materials",
+          "subcategories": []
+        },
+        {
+          "name": "Construction Tools & Equipment",
+          "subcategories": []
+        },
+        {
+          "name": "Industrial Equipment",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Community",
+      "subcategories": []
+    },
+    {
+      "name": "Computers & Tech",
+      "subcategories": [
+        {
+          "name": "Desktops",
+          "subcategories": []
+        },
+        {
+          "name": "Laptops & Notebooks",
+          "subcategories": []
+        },
+        {
+          "name": "Office & Business Technology",
+          "subcategories": []
+        },
+        {
+          "name": "Parts & Accessories",
+          "subcategories": [
+            {
+              "name": "Cables & Adaptors",
+              "subcategories": []
+            },
+            {
+              "name": "Chargers",
+              "subcategories": []
+            },
+            {
+              "name": "Computer Keyboard",
+              "subcategories": []
+            },
+            {
+              "name": "Computer Parts",
+              "subcategories": []
+            },
+            {
+              "name": "Hard Disks & Thumbdrives",
+              "subcategories": []
+            },
+            {
+              "name": "Laptop Bags & Sleeves",
+              "subcategories": []
+            },
+            {
+              "name": "Monitor Screens",
+              "subcategories": []
+            },
+            {
+              "name": "Mouse & Mousepads",
+              "subcategories": []
+            },
+            {
+              "name": "Networking",
+              "subcategories": []
+            },
+            {
+              "name": "Other Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Software",
+              "subcategories": []
+            },
+            {
+              "name": "Webcams",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Printers, Scanners & Copiers",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Everything Else",
+      "subcategories": [
+        {
+          "name": "Looking For",
+          "subcategories": []
+        },
+        {
+          "name": "Others",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Food & Drinks",
+      "subcategories": [
+        {
+          "name": "Beverages",
+          "subcategories": []
+        },
+        {
+          "name": "Chilled & Frozen Food",
+          "subcategories": []
+        },
+        {
+          "name": "Fresh Produce",
+          "subcategories": []
+        },
+        {
+          "name": "Gift Baskets & Hampers",
+          "subcategories": []
+        },
+        {
+          "name": "Homemade Bakes",
+          "subcategories": []
+        },
+        {
+          "name": "Local Eats",
+          "subcategories": []
+        },
+        {
+          "name": "Other Food & Drinks",
+          "subcategories": []
+        },
+        {
+          "name": "Packaged & Instant Food",
+          "subcategories": []
+        },
+        {
+          "name": "Rice & Noodles",
+          "subcategories": []
+        },
+        {
+          "name": "Spice & Seasoning",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Furniture & Home Living",
+      "subcategories": [
+        {
+          "name": "Bathroom & Kitchen Fixtures",
+          "subcategories": []
+        },
+        {
+          "name": "Bedding & Towels",
+          "subcategories": []
+        },
+        {
+          "name": "Cleaning & Homecare Supplies",
+          "subcategories": [
+            {
+              "name": "Cleaning Tools & Supplies",
+              "subcategories": []
+            },
+            {
+              "name": "Detergents",
+              "subcategories": []
+            },
+            {
+              "name": "Ironing Boards",
+              "subcategories": []
+            },
+            {
+              "name": "Pest Control",
+              "subcategories": []
+            },
+            {
+              "name": "Waste Bins & Bags",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Furniture",
+          "subcategories": [
+            {
+              "name": "Bed Frames & Mattresses",
+              "subcategories": []
+            },
+            {
+              "name": "Chairs",
+              "subcategories": []
+            },
+            {
+              "name": "Other Home Furniture",
+              "subcategories": []
+            },
+            {
+              "name": "Shelves, Cabinets & Racks",
+              "subcategories": []
+            },
+            {
+              "name": "Sofas",
+              "subcategories": []
+            },
+            {
+              "name": "TV Consoles",
+              "subcategories": []
+            },
+            {
+              "name": "Tables & Sets",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Gardening",
+          "subcategories": [
+            {
+              "name": "Gardening Tools & Ornaments",
+              "subcategories": []
+            },
+            {
+              "name": "Grass Mowers & Trimmers",
+              "subcategories": []
+            },
+            {
+              "name": "Hose and Watering Devices",
+              "subcategories": []
+            },
+            {
+              "name": "Plants & Seeds",
+              "subcategories": []
+            },
+            {
+              "name": "Pots & Planters",
+              "subcategories": []
+            },
+            {
+              "name": "Soil & Fertilisers",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Home Decor",
+          "subcategories": [
+            {
+              "name": "Artificial Plants & Flowers",
+              "subcategories": []
+            },
+            {
+              "name": "Carpets, Mats & Flooring",
+              "subcategories": []
+            },
+            {
+              "name": "Clocks",
+              "subcategories": []
+            },
+            {
+              "name": "Curtains & Blinds",
+              "subcategories": []
+            },
+            {
+              "name": "Cushions & Throws",
+              "subcategories": []
+            },
+            {
+              "name": "Frames & Pictures",
+              "subcategories": []
+            },
+            {
+              "name": "Mirrors",
+              "subcategories": []
+            },
+            {
+              "name": "Other Home Decor",
+              "subcategories": []
+            },
+            {
+              "name": "Vases & Decorative Bowls",
+              "subcategories": []
+            },
+            {
+              "name": "Wall Decor",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Home Fragrance",
+          "subcategories": []
+        },
+        {
+          "name": "Home Improvement & Organization",
+          "subcategories": [
+            {
+              "name": "Clothes Drying Rack",
+              "subcategories": []
+            },
+            {
+              "name": "Home Improvement Tools & Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Hooks & Hangers",
+              "subcategories": []
+            },
+            {
+              "name": "Ladders & Steps",
+              "subcategories": []
+            },
+            {
+              "name": "Laundry Baskets",
+              "subcategories": []
+            },
+            {
+              "name": "Storage Boxes & Baskets",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Kitchenware & Tableware",
+          "subcategories": [
+            {
+              "name": "Bakeware",
+              "subcategories": []
+            },
+            {
+              "name": "Coffee & Tea Tableware",
+              "subcategories": []
+            },
+            {
+              "name": "Cookware & Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Dinnerware & Cutlery",
+              "subcategories": []
+            },
+            {
+              "name": "Food Organization & Storage",
+              "subcategories": []
+            },
+            {
+              "name": "Knives & Chopping Boards",
+              "subcategories": []
+            },
+            {
+              "name": "Other Kitchenware & Tableware",
+              "subcategories": []
+            },
+            {
+              "name": "Pitchers & Dispensers",
+              "subcategories": []
+            },
+            {
+              "name": "Table Linen & Textiles",
+              "subcategories": []
+            },
+            {
+              "name": "Towels, Napkins & Holders",
+              "subcategories": []
+            },
+            {
+              "name": "Water Bottles & Tumblers",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Lighting & Fans",
+          "subcategories": [
+            {
+              "name": "Fans",
+              "subcategories": []
+            },
+            {
+              "name": "Lighting",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Office Furniture & Fixtures",
+          "subcategories": []
+        },
+        {
+          "name": "Outdoor Furniture",
+          "subcategories": []
+        },
+        {
+          "name": "Security & Locks",
+          "subcategories": [
+            {
+              "name": "Locks, Doors & Gates",
+              "subcategories": []
+            },
+            {
+              "name": "Other Security Devices",
+              "subcategories": []
+            },
+            {
+              "name": "Peephole Viewers & Doorbells",
+              "subcategories": []
+            },
+            {
+              "name": "Safe",
+              "subcategories": []
+            },
+            {
+              "name": "Security Systems & CCTV Cameras",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health & Nutrition",
+      "subcategories": [
+        {
+          "name": "Assistive & Rehabilatory Aids",
+          "subcategories": [
+            {
+              "name": "Adult Incontinence",
+              "subcategories": []
+            },
+            {
+              "name": "Other Assistive Aids",
+              "subcategories": []
+            },
+            {
+              "name": "Rehabilitative Devices",
+              "subcategories": []
+            },
+            {
+              "name": "Visual & Hearing Aids",
+              "subcategories": []
+            },
+            {
+              "name": "Wheelchairs",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Braces, Support & Protection",
+          "subcategories": []
+        },
+        {
+          "name": "Face Masks & Face Shields",
+          "subcategories": []
+        },
+        {
+          "name": "Family Planning",
+          "subcategories": []
+        },
+        {
+          "name": "Health Monitors & Weighing Scales",
+          "subcategories": []
+        },
+        {
+          "name": "Health Supplements",
+          "subcategories": [
+            {
+              "name": "Health Food, Drinks & Tonics",
+              "subcategories": []
+            },
+            {
+              "name": "Sports & Fitness Nutrition",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Insect Repellents",
+          "subcategories": []
+        },
+        {
+          "name": "Massage Devices",
+          "subcategories": []
+        },
+        {
+          "name": "Medical Supplies & Tools",
+          "subcategories": []
+        },
+        {
+          "name": "Thermometers",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Hobbies & Toys",
+      "subcategories": [
+        {
+          "name": "Books & Magazines",
+          "subcategories": [
+            {
+              "name": "Assessment Books",
+              "subcategories": []
+            },
+            {
+              "name": "Children's Books",
+              "subcategories": []
+            },
+            {
+              "name": "Comics & Manga",
+              "subcategories": []
+            },
+            {
+              "name": "Fiction & Non-Fiction",
+              "subcategories": []
+            },
+            {
+              "name": "Magazines",
+              "subcategories": []
+            },
+            {
+              "name": "Religion Books",
+              "subcategories": []
+            },
+            {
+              "name": "Textbooks",
+              "subcategories": []
+            },
+            {
+              "name": "Travel & Holiday Guides",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Memorabilia & Collectibles",
+          "subcategories": [
+            {
+              "name": "Currency",
+              "subcategories": []
+            },
+            {
+              "name": "Fan Merchandise",
+              "subcategories": []
+            },
+            {
+              "name": "J-Pop",
+              "subcategories": []
+            },
+            {
+              "name": "K-Wave",
+              "subcategories": []
+            },
+            {
+              "name": "Religious Items",
+              "subcategories": []
+            },
+            {
+              "name": "Stamps & Prints",
+              "subcategories": []
+            },
+            {
+              "name": "Vintage Collectibles",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Music & Media",
+          "subcategories": [
+            {
+              "name": "CDs & DVDs",
+              "subcategories": []
+            },
+            {
+              "name": "Music Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Music Scores",
+              "subcategories": []
+            },
+            {
+              "name": "Musical Instruments",
+              "subcategories": []
+            },
+            {
+              "name": "Vinyls",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Stationary & Craft",
+          "subcategories": [
+            {
+              "name": "Art & Prints",
+              "subcategories": []
+            },
+            {
+              "name": "Craft Supplies & Tools",
+              "subcategories": []
+            },
+            {
+              "name": "Flowers & Bouquets",
+              "subcategories": []
+            },
+            {
+              "name": "Handmade Craft",
+              "subcategories": []
+            },
+            {
+              "name": "Occasions & Party Supplies",
+              "subcategories": []
+            },
+            {
+              "name": "Other Stationery & Craft",
+              "subcategories": []
+            },
+            {
+              "name": "Stationery & School Supplies",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Toys & Games",
+          "subcategories": []
+        },
+        {
+          "name": "Travel",
+          "subcategories": [
+            {
+              "name": "Luggage",
+              "subcategories": []
+            },
+            {
+              "name": "Travel Essentials & Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Umbrellas",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Home Services",
+      "subcategories": [
+        {
+          "name": "Aircon Services",
+          "subcategories": []
+        },
+        {
+          "name": "Electrical, Lighting & Wiring",
+          "subcategories": []
+        },
+        {
+          "name": "Home Cleaning",
+          "subcategories": []
+        },
+        {
+          "name": "Home Repairs",
+          "subcategories": []
+        },
+        {
+          "name": "Movers & Delivery",
+          "subcategories": []
+        },
+        {
+          "name": "Others",
+          "subcategories": []
+        },
+        {
+          "name": "Plumbing Services",
+          "subcategories": []
+        },
+        {
+          "name": "Renovations & Interior Design",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs & Opportunities",
+      "subcategories": [
+        {
+          "name": "Admin, Legal & Finance",
+          "subcategories": []
+        },
+        {
+          "name": "Call Center and BPO (Business Process Outsourcing)",
+          "subcategories": []
+        },
+        {
+          "name": "Cleaning & Housekeeping",
+          "subcategories": []
+        },
+        {
+          "name": "Computer & IT",
+          "subcategories": []
+        },
+        {
+          "name": "Creative, Media & Publishing",
+          "subcategories": []
+        },
+        {
+          "name": "Distributors",
+          "subcategories": []
+        },
+        {
+          "name": "Domestic Help",
+          "subcategories": []
+        },
+        {
+          "name": "Education & Training",
+          "subcategories": []
+        },
+        {
+          "name": "Engineering & Technical",
+          "subcategories": []
+        },
+        {
+          "name": "Events",
+          "subcategories": []
+        },
+        {
+          "name": "Franchisors",
+          "subcategories": []
+        },
+        {
+          "name": "Hotels & Restaurants",
+          "subcategories": []
+        },
+        {
+          "name": "Internships & Others",
+          "subcategories": []
+        },
+        {
+          "name": "Nursing & Healthcare",
+          "subcategories": []
+        },
+        {
+          "name": "Others",
+          "subcategories": []
+        },
+        {
+          "name": "Production & Factory",
+          "subcategories": []
+        },
+        {
+          "name": "Sales, Retail & Marketing",
+          "subcategories": []
+        },
+        {
+          "name": "Security",
+          "subcategories": []
+        },
+        {
+          "name": "Transport & Delivery",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Lifestyle Services",
+      "subcategories": [
+        {
+          "name": "Beauty & Health Services",
+          "subcategories": []
+        },
+        {
+          "name": "Caregiving Services",
+          "subcategories": []
+        },
+        {
+          "name": "Electronics & Gadget Repairs",
+          "subcategories": []
+        },
+        {
+          "name": "Food, Event & Party Services",
+          "subcategories": []
+        },
+        {
+          "name": "Pet Care Services",
+          "subcategories": []
+        },
+        {
+          "name": "Tailoring & Restoration",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Looking For",
+      "subcategories": []
+    },
+    {
+      "name": "Luxury",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Apparel",
+          "subcategories": []
+        },
+        {
+          "name": "Bags & Wallets",
+          "subcategories": []
+        },
+        {
+          "name": "Sneakers & Footwear",
+          "subcategories": []
+        },
+        {
+          "name": "Watches",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Men's Fashion",
+      "subcategories": [
+        {
+          "name": "Activewear",
+          "subcategories": []
+        },
+        {
+          "name": "Bags",
+          "subcategories": [
+            {
+              "name": "Backpacks",
+              "subcategories": []
+            },
+            {
+              "name": "Belt bags, Clutches and Pouches",
+              "subcategories": []
+            },
+            {
+              "name": "Briefcases",
+              "subcategories": []
+            },
+            {
+              "name": "Sling Bags",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Bottoms",
+          "subcategories": [
+            {
+              "name": "Chinos",
+              "subcategories": []
+            },
+            {
+              "name": "Jeans",
+              "subcategories": []
+            },
+            {
+              "name": "Joggers",
+              "subcategories": []
+            },
+            {
+              "name": "Shorts",
+              "subcategories": []
+            },
+            {
+              "name": "Sleep and Loungewear",
+              "subcategories": []
+            },
+            {
+              "name": "Swim Trunks & Board Shorts",
+              "subcategories": []
+            },
+            {
+              "name": "Trousers",
+              "subcategories": []
+            },
+            {
+              "name": "Underwear",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Coats, Jackets and Outerwear",
+          "subcategories": []
+        },
+        {
+          "name": "Footwear",
+          "subcategories": [
+            {
+              "name": "Boots",
+              "subcategories": []
+            },
+            {
+              "name": "Casual Shoes",
+              "subcategories": []
+            },
+            {
+              "name": "Dress Shoes",
+              "subcategories": []
+            },
+            {
+              "name": "Shoe inserts & accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Slippers & Slides",
+              "subcategories": []
+            },
+            {
+              "name": "Sneakers",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Tops & Sets",
+          "subcategories": [
+            {
+              "name": "Formal Shirts",
+              "subcategories": []
+            },
+            {
+              "name": "Hoodies",
+              "subcategories": []
+            },
+            {
+              "name": "Sets & Coordinates",
+              "subcategories": []
+            },
+            {
+              "name": "Sleep and Loungewear",
+              "subcategories": []
+            },
+            {
+              "name": "Swim Top & Rash Guards",
+              "subcategories": []
+            },
+            {
+              "name": "Tshirts & Polo Shirts",
+              "subcategories": []
+            },
+            {
+              "name": "Vests",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Watches & Accessories",
+          "subcategories": [
+            {
+              "name": "Accessory Holder, Box & Organizers",
+              "subcategories": []
+            },
+            {
+              "name": "Beanies",
+              "subcategories": []
+            },
+            {
+              "name": "Belts",
+              "subcategories": []
+            },
+            {
+              "name": "Caps & Hats",
+              "subcategories": []
+            },
+            {
+              "name": "Cuff Links",
+              "subcategories": []
+            },
+            {
+              "name": "Gloves",
+              "subcategories": []
+            },
+            {
+              "name": "Handkerchief & Pocket Squares",
+              "subcategories": []
+            },
+            {
+              "name": "Jewelry",
+              "subcategories": []
+            },
+            {
+              "name": "Scarves",
+              "subcategories": []
+            },
+            {
+              "name": "Socks",
+              "subcategories": []
+            },
+            {
+              "name": "Sunglasses & Eyewear",
+              "subcategories": []
+            },
+            {
+              "name": "Ties",
+              "subcategories": []
+            },
+            {
+              "name": "Wallets & Card Holders",
+              "subcategories": []
+            },
+            {
+              "name": "Watches",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mobile Phones & Gadgets",
+      "subcategories": [
+        {
+          "name": "E-Readers",
+          "subcategories": []
+        },
+        {
+          "name": "Mobile & Gadget Accessories",
+          "subcategories": [
+            {
+              "name": "Batteries & Power Banks",
+              "subcategories": []
+            },
+            {
+              "name": "Cases & Sleeves",
+              "subcategories": []
+            },
+            {
+              "name": "Chargers & Cables",
+              "subcategories": []
+            },
+            {
+              "name": "Memory & SD Cards",
+              "subcategories": []
+            },
+            {
+              "name": "Mounts & Holders",
+              "subcategories": []
+            },
+            {
+              "name": "Other Mobile & Gadget Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Sim Cards",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Mobile Phones",
+          "subcategories": [
+            {
+              "name": "Android Phones",
+              "subcategories": [
+                {
+                  "name": "Android Others",
+                  "subcategories": []
+                },
+                {
+                  "name": "Asus",
+                  "subcategories": []
+                },
+                {
+                  "name": "Google Pixel",
+                  "subcategories": []
+                },
+                {
+                  "name": "Huawei",
+                  "subcategories": []
+                },
+                {
+                  "name": "LG",
+                  "subcategories": []
+                },
+                {
+                  "name": "Motorola",
+                  "subcategories": []
+                },
+                {
+                  "name": "OPPO",
+                  "subcategories": []
+                },
+                {
+                  "name": "OnePlus",
+                  "subcategories": []
+                },
+                {
+                  "name": "Realme",
+                  "subcategories": []
+                },
+                {
+                  "name": "Samsung",
+                  "subcategories": []
+                },
+                {
+                  "name": "Sony",
+                  "subcategories": []
+                },
+                {
+                  "name": "Vivo",
+                  "subcategories": []
+                },
+                {
+                  "name": "Xiaomi",
+                  "subcategories": []
+                }
+              ]
+            },
+            {
+              "name": "Early Generation Mobile Phones",
+              "subcategories": []
+            },
+            {
+              "name": "iPhone",
+              "subcategories": [
+                {
+                  "name": "Others",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 11 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 12 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 13 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 14 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 15 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 16 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 17 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 6 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 7 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone 8 Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone Air Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone SE Series",
+                  "subcategories": []
+                },
+                {
+                  "name": "iPhone X Series",
+                  "subcategories": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Other Gadgets",
+          "subcategories": []
+        },
+        {
+          "name": "Tablets",
+          "subcategories": [
+            {
+              "name": "Android",
+              "subcategories": []
+            },
+            {
+              "name": "Others",
+              "subcategories": []
+            },
+            {
+              "name": "Windows",
+              "subcategories": []
+            },
+            {
+              "name": "iPad",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Walkie-Talkie",
+          "subcategories": []
+        },
+        {
+          "name": "Wearables & Smart Watches",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Motorbikes",
+      "subcategories": [
+        {
+          "name": "Motorbike Parts & Accessories",
+          "subcategories": [
+            {
+              "name": "Body Parts and Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Electronics & Lights",
+              "subcategories": []
+            },
+            {
+              "name": "Helmets and other Riding Gears",
+              "subcategories": []
+            },
+            {
+              "name": "Maintenance Fluids and Filters",
+              "subcategories": []
+            },
+            {
+              "name": "Mufflers, Exhaust Parts & Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Other Motorcycles Parts and Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Suspension Parts & Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Tires & Rims",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Motorbikes for Sale",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Pet Supplies",
+      "subcategories": [
+        {
+          "name": "Health & Grooming",
+          "subcategories": []
+        },
+        {
+          "name": "Homes & Other Pet Accessories",
+          "subcategories": []
+        },
+        {
+          "name": "Pet Food",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Photography",
+      "subcategories": [
+        {
+          "name": "Cameras",
+          "subcategories": []
+        },
+        {
+          "name": "Drones",
+          "subcategories": []
+        },
+        {
+          "name": "Lens & Kits",
+          "subcategories": []
+        },
+        {
+          "name": "Photography Accessories",
+          "subcategories": [
+            {
+              "name": "Batteries & Chargers",
+              "subcategories": []
+            },
+            {
+              "name": "Camera Bags & Carriers",
+              "subcategories": []
+            },
+            {
+              "name": "Dry Boxes & Cabinets",
+              "subcategories": []
+            },
+            {
+              "name": "Flashes",
+              "subcategories": []
+            },
+            {
+              "name": "Gimbals & Stabilizers",
+              "subcategories": []
+            },
+            {
+              "name": "Lighting & Studio Equipment",
+              "subcategories": []
+            },
+            {
+              "name": "Other Photography Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Tripods & Monopods",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Video Cameras",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Property",
+      "subcategories": [
+        {
+          "name": "For Sale",
+          "subcategories": [
+            {
+              "name": "Apartments & Condos",
+              "subcategories": []
+            },
+            {
+              "name": "Commercial",
+              "subcategories": []
+            },
+            {
+              "name": "House & Lot",
+              "subcategories": []
+            },
+            {
+              "name": "Lot",
+              "subcategories": []
+            },
+            {
+              "name": "Memorial Lot",
+              "subcategories": []
+            },
+            {
+              "name": "Townhouse",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "New Developments",
+          "subcategories": []
+        },
+        {
+          "name": "Rentals",
+          "subcategories": [
+            {
+              "name": "Apartments & Condos",
+              "subcategories": []
+            },
+            {
+              "name": "Commercial",
+              "subcategories": []
+            },
+            {
+              "name": "House & Lot",
+              "subcategories": []
+            },
+            {
+              "name": "Lot",
+              "subcategories": []
+            },
+            {
+              "name": "Room Rentals",
+              "subcategories": []
+            },
+            {
+              "name": "Townhouse",
+              "subcategories": []
+            },
+            {
+              "name": "Vacation Rentals",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Special Vehicles",
+      "subcategories": [
+        {
+          "name": "Boats and Aircrafts",
+          "subcategories": []
+        },
+        {
+          "name": "Heavy Vehicles",
+          "subcategories": []
+        },
+        {
+          "name": "Heavy Vehicles, Boats and Aircrafts Parts and Accessories",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Sports Equipment",
+      "subcategories": [
+        {
+          "name": "Bicycles & Parts",
+          "subcategories": [
+            {
+              "name": "Bicycles",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Exercise & Fitness",
+          "subcategories": [
+            {
+              "name": "Cardio & Fitness Machines",
+              "subcategories": []
+            },
+            {
+              "name": "Exercise Mats",
+              "subcategories": []
+            },
+            {
+              "name": "Toning & Stretching Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Weights & Dumbbells",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Fishing",
+          "subcategories": []
+        },
+        {
+          "name": "Hiking & Camping",
+          "subcategories": []
+        },
+        {
+          "name": "Other Sports Equipment and Supplies",
+          "subcategories": []
+        },
+        {
+          "name": "Sports & Games",
+          "subcategories": [
+            {
+              "name": "Billiards and Bowling",
+              "subcategories": []
+            },
+            {
+              "name": "Combat Sports",
+              "subcategories": []
+            },
+            {
+              "name": "Golf",
+              "subcategories": []
+            },
+            {
+              "name": "Kites",
+              "subcategories": []
+            },
+            {
+              "name": "Racket and Ball Sports",
+              "subcategories": []
+            },
+            {
+              "name": "Skates, Rollerblades & Scooters",
+              "subcategories": []
+            },
+            {
+              "name": "Water Sports",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TV & Home Appliances",
+      "subcategories": [
+        {
+          "name": "Air Conditioning and Heating",
+          "subcategories": []
+        },
+        {
+          "name": "Air Purifiers & Dehumidifiers",
+          "subcategories": []
+        },
+        {
+          "name": "Electrical, Adaptors & Sockets",
+          "subcategories": []
+        },
+        {
+          "name": "Irons & Steamers",
+          "subcategories": []
+        },
+        {
+          "name": "Kitchen Appliances",
+          "subcategories": [
+            {
+              "name": "BBQ, Grills & Hotpots",
+              "subcategories": []
+            },
+            {
+              "name": "Breadmakers",
+              "subcategories": []
+            },
+            {
+              "name": "Coffee Machines & Makers",
+              "subcategories": []
+            },
+            {
+              "name": "Cookers",
+              "subcategories": []
+            },
+            {
+              "name": "Dishwasher",
+              "subcategories": []
+            },
+            {
+              "name": "Fryers",
+              "subcategories": []
+            },
+            {
+              "name": "Hand & Stand Mixers",
+              "subcategories": []
+            },
+            {
+              "name": "Hobs & Hoods",
+              "subcategories": []
+            },
+            {
+              "name": "Ice-cream Makers",
+              "subcategories": []
+            },
+            {
+              "name": "Juicers, Blenders & Grinders",
+              "subcategories": []
+            },
+            {
+              "name": "Kettles & Airpots",
+              "subcategories": []
+            },
+            {
+              "name": "Other Kitchen Appliances",
+              "subcategories": []
+            },
+            {
+              "name": "Ovens & Toasters",
+              "subcategories": []
+            },
+            {
+              "name": "Refrigerators and Freezers",
+              "subcategories": []
+            },
+            {
+              "name": "Water Purifiers & Dispensers",
+              "subcategories": []
+            },
+            {
+              "name": "Wine Cellar & Storage",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Other Home Appliances",
+          "subcategories": []
+        },
+        {
+          "name": "TV & Entertainment",
+          "subcategories": [
+            {
+              "name": "Blu-Ray & Media Players",
+              "subcategories": []
+            },
+            {
+              "name": "Entertainment Systems & Smart Home Devices",
+              "subcategories": []
+            },
+            {
+              "name": "Media Streamers & Hubs",
+              "subcategories": []
+            },
+            {
+              "name": "Projectors",
+              "subcategories": []
+            },
+            {
+              "name": "TV",
+              "subcategories": []
+            },
+            {
+              "name": "TV Parts & Accessories",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Vacuum Cleaner & Housekeeping",
+          "subcategories": []
+        },
+        {
+          "name": "Washing Machines and Dryers",
+          "subcategories": []
+        },
+        {
+          "name": "Water Heater & Instant Showers",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Tickets & Vouchers",
+      "subcategories": [
+        {
+          "name": "Event Tickets",
+          "subcategories": []
+        },
+        {
+          "name": "Flights & Overseas Attractions",
+          "subcategories": []
+        },
+        {
+          "name": "Local Attractions & Transport",
+          "subcategories": []
+        },
+        {
+          "name": "Store Credits",
+          "subcategories": []
+        },
+        {
+          "name": "Vouchers",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Travel",
+      "subcategories": [
+        {
+          "name": "Car Rentals",
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "name": "Tuition Services",
+      "subcategories": []
+    },
+    {
+      "name": "Vehicle Rentals",
+      "subcategories": []
+    },
+    {
+      "name": "Video Gaming",
+      "subcategories": [
+        {
+          "name": "Gaming Accessories",
+          "subcategories": [
+            {
+              "name": "Cables & Chargers",
+              "subcategories": []
+            },
+            {
+              "name": "Cases & Covers",
+              "subcategories": []
+            },
+            {
+              "name": "Controllers",
+              "subcategories": []
+            },
+            {
+              "name": "Game Gift Cards & Accounts",
+              "subcategories": []
+            },
+            {
+              "name": "In-Game Products",
+              "subcategories": []
+            },
+            {
+              "name": "Interactive Gaming Figures",
+              "subcategories": []
+            },
+            {
+              "name": "Virtual Reality",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Video Game Consoles",
+          "subcategories": [
+            {
+              "name": "Nintendo",
+              "subcategories": []
+            },
+            {
+              "name": "Others",
+              "subcategories": []
+            },
+            {
+              "name": "PlayStation",
+              "subcategories": []
+            },
+            {
+              "name": "Xbox",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Video Games",
+          "subcategories": [
+            {
+              "name": "Nintendo",
+              "subcategories": []
+            },
+            {
+              "name": "Others",
+              "subcategories": []
+            },
+            {
+              "name": "PlayStation",
+              "subcategories": []
+            },
+            {
+              "name": "Xbox",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Women's Fashion",
+      "subcategories": [
+        {
+          "name": "Activewear",
+          "subcategories": []
+        },
+        {
+          "name": "Bags & Wallets",
+          "subcategories": [
+            {
+              "name": "Backpacks",
+              "subcategories": []
+            },
+            {
+              "name": "Beach Bags",
+              "subcategories": []
+            },
+            {
+              "name": "Clutches",
+              "subcategories": []
+            },
+            {
+              "name": "Cross-body Bags",
+              "subcategories": []
+            },
+            {
+              "name": "Purses & Pouches",
+              "subcategories": []
+            },
+            {
+              "name": "Shoulder Bags",
+              "subcategories": []
+            },
+            {
+              "name": "Tote Bags",
+              "subcategories": []
+            },
+            {
+              "name": "Wallets & Card holders",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Bottoms",
+          "subcategories": [
+            {
+              "name": "Jeans",
+              "subcategories": []
+            },
+            {
+              "name": "Other Bottoms",
+              "subcategories": []
+            },
+            {
+              "name": "Shorts",
+              "subcategories": []
+            },
+            {
+              "name": "Skirts",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Coats, Jackets and Outerwear",
+          "subcategories": []
+        },
+        {
+          "name": "Dresses & Sets",
+          "subcategories": [
+            {
+              "name": "Dresses",
+              "subcategories": []
+            },
+            {
+              "name": "Evening dresses & gowns",
+              "subcategories": []
+            },
+            {
+              "name": "Jumpsuits",
+              "subcategories": []
+            },
+            {
+              "name": "Rompers",
+              "subcategories": []
+            },
+            {
+              "name": "Sets or Coordinates",
+              "subcategories": []
+            },
+            {
+              "name": "Traditional & Ethnic wear",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Footwear",
+          "subcategories": [
+            {
+              "name": "Boots",
+              "subcategories": []
+            },
+            {
+              "name": "Flats & Sandals",
+              "subcategories": []
+            },
+            {
+              "name": "Heels",
+              "subcategories": []
+            },
+            {
+              "name": "Loafers",
+              "subcategories": []
+            },
+            {
+              "name": "Sandals",
+              "subcategories": []
+            },
+            {
+              "name": "Shoe inserts",
+              "subcategories": []
+            },
+            {
+              "name": "Slippers and slides",
+              "subcategories": []
+            },
+            {
+              "name": "Sneakers",
+              "subcategories": []
+            },
+            {
+              "name": "Wedges",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Jewelry & Organizers",
+          "subcategories": [
+            {
+              "name": "Accessory Holder, Box & Organizers",
+              "subcategories": []
+            },
+            {
+              "name": "Anklets",
+              "subcategories": []
+            },
+            {
+              "name": "Body Jewelry",
+              "subcategories": []
+            },
+            {
+              "name": "Bracelets",
+              "subcategories": []
+            },
+            {
+              "name": "Brooches",
+              "subcategories": []
+            },
+            {
+              "name": "Charms",
+              "subcategories": []
+            },
+            {
+              "name": "Earrings",
+              "subcategories": []
+            },
+            {
+              "name": "Necklaces",
+              "subcategories": []
+            },
+            {
+              "name": "Precious Stones",
+              "subcategories": []
+            },
+            {
+              "name": "Rings",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Maternity wear",
+          "subcategories": []
+        },
+        {
+          "name": "Swimwear",
+          "subcategories": [
+            {
+              "name": "Bikinis & Swimsuits",
+              "subcategories": []
+            },
+            {
+              "name": "Rash guard",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Tops",
+          "subcategories": [
+            {
+              "name": "Blouses",
+              "subcategories": []
+            },
+            {
+              "name": "Longsleeves",
+              "subcategories": []
+            },
+            {
+              "name": "Others Tops",
+              "subcategories": []
+            },
+            {
+              "name": "Shirts",
+              "subcategories": []
+            },
+            {
+              "name": "Sleeveless",
+              "subcategories": []
+            }
+          ]
+        },
+        {
+          "name": "Undergarments & Loungewear",
+          "subcategories": []
+        },
+        {
+          "name": "Watches & Accessories",
+          "subcategories": [
+            {
+              "name": "Belts",
+              "subcategories": []
+            },
+            {
+              "name": "Gloves",
+              "subcategories": []
+            },
+            {
+              "name": "Hair Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Hats & Beanies",
+              "subcategories": []
+            },
+            {
+              "name": "Other Accessories",
+              "subcategories": []
+            },
+            {
+              "name": "Scarves",
+              "subcategories": []
+            },
+            {
+              "name": "Socks & Tights",
+              "subcategories": []
+            },
+            {
+              "name": "Sunglasses & Eyewear",
+              "subcategories": []
+            },
+            {
+              "name": "Watches",
+              "subcategories": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

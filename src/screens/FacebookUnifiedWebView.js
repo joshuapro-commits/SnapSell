@@ -1253,7 +1253,7 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   const tags = ${fbTags};
                   if (tags && tags.length > 0) {
                     // Install continuous monitoring script that re-binds on every FB re-render
-                    const tagInterceptionScript = '(function() { function forceTag(input) { if (input.dataset.tagHooked) return; input.dataset.tagHooked = "true"; input.addEventListener("input", function(e) { const val = e.target.value; if (val.endsWith(",") || val.endsWith(" ")) { e.target.value = val.slice(0, -1); ["keydown", "keypress", "keyup"].forEach(type => { const event = new KeyboardEvent(type, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }); e.target.dispatchEvent(event); }); e.target.blur(); setTimeout(function() { e.target.focus(); }, 10); } }); } setInterval(function() { const tagInput = document.querySelector("input[placeholder*=Tag]") || document.querySelector("label[aria-label*=Tag] input") || document.querySelector("[role=textbox][aria-label*=Tag]"); if (tagInput) forceTag(tagInput); }, 1000); })();';
+                    const tagInterceptionScript = '(function() { function forceTag(input) { if (input.dataset.tagHooked) return; input.dataset.tagHooked = "true"; input.addEventListener("input", function(e) { const val = e.target.value; if (val.endsWith(",") || val.endsWith(" ")) { e.target.value = val.slice(0, -1); ["keydown", "keypress", "keyup"].forEach(type => { const event = new KeyboardEvent(type, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }); e.target.dispatchEvent(event); }); setTimeout(function() { e.target.blur(); setTimeout(function() { e.target.focus(); }, 50); }, 10); } }); } setInterval(function() { const tagInput = document.querySelector("input[placeholder*=Tag]") || document.querySelector("label[aria-label*=Tag] input") || document.querySelector("[role=textbox][aria-label*=Tag]"); if (tagInput) forceTag(tagInput); }, 1000); })();';
                     
                     // Inject the interception script first
                     eval(tagInterceptionScript);
@@ -1323,20 +1323,37 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                           await wait(baseDelay + Math.random() * 100);
                         }
                         
-                        // Force commit via blur/focus (the "secret sauce")
+                        // Force commit via multiple strategies
                         await wait(100);
-                        tagInput.blur();
-                        await wait(50);
-                        tagInput.focus();
-                        await wait(300);
                         
-                        // Dispatch Enter key events as backup
+                        // Strategy 1: Send Enter key BEFORE comma (most reliable)
                         ['keydown', 'keypress', 'keyup'].forEach(type => {
                           tagInput.dispatchEvent(new KeyboardEvent(type, {
                             key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
                             bubbles: true, cancelable: true
                           }));
                         });
+                        await wait(150);
+                        
+                        // Strategy 2: Clear the input value (force React to process)
+                        const descriptor = Object.getOwnPropertyDescriptor(
+                          tagInput.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
+                          'value'
+                        );
+                        if (descriptor && descriptor.set) {
+                          descriptor.set.call(tagInput, '');
+                        } else {
+                          tagInput.value = '';
+                        }
+                        tagInput.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
+                        tagInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        await wait(100);
+                        
+                        // Strategy 3: Blur/focus cycle to ensure React processes
+                        tagInput.blur();
+                        await wait(100);
+                        tagInput.focus();
+                        await wait(200);
                         
                         // Human-like variable delay between tags
                         let baseDelay = 400;

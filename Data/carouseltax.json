@@ -1,0 +1,353 @@
+{
+  "categories": [
+    {
+      "name": "Women's Fashion",
+      "subcategories": [
+        { "name": "Activewear", "subcategories": [] },
+        { "name": "Tops", "subcategories": [] },
+        { "name": "Bottoms", "subcategories": [] },
+        { "name": "Dresses & Sets", "subcategories": [] },
+        { "name": "Footwear", "subcategories": [] },
+        { "name": "Swimwear", "subcategories": [] },
+        { "name": "Coats, Jackets and Outerwear", "subcategories": [] },
+        { "name": "Bags", "subcategories": [] },
+        { "name": "Watches & Accessories", "subcategories": [] },
+        { "name": "Maternity Wear", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Men's Fashion",
+      "subcategories": [
+        { "name": "Activewear", "subcategories": [] },
+        { "name": "Tops & Sets", "subcategories": [] },
+        { "name": "Bottoms", "subcategories": [] },
+        { "name": "Footwear", "subcategories": [] },
+        { "name": "Coats, Jackets and Outerwear", "subcategories": [] },
+        { "name": "Bags", "subcategories": [] },
+        { "name": "Watches & Accessories", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Mobile Phones & Gadgets",
+      "subcategories": [
+        { "name": "Mobile Phones", "subcategories": [] },
+        { "name": "Tablets", "subcategories": [] },
+        { "name": "E-Readers", "subcategories": [] },
+        { "name": "Wearables & Smart Watches", "subcategories": [] },
+        { "name": "Mobile & Gadget Accessories", "subcategories": [] },
+        { "name": "Walkie-Talkie", "subcategories": [] },
+        { "name": "Other Gadgets", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Computers & Tech",
+      "subcategories": [
+        { "name": "Desktops", "subcategories": [] },
+        { "name": "Laptops & Notebooks", "subcategories": [] },
+        { "name": "Parts & Accessories", "subcategories": [] },
+        { "name": "Printers, Scanners & Copiers", "subcategories": [] },
+        { "name": "Office & Business Technology", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Audio",
+      "subcategories": [
+        { "name": "Headphones & Earphones", "subcategories": [] },
+        { "name": "Speakers & Soundbars", "subcategories": [] },
+        { "name": "Portable Players & Accessories", "subcategories": [] },
+        { "name": "Home Audio & Hi-Fi Systems", "subcategories": [] },
+        { "name": "Musical Instruments", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "TV & Home Appliances",
+      "subcategories": [
+        { "name": "TVs & Projectors", "subcategories": [] },
+        { "name": "Large Appliances", "subcategories": [] },
+        { "name": "Small Appliances", "subcategories": [] },
+        { "name": "Air Conditioners", "subcategories": [] },
+        { "name": "Fans", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Photography",
+      "subcategories": [
+        { "name": "Cameras", "subcategories": [] },
+        { "name": "Lenses", "subcategories": [] },
+        { "name": "Tripods & Stabilisers", "subcategories": [] },
+        { "name": "Lighting & Studio Equipment", "subcategories": [] },
+        { "name": "Bags & Cases", "subcategories": [] },
+        { "name": "Other Accessories", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Video Gaming",
+      "subcategories": [
+        { "name": "Video Game Consoles", "subcategories": [] },
+        { "name": "Video Games", "subcategories": [] },
+        {
+          "name": "Gaming Accessories",
+          "subcategories": [
+            { "name": "Controllers", "subcategories": [] },
+            { "name": "Cases & Covers", "subcategories": [] },
+            { "name": "Cables & Chargers", "subcategories": [] },
+            { "name": "Interactive Gaming Figures", "subcategories": [] },
+            { "name": "Virtual Reality", "subcategories": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Furniture & Home Living",
+      "subcategories": [
+        { "name": "Sofas & Sectionals", "subcategories": [] },
+        { "name": "Beds & Mattresses", "subcategories": [] },
+        { "name": "Tables & Desks", "subcategories": [] },
+        { "name": "Chairs & Stools", "subcategories": [] },
+        { "name": "Shelves & Storage", "subcategories": [] },
+        { "name": "Lighting", "subcategories": [] },
+        { "name": "Home Decor", "subcategories": [] },
+        { "name": "Bath & Bedding", "subcategories": [] },
+        { "name": "Kitchen & Dining", "subcategories": [] },
+        { "name": "Curtains, Blinds & Rugs", "subcategories": [] },
+        { "name": "Gardening & Outdoor", "subcategories": [] },
+        { "name": "Tools & DIY", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Health & Beauty",
+      "subcategories": [
+        { "name": "Skincare", "subcategories": [] },
+        { "name": "Makeup", "subcategories": [] },
+        { "name": "Hair Care", "subcategories": [] },
+        { "name": "Fragrances", "subcategories": [] },
+        { "name": "Personal Care", "subcategories": [] },
+        { "name": "Health & Nutrition", "subcategories": [] },
+        { "name": "Medical Supplies & Equipment", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Babies & Kids",
+      "subcategories": [
+        { "name": "Apparel & Accessories", "subcategories": [] },
+        { "name": "Footwear", "subcategories": [] },
+        { "name": "Strollers & Prams", "subcategories": [] },
+        { "name": "Car Seats", "subcategories": [] },
+        { "name": "Cots, Mattresses & Sleeping", "subcategories": [] },
+        { "name": "Feeding", "subcategories": [] },
+        { "name": "Bathing & Changing", "subcategories": [] },
+        { "name": "Toys & Games", "subcategories": [] },
+        { "name": "School Supplies & Books", "subcategories": [] },
+        { "name": "Safety & Baby Monitor", "subcategories": [] },
+        { "name": "Other Babies & Kids Items", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Hobbies & Toys",
+      "subcategories": [
+        { "name": "Action Figures & Collectibles", "subcategories": [] },
+        { "name": "Board Games & Card Games", "subcategories": [] },
+        { "name": "Diecast & Toy Vehicles", "subcategories": [] },
+        { "name": "Dolls", "subcategories": [] },
+        { "name": "Educational Toys", "subcategories": [] },
+        { "name": "Outdoor Toys & Activities", "subcategories": [] },
+        { "name": "RC Toys & Accessories", "subcategories": [] },
+        { "name": "Soft Toys & Stuffed Animals", "subcategories": [] },
+        { "name": "Arts & Crafts", "subcategories": [] },
+        { "name": "Building & Construction", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Sports",
+      "subcategories": [
+        { "name": "Bicycles & Accessories", "subcategories": [] },
+        { "name": "Water Sports", "subcategories": [] },
+        { "name": "Team Sports", "subcategories": [] },
+        { "name": "Racket Sports", "subcategories": [] },
+        { "name": "Combat Sports & Martial Arts", "subcategories": [] },
+        { "name": "Golf", "subcategories": [] },
+        { "name": "Gym & Fitness", "subcategories": [] },
+        { "name": "Outdoor Recreation", "subcategories": [] },
+        { "name": "Skating", "subcategories": [] },
+        { "name": "Other Sports", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Books & Stationery",
+      "subcategories": [
+        { "name": "Fiction", "subcategories": [] },
+        { "name": "Non-Fiction", "subcategories": [] },
+        { "name": "Textbooks", "subcategories": [] },
+        { "name": "Comics & Manga", "subcategories": [] },
+        { "name": "Children's Books", "subcategories": [] },
+        { "name": "Magazines", "subcategories": [] },
+        { "name": "Stationery & Craft Supplies", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Music",
+      "subcategories": [
+        { "name": "Musical Instruments", "subcategories": [] },
+        { "name": "CDs & Vinyl", "subcategories": [] },
+        { "name": "Music Accessories", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Luxury",
+      "subcategories": [
+        { "name": "Bags & Wallets", "subcategories": [] },
+        { "name": "Watches", "subcategories": [] },
+        { "name": "Jewellery", "subcategories": [] },
+        { "name": "Apparel", "subcategories": [] },
+        { "name": "Footwear", "subcategories": [] },
+        { "name": "Accessories", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Pet Supplies",
+      "subcategories": [
+        { "name": "Dogs", "subcategories": [] },
+        { "name": "Cats", "subcategories": [] },
+        { "name": "Fish & Aquatic", "subcategories": [] },
+        { "name": "Birds", "subcategories": [] },
+        { "name": "Small Animals", "subcategories": [] },
+        { "name": "Other Pet Accessories", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Tickets & Vouchers",
+      "subcategories": [
+        { "name": "Concert & Events", "subcategories": [] },
+        { "name": "Movies", "subcategories": [] },
+        { "name": "Sports Events", "subcategories": [] },
+        { "name": "Travel & Hotels", "subcategories": [] },
+        { "name": "Dining & Lifestyle", "subcategories": [] },
+        { "name": "Gift Cards & Vouchers", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "subcategories": [
+        {
+          "name": "Cars",
+          "subcategories": [
+            { "name": "Used Cars", "subcategories": [] },
+            { "name": "New Cars", "subcategories": [] },
+            { "name": "Commercial Vehicles", "subcategories": [] },
+            { "name": "Car Rental", "subcategories": [] }
+          ]
+        },
+        {
+          "name": "Motorbikes",
+          "subcategories": [
+            { "name": "Used Motorbikes", "subcategories": [] },
+            { "name": "New Motorbikes", "subcategories": [] }
+          ]
+        },
+        {
+          "name": "Auto Accessories & Others",
+          "subcategories": [
+            { "name": "Car Accessories", "subcategories": [] },
+            { "name": "Car Parts", "subcategories": [] },
+            { "name": "Motorbike Accessories & Parts", "subcategories": [] },
+            { "name": "Bicycles", "subcategories": [] },
+            { "name": "Other Vehicles", "subcategories": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Property",
+      "subcategories": [
+        {
+          "name": "For Sale",
+          "subcategories": [
+            { "name": "House & Lot", "subcategories": [] },
+            { "name": "Condominium", "subcategories": [] },
+            { "name": "Townhouse", "subcategories": [] },
+            { "name": "Vacant Lot", "subcategories": [] },
+            { "name": "Commercial Property", "subcategories": [] },
+            { "name": "Industrial Property", "subcategories": [] },
+            { "name": "Memorial Lot", "subcategories": [] }
+          ]
+        },
+        {
+          "name": "For Rent",
+          "subcategories": [
+            { "name": "House & Lot", "subcategories": [] },
+            { "name": "Condominium", "subcategories": [] },
+            { "name": "Townhouse", "subcategories": [] },
+            { "name": "Room for Rent", "subcategories": [] },
+            { "name": "Commercial Property", "subcategories": [] },
+            { "name": "Industrial Property", "subcategories": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "subcategories": [
+        { "name": "Home Cleaning", "subcategories": [] },
+        { "name": "Home Repairs & Renovation", "subcategories": [] },
+        { "name": "Movers & Delivery", "subcategories": [] },
+        { "name": "Aircon Services", "subcategories": [] },
+        { "name": "Lessons & Tutoring", "subcategories": [] },
+        { "name": "Beauty & Wellness", "subcategories": [] },
+        { "name": "Events & Photography", "subcategories": [] },
+        { "name": "Business & IT Services", "subcategories": [] },
+        { "name": "Pet Services", "subcategories": [] },
+        { "name": "Other Services", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "subcategories": [
+        { "name": "Accounting & Finance", "subcategories": [] },
+        { "name": "Admin & Office", "subcategories": [] },
+        { "name": "Customer Service", "subcategories": [] },
+        { "name": "Design & Arts", "subcategories": [] },
+        { "name": "Education & Training", "subcategories": [] },
+        { "name": "Engineering", "subcategories": [] },
+        { "name": "F&B / Hospitality", "subcategories": [] },
+        { "name": "IT & Technology", "subcategories": [] },
+        { "name": "Marketing & Sales", "subcategories": [] },
+        { "name": "Medical & Health", "subcategories": [] },
+        { "name": "Operations & Logistics", "subcategories": [] },
+        { "name": "Others", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Collectibles",
+      "subcategories": [
+        { "name": "Antiques & Vintage", "subcategories": [] },
+        { "name": "Coins & Currency", "subcategories": [] },
+        { "name": "Stamps", "subcategories": [] },
+        { "name": "Memorabilia & Autographs", "subcategories": [] },
+        { "name": "Trading Cards", "subcategories": [] },
+        { "name": "Other Collectibles", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Food & Drinks",
+      "subcategories": [
+        { "name": "Baked Goods", "subcategories": [] },
+        { "name": "Beverages", "subcategories": [] },
+        { "name": "Snacks & Confectionery", "subcategories": [] },
+        { "name": "Health Food", "subcategories": [] },
+        { "name": "Other Food", "subcategories": [] }
+      ]
+    },
+    {
+      "name": "Community",
+      "subcategories": []
+    },
+    {
+      "name": "Looking For",
+      "subcategories": []
+    },
+    {
+      "name": "Everything Else",
+      "subcategories": []
+    }
+  ]
+}

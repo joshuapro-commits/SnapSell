@@ -59,7 +59,7 @@ export const HomeScreen = ({ navigation }) => {
       iconBg: '#E8F5E9',
       iconColor: '#43A047',
       used: activeListings,
-      action: 'Inventory',
+      action: 'InventoryDashboard',
     },
     {
       id: '3',

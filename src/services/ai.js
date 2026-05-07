@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GEMINI_API_KEY } from '../config/gemini';
 import { getFPCId, getCategoryNameFromId, getRequiredFields, isLeafCategory, getParentName, getLeafName, FB_CATEGORY_LIST, FPC_HIERARCHY } from '../constants/facebookCategories';
+import { getCarousellCategoryPath, validateCategoryPath } from '../constants/carousellCategories';
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -208,31 +209,31 @@ export const aiService = {
       
       // Ensure carousell data exists with hashtags fallback
       if (!productData.platformData.carousell) {
-        productData.platformData.carousell = {
-          categoryHierarchy: {
-            level1: 'Everything Else',
-            level2: 'Others',
-            level3: 'Others'
-          },
-          hashtags: [productData.brand || 'Item', productData.category || 'ForSale'],
-          meetupLocations: ['Makati', 'BGC', 'Quezon City'],
-        };
+        productData.platformData.carousell = {};
+      }
+      
+      // CRITICAL: Always ensure categoryHierarchy exists using official taxonomy
+      const carousellPath = getCarousellCategoryPath(productData.name, productData.category);
+      console.log('[AI] Mapped to Carousell path:', carousellPath);
+      
+      // Validate path exists in taxonomy
+      if (!validateCategoryPath(carousellPath)) {
+        console.warn('[AI] ⚠️ Invalid category path, using fallback');
+        productData.platformData.carousell.categoryPath = ['Everything Else'];
       } else {
-        // Ensure categoryHierarchy exists
-        if (!productData.platformData.carousell.categoryHierarchy) {
-          productData.platformData.carousell.categoryHierarchy = {
-            level1: 'Everything Else',
-            level2: 'Others',
-            level3: 'Others'
-          };
-        }
-        // Ensure hashtags exist even if carousell object exists
-        if (!productData.platformData.carousell.hashtags || productData.platformData.carousell.hashtags.length === 0) {
-          productData.platformData.carousell.hashtags = [productData.brand || 'Item', productData.category || 'ForSale'];
-        }
-        if (!productData.platformData.carousell.meetupLocations) {
-          productData.platformData.carousell.meetupLocations = ['Makati', 'BGC', 'Quezon City'];
-        }
+        productData.platformData.carousell.categoryPath = carousellPath;
+      }
+      
+      console.log('[AI] Final Carousell category path:', productData.platformData.carousell.categoryPath);
+      
+      // Ensure hashtags exist
+      if (!productData.platformData.carousell.hashtags || productData.platformData.carousell.hashtags.length === 0) {
+        productData.platformData.carousell.hashtags = [productData.brand || 'Item', productData.category || 'ForSale'];
+      }
+      
+      // Ensure meetupLocations exist
+      if (!productData.platformData.carousell.meetupLocations) {
+        productData.platformData.carousell.meetupLocations = ['Makati', 'BGC', 'Quezon City'];
       }
       
       if (!productData.platformData.facebook) productData.platformData.facebook = {};
@@ -334,10 +335,10 @@ Condition multipliers: New=100%, Like new=85%, Good=70%, Fair=50%`;
    * @returns {Object} Price options with quick sale, recommended, and max value
    */
   generate3TierPricing(basePrice) {
-    // Calculate 3-tier range with smart rounding
-    const quickSalePrice = Math.round(basePrice * 0.72); // -28% for fast sale
-    const recommendedPrice = Math.round(basePrice * 0.88); // -12% below market for quick movement
-    const maxValuePrice = Math.round(basePrice * 1.00); // at market price (was +14%)
+    // Calculate 3-tier range with aggressive discounting to attract buyers
+    const quickSalePrice = Math.round(basePrice * 0.55); // -45% for fast sale (very aggressive)
+    const recommendedPrice = Math.round(basePrice * 0.70); // -30% below market (sweet spot)
+    const maxValuePrice = Math.round(basePrice * 0.85); // -15% below market (still competitive)
 
     // Calculate percentage differences
     const quickSaleDiscount = Math.round((1 - quickSalePrice / maxValuePrice) * 100);
@@ -349,7 +350,7 @@ Condition multipliers: New=100%, Like new=85%, Good=70%, Fair=50%`;
         label: 'Quick Sale',
         icon: 'flash',
         color: '#F59E0B',
-        description: 'Priced to sell fast — a sold item at ₱800 beats an unsold one at ₱1,200',
+        description: 'Priced to sell fast — a sold item at ₱550 beats an unsold one at ₱1,000',
         badge: `${quickSaleDiscount}% off max`,
         strategy: 'urgency',
       },
@@ -358,7 +359,7 @@ Condition multipliers: New=100%, Like new=85%, Good=70%, Fair=50%`;
         label: 'Recommended',
         icon: 'checkmark-circle',
         color: '#10B981',
-        description: 'Slightly below market to attract buyers quickly without leaving too much on the table',
+        description: 'Aggressively priced below market to attract buyers quickly',
         badge: 'BEST VALUE',
         isDefault: true,
         strategy: 'balanced',
@@ -368,7 +369,7 @@ Condition multipliers: New=100%, Like new=85%, Good=70%, Fair=50%`;
         label: 'Max Value',
         icon: 'trending-up',
         color: '#8B5CF6',
-        description: 'At market price — may take longer to sell',
+        description: 'Still below market — competitive pricing for faster sales',
         badge: `+${maxValuePremium}% premium`,
         strategy: 'premium',
       },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import { View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -18,10 +18,11 @@ import { FacebookUnifiedWebView } from '../screens/FacebookUnifiedWebView';
 import { CarousellWebView } from '../screens/CarousellWebView';
 import { CarousellNativeAuthScreen } from '../screens/CarousellNativeAuthScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
+import InventoryDashboardScreen from '../screens/InventoryDashboardScreen';
 import { MainTabs } from './MainTabs';
 import { COLORS, FONT_SIZES } from '../constants/theme';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
 
 const linking = {
   prefixes: ['snapsell://', 'exp://'],
@@ -64,7 +65,7 @@ export const AppNavigator = () => {
           },
           headerTintColor: COLORS.primary,
           headerShadowVisible: false,
-          animation: 'ios_from_right',
+          ...TransitionPresets.SlideFromRightIOS,
         }}
       >
         {!user ? (
@@ -150,6 +151,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Earnings"
               component={EarningsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="InventoryDashboard"
+              component={InventoryDashboardScreen}
               options={{ headerShown: false }}
             />
           </>

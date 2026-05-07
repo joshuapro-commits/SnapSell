@@ -280,177 +280,304 @@ const getImageInjectionScript = (base64Data) => `
 true;
 `;
 
-// Category hierarchy selection script - navigates through 3-level dropdown
-const getCategorySelectionScript = (level1, level2, level3) => `
+// COORDINATE-BRUTE Category Selection - Physical tap simulation using TouchEvent API
+const getAdaptiveCategorySelectionScript = (productData) => `
 (async function() {
   try {
-    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const productInfo = {
+      name: ${JSON.stringify(productData.name || productData.title || '')},
+      category: ${JSON.stringify(productData.category || '')},
+      brand: ${JSON.stringify(productData.brand || '')}
+    };
     
-    console.log('[CAROUSELL_CATEGORY] Starting category selection...');
-    console.log('[CAROUSELL_CATEGORY] Target:', '${level1}', '>', '${level2}', '>', '${level3}');
+    console.log('[CAROUSELL_BRUTE] Starting category selection with Coordinate-Brute...');
+    console.log('[CAROUSELL_BRUTE] Product:', productInfo.name, 'Category:', productInfo.category);
     
     window.ReactNativeWebView.postMessage(JSON.stringify({
       type: 'CATEGORY_SELECTION_STARTED',
-      level1: '${level1}',
-      level2: '${level2}',
-      level3: '${level3}'
+      adaptive: true,
+      productInfo: productInfo
     }));
     
-    // Helper: Find and click element by text
-    function findByText(text, selector = '*') {
-      const elements = Array.from(document.querySelectorAll(selector));
-      return elements.find(el => {
-        const elText = el.textContent.trim();
-        return elText === text || elText.toLowerCase() === text.toLowerCase();
+    // Get category path from listing data (already mapped by AI service using official taxonomy)
+    const path = ${JSON.stringify(productData.platformData?.carousell?.categoryPath || ['Everything Else'])};
+    console.log('[CAROUSELL_BRUTE] Using official taxonomy path:', path);
+    
+    let currentStep = -1; // Start at -1 to open menu first
+    let menuOpened = false;
+    
+    // PHYSICAL TAP - Simulates real finger press using TouchEvent API
+    const physicalTap = (el) => {
+      const rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      
+      console.log('[CAROUSELL_BRUTE] 👆 Physical Tap at (', x, ',', y, ')');
+      console.log('[CAROUSELL_BRUTE] Element:', el.tagName, 'Text:', el.textContent.trim().substring(0, 30));
+      
+      const touchObj = new Touch({
+        identifier: Date.now(),
+        target: el,
+        clientX: x,
+        clientY: y,
+        radiusX: 2.5,
+        radiusY: 2.5,
+        rotationAngle: 10,
+        force: 0.5,
       });
-    }
-    
-    // Helper: Click with multiple event types
-    async function humanClick(element) {
-      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      await wait(300);
       
-      // Dispatch multiple event types for compatibility
-      element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-      await wait(50);
-      element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-      element.click();
+      const touchEvent = new TouchEvent('touchstart', {
+        cancelable: true,
+        bubbles: true,
+        touches: [touchObj],
+        targetTouches: [touchObj],
+        changedTouches: [touchObj],
+      });
       
-      await wait(500);
-    }
+      el.dispatchEvent(touchEvent);
+      el.click(); // Fallback to standard click
+    };
     
-    // Step 1: Find and click "Select a category" dropdown
-    console.log('[CAROUSELL_CATEGORY] Step 1: Finding category dropdown...');
-    let categoryDropdown = findByText('Select a category', 'div, button, [role="button"]');
+    // STEP 1: Brute force open dropdown with continuous retry
+    console.log('[CAROUSELL_BRUTE] Step 1: Brute forcing dropdown open...');
     
-    if (!categoryDropdown) {
-      // Try finding by placeholder or label
-      const inputs = Array.from(document.querySelectorAll('input, select'));
-      categoryDropdown = inputs.find(el => 
-        el.placeholder?.includes('category') || 
-        el.getAttribute('aria-label')?.includes('category')
+    let attemptCount = 0;
+    const opener = setInterval(() => {
+      attemptCount++;
+      console.log('[CAROUSELL_BRUTE] Attempt', attemptCount, '- Checking if menu is open...');
+      
+      // Check if menu is open by looking for search bar
+      const searchBar = document.querySelector('input[placeholder*="Search" i]');
+      const isMenuOpen = !!searchBar;
+      
+      console.log('[CAROUSELL_BRUTE] Search bar found:', isMenuOpen);
+      
+      if (isMenuOpen && !menuOpened) {
+        console.log('[CAROUSELL_BRUTE] ✅ Menu is OPEN! Starting navigation...');
+        menuOpened = true;
+        clearInterval(opener);
+        currentStep = 0;
+        startNavigation();
+        return;
+      }
+      
+      // Debug logging every 5 attempts
+      if (attemptCount % 5 === 0) {
+        const allText = Array.from(document.querySelectorAll('div, span, button, p, label'))
+          .map(el => el.textContent.trim())
+          .filter(t => t.length > 0 && t.length < 50)
+          .slice(0, 30);
+        console.log('[CAROUSELL_BRUTE] Page text samples:', allText);
+      }
+      
+      // Find "Select a category" text and tap its exact coordinates
+      const elements = Array.from(document.querySelectorAll('div, p, span'));
+      const targetText = elements.find(el => 
+        el.textContent.trim().toLowerCase().includes('select a category') && 
+        el.children.length === 0
       );
-    }
-    
-    if (!categoryDropdown) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'CATEGORY_SELECTION_FAILED',
-        reason: 'Category dropdown not found',
-        step: 1
-      }));
-      return;
-    }
-    
-    console.log('[CAROUSELL_CATEGORY] Found dropdown, clicking...');
-    await humanClick(categoryDropdown);
-    await wait(1000); // Wait for menu to open
-    
-    // Step 2: Select Level 1 (Parent Category)
-    console.log('[CAROUSELL_CATEGORY] Step 2: Selecting level 1:', '${level1}');
-    let level1Element = findByText('${level1}', 'div, li, [role="option"]');
-    
-    if (!level1Element) {
-      // Try case-insensitive search
-      const allOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'));
-      level1Element = allOptions.find(el => 
-        el.textContent.trim().toLowerCase() === '${level1}'.toLowerCase()
-      );
-    }
-    
-    if (!level1Element) {
-      const availableOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'))
-        .map(el => el.textContent.trim())
-        .filter(text => text.length > 0 && text.length < 100)
-        .slice(0, 20);
       
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'CATEGORY_SELECTION_FAILED',
-        reason: 'Level 1 category not found',
-        step: 2,
-        target: '${level1}',
-        availableOptions: availableOptions
-      }));
-      return;
-    }
+      if (targetText) {
+        console.log('[CAROUSELL_BRUTE] Found "Select a category" text');
+        // Find the container that actually has height/width
+        const container = targetText.closest('div[style*="height"]') || targetText.parentElement;
+        console.log('[CAROUSELL_BRUTE] Tapping container:', container.tagName);
+        physicalTap(container);
+      } else {
+        console.log('[CAROUSELL_BRUTE] ⚠️ Could not find "Select a category" text');
+      }
+    }, 1000); // Check every 1 second
     
-    console.log('[CAROUSELL_CATEGORY] Found level 1, clicking...');
-    await humanClick(level1Element);
-    await wait(1500); // Wait for sub-menu to load
-    
-    // Step 3: Select Level 2 (Sub-category)
-    console.log('[CAROUSELL_CATEGORY] Step 3: Selecting level 2:', '${level2}');
-    let level2Element = findByText('${level2}', 'div, li, [role="option"]');
-    
-    if (!level2Element) {
-      const allOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'));
-      level2Element = allOptions.find(el => 
-        el.textContent.trim().toLowerCase() === '${level2}'.toLowerCase()
-      );
-    }
-    
-    if (!level2Element) {
-      const availableOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'))
-        .map(el => el.textContent.trim())
-        .filter(text => text.length > 0 && text.length < 100)
-        .slice(0, 20);
+    // STEP 2: Recursive search & drill-down strategy
+    // Searches for each level in the path, handles sub-menus automatically
+    const startNavigation = () => {
+      console.log('[CAROUSELL_BRUTE] Step 2: Starting recursive search & drill-down...');
+      console.log('[CAROUSELL_BRUTE] Target path:', path);
       
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'CATEGORY_SELECTION_FAILED',
-        reason: 'Level 2 category not found',
-        step: 3,
-        target: '${level2}',
-        availableOptions: availableOptions
-      }));
-      return;
-    }
-    
-    console.log('[CAROUSELL_CATEGORY] Found level 2, clicking...');
-    await humanClick(level2Element);
-    await wait(1500); // Wait for leaf menu to load
-    
-    // Step 4: Select Level 3 (Leaf Category)
-    console.log('[CAROUSELL_CATEGORY] Step 4: Selecting level 3:', '${level3}');
-    let level3Element = findByText('${level3}', 'div, li, [role="option"]');
-    
-    if (!level3Element) {
-      const allOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'));
-      level3Element = allOptions.find(el => 
-        el.textContent.trim().toLowerCase() === '${level3}'.toLowerCase()
-      );
-    }
-    
-    if (!level3Element) {
-      const availableOptions = Array.from(document.querySelectorAll('div, li, [role="option"]'))
-        .map(el => el.textContent.trim())
-        .filter(text => text.length > 0 && text.length < 100)
-        .slice(0, 20);
+      let currentStep = 0;
       
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'CATEGORY_SELECTION_FAILED',
-        reason: 'Level 3 category not found',
-        step: 4,
-        target: '${level3}',
-        availableOptions: availableOptions
-      }));
-      return;
-    }
+      const performSearchAndClick = (searchText) => {
+        console.log('[CAROUSELL_BRUTE] Step', currentStep + 1, '- Searching for:', searchText);
+        
+        // Check if search bar exists
+        const searchBar = document.querySelector('input[placeholder*="Search" i]');
+        
+        if (searchBar) {
+          console.log('[CAROUSELL_BRUTE] 🔍 Search bar found, typing:', searchText);
+          
+          // Capitalize first letter for better matching
+          const capitalized = searchText.charAt(0).toUpperCase() + searchText.slice(1);
+          
+          // Clear previous search
+          searchBar.value = '';
+          searchBar.dispatchEvent(new Event('input', { bubbles: true }));
+          
+          // Type new search with native setter
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          nativeSetter.call(searchBar, capitalized);
+          
+          // Trigger all events
+          searchBar.dispatchEvent(new Event('input', { bubbles: true }));
+          searchBar.dispatchEvent(new Event('change', { bubbles: true }));
+          searchBar.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+          
+          // Wait for results to filter
+          setTimeout(() => {
+            const results = Array.from(document.querySelectorAll('div, p, span'));
+            
+            // Find exact match, ignoring "Suggested" badge
+            const match = results.find(el => {
+              const text = el.textContent.trim();
+              const isExactMatch = text.toLowerCase() === searchText.toLowerCase();
+              const isLeafNode = el.children.length === 0;
+              const notSuggested = text !== 'Suggested';
+              const notRepair = !text.toLowerCase().includes('repair') && !text.toLowerCase().includes('service');
+              return isExactMatch && isLeafNode && notSuggested && notRepair;
+            });
+            
+            if (match) {
+              console.log('[CAROUSELL_BRUTE] ✅ Found exact match:', match.textContent.trim());
+              
+              // Find clickable parent
+              const clickTarget = match.closest('div[role="button"]') || 
+                                 match.closest('li') ||
+                                 match.parentElement;
+              
+              clickTarget.click();
+              currentStep++;
+              
+              // If more steps remain, wait for sub-menu and continue
+              if (currentStep < path.length) {
+                console.log('[CAROUSELL_BRUTE] Waiting for sub-menu to load...');
+                setTimeout(() => {
+                  // Check if search bar still exists (sub-menu with search)
+                  const nextSearchBar = document.querySelector('input[placeholder*="Search" i]');
+                  if (nextSearchBar) {
+                    console.log('[CAROUSELL_BRUTE] Sub-menu has search bar, continuing...');
+                    performSearchAndClick(path[currentStep]);
+                  } else {
+                    console.log('[CAROUSELL_BRUTE] No search bar in sub-menu, switching to list-click mode');
+                    performListClick(path[currentStep]);
+                  }
+                }, 1500);
+              } else {
+                // All steps complete!
+                console.log('[CAROUSELL_BRUTE] ✅ All levels selected!');
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'CATEGORY_SELECTED',
+                  success: true,
+                  strategy: 'recursive-search',
+                  path: path
+                }));
+              }
+            } else {
+              console.log('[CAROUSELL_BRUTE] ❌ No exact match found for:', searchText);
+              console.log('[CAROUSELL_BRUTE] Trying list-click mode instead...');
+              performListClick(searchText);
+            }
+          }, 1500);
+        } else {
+          // No search bar, fall back to list clicking
+          console.log('[CAROUSELL_BRUTE] No search bar found, using list-click mode');
+          performListClick(searchText);
+        }
+      };
+      
+      // Fallback: Click from list when search bar is not available
+      const performListClick = (targetText) => {
+        console.log('[CAROUSELL_BRUTE] List-click mode for:', targetText);
+        
+        const elements = Array.from(document.querySelectorAll('div, p, span, li'));
+        const match = elements.find(el => {
+          const text = el.textContent.trim();
+          const isExactMatch = text.toLowerCase() === targetText.toLowerCase();
+          const isLeafNode = el.children.length === 0;
+          const notSuggested = text !== 'Suggested';
+          return isExactMatch && isLeafNode && notSuggested;
+        });
+        
+        if (match) {
+          console.log('[CAROUSELL_BRUTE] ✅ Found in list:', match.textContent.trim());
+          
+          // Scroll into view
+          match.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          
+          setTimeout(() => {
+            const clickTarget = match.closest('div[role="button"]') || 
+                               match.closest('li') ||
+                               match.parentElement;
+            
+            clickTarget.click();
+            currentStep++;
+            
+            // Continue to next step if needed
+            if (currentStep < path.length) {
+              setTimeout(() => performSearchAndClick(path[currentStep]), 1500);
+            } else {
+              console.log('[CAROUSELL_BRUTE] ✅ All levels selected!');
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'CATEGORY_SELECTED',
+                success: true,
+                strategy: 'list-click',
+                path: path
+              }));
+            }
+          }, 300);
+        } else {
+          console.log('[CAROUSELL_BRUTE] ❌ Could not find:', targetText);
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'CATEGORY_SELECTION_FAILED',
+            reason: 'Could not find category: ' + targetText,
+            step: currentStep,
+            target: targetText
+          }));
+        }
+      };
+      
+      // Start the recursive chain
+      setTimeout(() => performSearchAndClick(path[0]), 500);
+    };
+      
+      // Extract search keyword from product name or category
+      const getSearchKeyword = () => {
+        const name = productInfo.name.toLowerCase();
+        
+        // Product-specific keywords that map directly to categories
+        // Return capitalized for better search matching
+        if (name.includes('microwave') || name.includes('oven')) return 'Microwave';
+        if (name.includes('refrigerator') || name.includes('fridge')) return 'Refrigerator';
+        if (name.includes('washing machine') || name.includes('washer')) return 'Washing Machine';
+        if (name.includes('air conditioner') || name.includes('aircon')) return 'Air Conditioner';
+        if (name.includes('vacuum')) return 'Vacuum';
+        if (name.includes('backpack') || name.includes('bag')) return 'Bag';
+        if (name.includes('headphone') || name.includes('earphone') || name.includes('earbud')) return 'Headphone';
+        if (name.includes('speaker')) return 'Speaker';
+        if (name.includes('iphone') || name.includes('phone')) return 'Phone';
+        if (name.includes('laptop') || name.includes('macbook')) return 'Laptop';
+        if (name.includes('watch')) return 'Watch';
+        if (name.includes('water bottle') || name.includes('tumbler')) return 'Water Bottle';
+        
+        // Fallback: capitalize first letter of first word
+        const firstWord = name.split(' ')[0];
+        return firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
+      };
+
     
-    console.log('[CAROUSELL_CATEGORY] Found level 3, clicking...');
-    await humanClick(level3Element);
-    await wait(1000);
-    
-    console.log('[CAROUSELL_CATEGORY] ✅ Category selection complete!');
-    window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: 'CATEGORY_SELECTED',
-      success: true,
-      level1: '${level1}',
-      level2: '${level2}',
-      level3: '${level3}'
-    }));
+    // Safety timeout (20 seconds)
+    setTimeout(() => {
+      clearInterval(opener);
+      
+      if (!menuOpened) {
+        console.log('[CAROUSELL_BRUTE] ❌ Timeout - menu never opened after 20 seconds');
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'CATEGORY_SELECTION_FAILED',
+          reason: 'Could not open category dropdown after 20 seconds with Coordinate-Brute'
+        }));
+      }
+    }, 20000);
     
   } catch (error) {
-    console.error('[CAROUSELL_CATEGORY] Error:', error);
+    console.error('[CAROUSELL_BRUTE] Error:', error);
     window.ReactNativeWebView.postMessage(JSON.stringify({
       type: 'CATEGORY_SELECTION_FAILED',
       reason: error.toString()
@@ -1031,21 +1158,120 @@ export const CarousellWebView = ({ navigation, route }) => {
           console.log('[CAROUSELL_MSG] ✅ Image injected successfully!');
           console.log('[CAROUSELL_MSG] File:', data.fileName, 'Size:', data.fileSize, 'bytes');
           
-          // After image injection, trigger category selection
+          // Wait much longer for Carousell to fully load the form
           setTimeout(async () => {
-            console.log('[CAROUSELL_MSG] Starting category selection...');
-            await handleCategorySelection();
-          }, 2000);
+            console.log('[CAROUSELL_MSG] Checking if page is ready for category selection...');
+            
+            // Check if the form is actually loaded
+            const pageReadyScript = `
+              (function() {
+                // Look for key form elements
+                const titleInput = document.querySelector('input[placeholder*="title" i], input[name*="title" i]');
+                const priceInput = document.querySelector('input[type="number"], input[placeholder*="price" i]');
+                const categoryButton = document.querySelector('button, [role="button"]');
+                const allButtons = Array.from(document.querySelectorAll('button, [role="button"], div'));
+                const hasCategoryText = allButtons.some(el => {
+                  const text = el.textContent.toLowerCase();
+                  return text.includes('category') || text.includes('select');
+                });
+                
+                const isReady = titleInput && priceInput && hasCategoryText;
+                
+                console.log('[CAROUSELL_READY_CHECK] Title input:', !!titleInput);
+                console.log('[CAROUSELL_READY_CHECK] Price input:', !!priceInput);
+                console.log('[CAROUSELL_READY_CHECK] Has category text:', hasCategoryText);
+                console.log('[CAROUSELL_READY_CHECK] Is ready:', isReady);
+                
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'PAGE_READY_CHECK',
+                  isReady: isReady,
+                  hasTitleInput: !!titleInput,
+                  hasPriceInput: !!priceInput,
+                  hasCategoryText: hasCategoryText
+                }));
+              })();
+              true;
+            `;
+            injectJavaScript(pageReadyScript);
+          }, 5000); // Wait 5 seconds for page to load
+          break;
+          
+        case 'PAGE_READY_CHECK':
+          console.log('[CAROUSELL_MSG] Page ready check:', data.isReady);
+          console.log('[CAROUSELL_MSG] Has title input:', data.hasTitleInput);
+          console.log('[CAROUSELL_MSG] Has price input:', data.hasPriceInput);
+          console.log('[CAROUSELL_MSG] Has category text:', data.hasCategoryText);
+          
+          if (data.isReady) {
+            console.log('[CAROUSELL_MSG] ✅ Page is ready! Starting category selection...');
+            setTimeout(async () => {
+              await handleCategorySelection();
+            }, 1000);
+          } else {
+            console.log('[CAROUSELL_MSG] ⚠️ Page not ready yet, waiting longer...');
+            // Retry after 3 more seconds
+            setTimeout(() => {
+              const retryScript = `
+                (function() {
+                  const allButtons = Array.from(document.querySelectorAll('button, [role="button"], div'));
+                  const hasCategoryText = allButtons.some(el => {
+                    const text = el.textContent.toLowerCase();
+                    return text.includes('category') || text.includes('select');
+                  });
+                  
+                  console.log('[CAROUSELL_RETRY] Has category text:', hasCategoryText);
+                  
+                  if (hasCategoryText) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'PAGE_READY_RETRY',
+                      success: true
+                    }));
+                  } else {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'PAGE_READY_RETRY',
+                      success: false
+                    }));
+                  }
+                })();
+                true;
+              `;
+              injectJavaScript(retryScript);
+            }, 3000);
+          }
+          break;
+          
+        case 'PAGE_READY_RETRY':
+          if (data.success) {
+            console.log('[CAROUSELL_MSG] ✅ Page ready on retry! Starting category selection...');
+            setTimeout(async () => {
+              await handleCategorySelection();
+            }, 1000);
+          } else {
+            console.log('[CAROUSELL_MSG] ❌ Page still not ready after retry');
+            Alert.alert(
+              'Page Loading Issue',
+              'The listing form is taking longer than expected to load. Please select the category manually.',
+              [{ text: 'OK' }]
+            );
+          }
           break;
           
         case 'CATEGORY_SELECTION_STARTED':
           console.log('[CAROUSELL_MSG] 🚀 Category selection started');
-          console.log('[CAROUSELL_MSG] Hierarchy:', data.level1, '>', data.level2, '>', data.level3);
+          if (data.adaptive) {
+            console.log('[CAROUSELL_MSG] Adaptive mode - Product:', data.productInfo?.name, 'Category:', data.productInfo?.category);
+          } else {
+            console.log('[CAROUSELL_MSG] Hierarchy:', data.level1, '>', data.level2, '>', data.level3);
+          }
           break;
           
         case 'CATEGORY_SELECTED':
           console.log('[CAROUSELL_MSG] ✅ Category selected successfully!');
-          console.log('[CAROUSELL_MSG] Final:', data.level1, '>', data.level2, '>', data.level3);
+          if (data.path) {
+            console.log('[CAROUSELL_MSG] Path:', data.path.join(' > '));
+          } else {
+            console.log('[CAROUSELL_MSG] Final:', data.level1, '>', data.level2, '>', data.level3);
+          }
           Alert.alert(
             '✅ Listing Ready',
             'Image uploaded and category selected! Fill in the remaining details and tap "List Now" to publish.',
@@ -1059,9 +1285,15 @@ export const CarousellWebView = ({ navigation, route }) => {
           if (data.availableOptions) {
             console.log('[CAROUSELL_MSG] Available options:', data.availableOptions);
           }
+          
+          // More helpful error message
+          const errorMsg = data.reason?.includes('dropdown') 
+            ? 'Could not find the category dropdown. The page may still be loading. Please select category manually.'
+            : `Could not select category automatically. Please select "${data.target || 'category'}" manually.`;
+          
           Alert.alert(
             'Category Selection Failed',
-            `Could not select category automatically. Please select "${data.target || 'category'}" manually.`,
+            errorMsg,
             [{ text: 'OK' }]
           );
           break;
@@ -1200,37 +1432,18 @@ export const CarousellWebView = ({ navigation, route }) => {
     }
   };
   
-  // Handle category hierarchy selection
+  // Handle adaptive category selection
   const handleCategorySelection = async () => {
     try {
-      const categoryHierarchy = listingData?.platformData?.carousell?.categoryHierarchy;
-      
-      if (!categoryHierarchy) {
-        console.log('[CAROUSELL_CATEGORY] No category hierarchy found in listing data');
-        Alert.alert(
-          'Category Required',
-          'Please select a category manually.',
-          [{ text: 'OK' }]
-        );
+      if (!listingData) {
+        console.log('[CAROUSELL_CATEGORY] No listing data available');
         return;
       }
       
-      const { level1, level2, level3 } = categoryHierarchy;
+      console.log('[CAROUSELL_CATEGORY] Starting adaptive category selection...');
+      console.log('[CAROUSELL_CATEGORY] Product:', listingData.name, 'Category:', listingData.category);
       
-      if (!level1 || !level2 || !level3) {
-        console.log('[CAROUSELL_CATEGORY] Incomplete category hierarchy:', categoryHierarchy);
-        Alert.alert(
-          'Category Required',
-          'Please select a category manually.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      console.log('[CAROUSELL_CATEGORY] Category hierarchy:', level1, '>', level2, '>', level3);
-      console.log('[CAROUSELL_CATEGORY] Injecting category selection script...');
-      
-      injectJavaScript(getCategorySelectionScript(level1, level2, level3));
+      injectJavaScript(getAdaptiveCategorySelectionScript(listingData));
     } catch (error) {
       console.error('[CAROUSELL_CATEGORY] Error:', error);
       Alert.alert(
@@ -1268,10 +1481,10 @@ export const CarousellWebView = ({ navigation, route }) => {
       {/* Custom Header - Fixed height with strict stacking context */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.closeButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="close" size={28} color="#000" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         
         <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
@@ -1380,7 +1593,7 @@ const styles = StyleSheet.create({
     elevation: 10, // Android requires elevation to stay above WebView
     position: 'relative', // Ensures z-index works
   },
-  closeButton: {
+  backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
