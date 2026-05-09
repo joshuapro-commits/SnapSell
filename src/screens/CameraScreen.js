@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,11 +7,19 @@ import * as ImagePicker from 'expo-image-picker';
 export const CameraScreen = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
+  const [isPickerReady, setIsPickerReady] = useState(false);
 
   useEffect(() => {
     if (permission && !permission.granted) {
       requestPermission();
     }
+    
+    // Initialize picker on mount for Android
+    const initPicker = async () => {
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+      setTimeout(() => setIsPickerReady(true), 500);
+    };
+    initPicker();
   }, [permission]);
 
   const handleTakePhoto = async () => {
@@ -28,6 +36,11 @@ export const CameraScreen = ({ navigation }) => {
   };
 
   const handleOpenGallery = async () => {
+    if (!isPickerReady) {
+      Alert.alert('Please Wait', 'Gallery is initializing...');
+      return;
+    }
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -37,11 +50,12 @@ export const CameraScreen = ({ navigation }) => {
       if (!result.canceled) {
         navigation.navigate('AnalyzingScreen', { 
           imageUri: result.assets[0].uri,
-          photoSource: 'gallery', // Track photo source for verification
+          photoSource: 'gallery',
         });
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to open photo library');
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to open photo library. Please try again.');
     }
   };
 

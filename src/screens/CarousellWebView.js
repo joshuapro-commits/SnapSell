@@ -281,13 +281,63 @@ true;
 `;
 
 // COORDINATE-BRUTE Category Selection - Physical tap simulation using TouchEvent API
-const getAdaptiveCategorySelectionScript = (productData) => `
+const getAdaptiveCategorySelectionScript = (listingData) => {
+  // Extract the category path BEFORE injecting into the script
+  const categoryPath = listingData.platformData?.carousell?.categoryPath || null;
+  const productName = (listingData.name || listingData.title || '').toLowerCase();
+  
+  console.log('[CAROUSELL_SCRIPT_GEN] Product name:', productName);
+  console.log('[CAROUSELL_SCRIPT_GEN] Category path from data:', categoryPath);
+  
+  // BRUTE FORCE MAPPING - Do it in React Native, not in WebView
+  let finalPath = ['Everything Else'];
+  
+  if (categoryPath && categoryPath.length > 0 && categoryPath[0] !== 'Everything Else') {
+    finalPath = categoryPath;
+    console.log('[CAROUSELL_SCRIPT_GEN] Using AI-generated path:', finalPath);
+  } else {
+    // Map based on product name
+    if (productName.includes('microwave') || productName.includes('oven')) {
+      finalPath = ['TV & Home Appliances', 'Kitchen Appliances', 'Ovens & Toasters'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 🔥 Mapped to microwave/oven category');
+    } else if (productName.includes('water bottle') || productName.includes('tumbler') || productName.includes('flask')) {
+      finalPath = ['Furniture & Home Living', 'Kitchenware & Tableware', 'Water Bottles & Tumblers'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 💧 Mapped to water bottle category');
+    } else if (productName.includes('iphone') || productName.includes('phone') || productName.includes('smartphone')) {
+      finalPath = ['Mobile Phones & Gadgets', 'Mobile Phones'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 📱 Mapped to phone category');
+    } else if (productName.includes('laptop') || productName.includes('macbook') || productName.includes('notebook')) {
+      finalPath = ['Computers & Tech', 'Laptops & Notebooks'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 💻 Mapped to laptop category');
+    } else if (productName.includes('headphone') || productName.includes('earphone') || productName.includes('earbud') || productName.includes('airpod')) {
+      finalPath = ['Audio', 'Earphones'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 🎧 Mapped to audio category');
+    } else if (productName.includes('speaker')) {
+      finalPath = ['Audio', 'Soundbars, Speakers & Amplifiers'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 🔊 Mapped to speaker category');
+    } else if (productName.includes('watch')) {
+      finalPath = ["Men's Fashion", 'Watches & Accessories', 'Watches'];
+      console.log('[CAROUSELL_SCRIPT_GEN] ⌚ Mapped to watch category');
+    } else if (productName.includes('bag') || productName.includes('backpack')) {
+      finalPath = ["Women's Fashion", 'Bags & Wallets', 'Backpacks'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 🎒 Mapped to bag category');
+    } else if (productName.includes('shoe') || productName.includes('sneaker') || productName.includes('boot')) {
+      finalPath = ["Men's Fashion", 'Footwear', 'Sneakers'];
+      console.log('[CAROUSELL_SCRIPT_GEN] 👟 Mapped to shoe category');
+    } else {
+      console.log('[CAROUSELL_SCRIPT_GEN] ❌ No match found, using Everything Else');
+    }
+  }
+  
+  console.log('[CAROUSELL_SCRIPT_GEN] 🎯 FINAL PATH TO INJECT:', finalPath);
+  
+  return `
 (async function() {
   try {
     const productInfo = {
-      name: ${JSON.stringify(productData.name || productData.title || '')},
-      category: ${JSON.stringify(productData.category || '')},
-      brand: ${JSON.stringify(productData.brand || '')}
+      name: ${JSON.stringify(listingData.name || listingData.title || '')},
+      category: ${JSON.stringify(listingData.category || '')},
+      brand: ${JSON.stringify(listingData.brand || '')}
     };
     
     console.log('[CAROUSELL_BRUTE] Starting category selection with Coordinate-Brute...');
@@ -299,9 +349,9 @@ const getAdaptiveCategorySelectionScript = (productData) => `
       productInfo: productInfo
     }));
     
-    // Get category path from listing data (already mapped by AI service using official taxonomy)
-    const path = ${JSON.stringify(productData.platformData?.carousell?.categoryPath || ['Everything Else'])};
-    console.log('[CAROUSELL_BRUTE] Using official taxonomy path:', path);
+    // Path is hardcoded from React Native side - DO NOT OVERRIDE
+    const path = ${JSON.stringify(finalPath)};
+    console.log('[CAROUSELL_BRUTE] Using hardcoded path from React Native:', path);
     
     let currentStep = -1; // Start at -1 to open menu first
     let menuOpened = false;
@@ -561,6 +611,14 @@ const getAdaptiveCategorySelectionScript = (productData) => `
         const firstWord = name.split(' ')[0];
         return firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
       };
+      
+      // Log the final path being used for debugging
+      console.log('[CAROUSELL_BRUTE] ===== CATEGORY SELECTION DEBUG =====');
+      console.log('[CAROUSELL_BRUTE] Product Name:', productInfo.name);
+      console.log('[CAROUSELL_BRUTE] Product Category:', productInfo.category);
+      console.log('[CAROUSELL_BRUTE] Final Path:', path);
+      console.log('[CAROUSELL_BRUTE] Path Length:', path.length);
+      console.log('[CAROUSELL_BRUTE] =====================================');
 
     
     // Safety timeout (20 seconds)
@@ -586,6 +644,7 @@ const getAdaptiveCategorySelectionScript = (productData) => `
 })();
 true;
 `;
+};
 
 // Auto-fill listing script - Semi-Auto approach (user taps final submit)
 const getAutoFillScript = (listingData) => `
@@ -1286,10 +1345,15 @@ export const CarousellWebView = ({ navigation, route }) => {
             console.log('[CAROUSELL_MSG] Available options:', data.availableOptions);
           }
           
-          // More helpful error message
-          const errorMsg = data.reason?.includes('dropdown') 
+          // More helpful error message with debugging info
+          let errorMsg = data.reason?.includes('dropdown') 
             ? 'Could not find the category dropdown. The page may still be loading. Please select category manually.'
             : `Could not select category automatically. Please select "${data.target || 'category'}" manually.`;
+          
+          // Add debugging info if category was Everything Else
+          if (data.target === 'Everything Else' || data.reason?.includes('Everything Else')) {
+            errorMsg += '\n\nDEBUG: The AI mapped this product to "Everything Else" category. This usually means the product category could not be properly identified. Please select the correct category manually.';
+          }
           
           Alert.alert(
             'Category Selection Failed',
@@ -1439,6 +1503,15 @@ export const CarousellWebView = ({ navigation, route }) => {
         console.log('[CAROUSELL_CATEGORY] No listing data available');
         return;
       }
+      
+      console.log('[CAROUSELL_CATEGORY] ===== FULL LISTING DATA DEBUG =====');
+      console.log('[CAROUSELL_CATEGORY] listingData.name:', listingData.name);
+      console.log('[CAROUSELL_CATEGORY] listingData.title:', listingData.title);
+      console.log('[CAROUSELL_CATEGORY] listingData.category:', listingData.category);
+      console.log('[CAROUSELL_CATEGORY] listingData.platformData:', JSON.stringify(listingData.platformData, null, 2));
+      console.log('[CAROUSELL_CATEGORY] listingData.platformData?.carousell:', JSON.stringify(listingData.platformData?.carousell, null, 2));
+      console.log('[CAROUSELL_CATEGORY] listingData.platformData?.carousell?.categoryPath:', listingData.platformData?.carousell?.categoryPath);
+      console.log('[CAROUSELL_CATEGORY] =====================================');
       
       console.log('[CAROUSELL_CATEGORY] Starting adaptive category selection...');
       console.log('[CAROUSELL_CATEGORY] Product:', listingData.name, 'Category:', listingData.category);

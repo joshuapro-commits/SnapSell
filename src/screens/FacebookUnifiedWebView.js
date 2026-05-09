@@ -345,9 +345,14 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
               }
 
               // ── Trust event simulation ─────────────────────────────────────────
-              // Full touchstart → delay → touchend → focus sequence.
+              // Full focus → touchstart → delay → touchend sequence.
               // Never uses .click() directly — bare click() is a bot signal.
               async function humanTouch(el) {
+                // CRITICAL: Focus element FIRST to get blue border
+                el.focus();
+                el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+                await wait(150 + Math.random() * 100);
+                
                 var rect = el.getBoundingClientRect();
                 // Randomize tap point within the middle 40% of the element
                 var x = rect.left + rect.width  * (0.3 + Math.random() * 0.4);
@@ -381,6 +386,8 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                 }));
 
                 await wait(20 + Math.random() * 30);
+                
+                // Ensure focus is maintained after touch
                 el.focus();
                 await wait(80 + Math.random() * 120);
               }
@@ -426,9 +433,14 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
               // 6. Micro-pauses between words (200-400ms)
               // 7. Occasional hesitation mid-sentence (5% chance, 500-1000ms)
               async function stealthType(el, text, skipClear = false) {
-                // Always focus first — real users click the field
+                // CRITICAL: Focus field first to get blue border (React form validation)
                 el.focus();
-                await wait(150 + Math.random() * 100);
+                
+                // Dispatch focus event for React state sync
+                el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+                
+                // Wait for focus to register and blue border to appear
+                await wait(200 + Math.random() * 100);
 
                 // Clear existing value first (unless skipClear is true)
                 if (!skipClear) {
@@ -543,6 +555,57 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                 }
                 input.scrollIntoView({ block: 'center' });
                 await wait(300 + Math.random() * 200);
+                
+                // AGGRESSIVE FOCUS with visual verification
+                for (let attempt = 0; attempt < 5; attempt++) {
+                  // Multiple focus methods
+                  input.focus();
+                  input.click();
+                  input.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                  input.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+                  input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+                  
+                  await wait(200);
+                  
+                  // Check if field is actually focused (has blue border)
+                  const isFocused = document.activeElement === input;
+                  const computedStyle = window.getComputedStyle(input);
+                  const hasBlueBorder = computedStyle.borderColor.includes('rgb(24, 119, 242)') || 
+                                       computedStyle.boxShadow.includes('rgb(24, 119, 242)') ||
+                                       computedStyle.outline.includes('rgb(24, 119, 242)');
+                  
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                    type: 'FOCUS_CHECK', 
+                    field: ariaLabel,
+                    attempt: attempt + 1,
+                    isFocused: isFocused,
+                    hasBlueBorder: hasBlueBorder,
+                    borderColor: computedStyle.borderColor,
+                    boxShadow: computedStyle.boxShadow,
+                    outline: computedStyle.outline
+                  }));
+                  
+                  if (isFocused && (hasBlueBorder || attempt >= 3)) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                      type: 'FOCUS_SUCCESS', 
+                      field: ariaLabel,
+                      attempt: attempt + 1
+                    }));
+                    break;
+                  }
+                  
+                  // If not focused, try clicking parent elements
+                  if (attempt < 4) {
+                    let parent = input.parentElement;
+                    for (let i = 0; i < 3 && parent; i++) {
+                      parent.click();
+                      parent = parent.parentElement;
+                    }
+                    await wait(300);
+                  }
+                }
+                
+                await wait(200);
                 await humanTouch(input);
                 await wait(300 + Math.random() * 200);
                 await stealthType(input, value);
@@ -631,6 +694,50 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
 
                 desc.scrollIntoView({ block: 'center' });
                 await wait(500);
+                
+                // AGGRESSIVE FOCUS for Description field
+                for (let focusAttempt = 0; focusAttempt < 5; focusAttempt++) {
+                  desc.focus();
+                  desc.click();
+                  desc.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                  desc.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+                  desc.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+                  
+                  await wait(200);
+                  
+                  const isFocused = document.activeElement === desc;
+                  const computedStyle = window.getComputedStyle(desc);
+                  const hasBlueBorder = computedStyle.borderColor.includes('rgb(24, 119, 242)') || 
+                                       computedStyle.boxShadow.includes('rgb(24, 119, 242)') ||
+                                       computedStyle.outline.includes('rgb(24, 119, 242)');
+                  
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                    type: 'FOCUS_CHECK', 
+                    field: 'Description',
+                    attempt: focusAttempt + 1,
+                    isFocused: isFocused,
+                    hasBlueBorder: hasBlueBorder
+                  }));
+                  
+                  if (isFocused && (hasBlueBorder || focusAttempt >= 3)) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                      type: 'FOCUS_SUCCESS', 
+                      field: 'Description',
+                      attempt: focusAttempt + 1
+                    }));
+                    break;
+                  }
+                  
+                  if (focusAttempt < 4) {
+                    let parent = desc.parentElement;
+                    for (let i = 0; i < 3 && parent; i++) {
+                      parent.click();
+                      parent = parent.parentElement;
+                    }
+                    await wait(300);
+                  }
+                }
+                
                 await humanTouch(desc);
                 await wait(300);
                 await stealthType(desc, text);
@@ -1238,6 +1345,10 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                   await wait(1000 + Math.random() * 500);
                   await expandMoreDetails();
                   if (killSwitchTriggered) return;
+                  
+                  // ANDROID CRITICAL: Wait for "More Details" animation + React render
+                  // React needs time to mount newly visible fields (Description, Tags)
+                  await wait(800 + Math.random() * 400); // 800-1200ms for DOM stabilization
 
                   // Fill Description
                   await wait(2000 + Math.random() * 500);
@@ -1247,130 +1358,236 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
                     failedFields.push('Description');
                   }
 
-                  // Fill Product Tags with Total Interception script
+                  // Fill Product Tags with React-compatible approach
                   await wait(1500 + Math.random() * 500);
                   if (killSwitchTriggered) return;
                   const tags = ${fbTags};
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_FILL_START', tagCount: tags ? tags.length : 0 }));
+                  
                   if (tags && tags.length > 0) {
-                    // Install continuous monitoring script that re-binds on every FB re-render
-                    const tagInterceptionScript = '(function() { function forceTag(input) { if (input.dataset.tagHooked) return; input.dataset.tagHooked = "true"; input.addEventListener("input", function(e) { const val = e.target.value; if (val.endsWith(",") || val.endsWith(" ")) { e.target.value = val.slice(0, -1); ["keydown", "keypress", "keyup"].forEach(type => { const event = new KeyboardEvent(type, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }); e.target.dispatchEvent(event); }); setTimeout(function() { e.target.blur(); setTimeout(function() { e.target.focus(); }, 50); }, 10); } }); } setInterval(function() { const tagInput = document.querySelector("input[placeholder*=Tag]") || document.querySelector("label[aria-label*=Tag] input") || document.querySelector("[role=textbox][aria-label*=Tag]"); if (tagInput) forceTag(tagInput); }, 1000); })();';
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_SEARCH_START' }));
                     
-                    // Inject the interception script first
-                    eval(tagInterceptionScript);
-                    await wait(500);
+                    let tagsField = null;
                     
-                    const tagInput = findInput('Product tags') || findInput('Tags');
-                    if (tagInput) {
-                      // Vary number of tags occasionally (anti-identical-footprint)
+                    // Method 1: aria-label with "Product tags"
+                    tagsField = document.querySelector('div[aria-label*="Product tags" i]');
+                    if (tagsField) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_FOUND', method: 'aria-label Product tags' }));
+                    
+                    // Method 2: aria-label with just "Tags"
+                    if (!tagsField) {
+                      tagsField = document.querySelector('div[aria-label*="Tags" i]');
+                      if (tagsField) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_FOUND', method: 'aria-label Tags' }));
+                    }
+                    
+                    // Method 3: role="textbox" with tag-related aria-label
+                    if (!tagsField) {
+                      tagsField = document.querySelector('div[role="textbox"][aria-label*="tag" i]');
+                      if (tagsField) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_FOUND', method: 'role textbox' }));
+                    }
+                    
+                    // Method 4: input with placeholder containing "tag"
+                    if (!tagsField) {
+                      tagsField = document.querySelector('input[placeholder*="tag" i]');
+                      if (tagsField) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_FOUND', method: 'input placeholder' }));
+                    }
+                    
+                    // Method 5: Search by visible label text "Product tags"
+                    if (!tagsField) {
+                      const allLabels = Array.from(document.querySelectorAll('label, span, div'));
+                      for (const label of allLabels) {
+                        const text = label.textContent.trim().toLowerCase();
+                        if (text === 'product tags' || text === 'tags') {
+                          let parent = label.parentElement;
+                          for (let i = 0; i < 5; i++) {
+                            if (!parent) break;
+                            const field = parent.querySelector('input, textarea, [contenteditable="true"], [role="textbox"]');
+                            if (field) {
+                              tagsField = field;
+                              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'TAG_FOUND', method: 'label text search' }));
+                              break;
+                            }
+                            parent = parent.parentElement;
+                          }
+                          if (tagsField) break;
+                        }
+                      }
+                    }
+                    
+                    if (!tagsField) {
+                      // FULL DEBUG: Send ALL possible fields to React Native
+                      const allEditables = Array.from(document.querySelectorAll('[contenteditable="true"]'));
+                      const editableData = allEditables.map(el => ({
+                        tag: el.tagName,
+                        ariaLabel: el.getAttribute('aria-label'),
+                        role: el.getAttribute('role'),
+                        text: el.textContent.substring(0, 30)
+                      }));
+                      
+                      const allTextboxes = Array.from(document.querySelectorAll('[role="textbox"]'));
+                      const textboxData = allTextboxes.map(el => ({
+                        tag: el.tagName,
+                        ariaLabel: el.getAttribute('aria-label'),
+                        text: el.textContent.substring(0, 30)
+                      }));
+                      
+                      const allInputs = Array.from(document.querySelectorAll('input'));
+                      const inputData = allInputs.map(el => ({
+                        type: el.type,
+                        ariaLabel: el.getAttribute('aria-label'),
+                        placeholder: el.placeholder,
+                        name: el.name
+                      }));
+                      
+                      const allText = Array.from(document.querySelectorAll('*'));
+                      const tagRelated = allText.filter(el => {
+                        const text = el.textContent.toLowerCase();
+                        return text.includes('tag') && text.length < 100 && el.children.length === 0;
+                      });
+                      const tagRelatedData = tagRelated.slice(0, 10).map(el => ({
+                        tag: el.tagName,
+                        text: el.textContent.trim(),
+                        ariaLabel: el.getAttribute('aria-label')
+                      }));
+                      
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                        type: 'TAG_FIELD_NOT_FOUND',
+                        diagnostics: {
+                          editables: editableData,
+                          textboxes: textboxData,
+                          inputs: inputData,
+                          tagRelated: tagRelatedData
+                        }
+                      }));
+                    }
+                    
+                    if (tagsField) {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                        type: 'TAG_FOUND_DETAILS',
+                        tag: tagsField.tagName,
+                        role: tagsField.getAttribute('role'),
+                        ariaLabel: tagsField.getAttribute('aria-label')
+                      }));
+                      
+                      // Scroll into view
+                      tagsField.scrollIntoView({ block: 'center' });
+                      await wait(500);
+                      
                       const tagsToUse = tags.length > 5 && Math.random() < 0.3 
                         ? tags.slice(0, Math.floor(tags.length * 0.7))
                         : tags;
                       
+                        // AGGRESSIVE FOCUS for Product Tags field
+                        for (let tagFocusAttempt = 0; tagFocusAttempt < 5; tagFocusAttempt++) {
+                          tagsField.focus();
+                          tagsField.click();
+                          tagsField.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                          tagsField.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+                          tagsField.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+                          
+                          await wait(200);
+                          
+                          const isFocused = document.activeElement === tagsField;
+                          const computedStyle = window.getComputedStyle(tagsField);
+                          const hasBlueBorder = computedStyle.borderColor.includes('rgb(24, 119, 242)') || 
+                                               computedStyle.boxShadow.includes('rgb(24, 119, 242)') ||
+                                               computedStyle.outline.includes('rgb(24, 119, 242)');
+                          
+                          window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                            type: 'FOCUS_CHECK', 
+                            field: 'Product tags (initial)',
+                            attempt: tagFocusAttempt + 1,
+                            isFocused: isFocused,
+                            hasBlueBorder: hasBlueBorder
+                          }));
+                          
+                          if (isFocused && (hasBlueBorder || tagFocusAttempt >= 3)) {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                              type: 'FOCUS_SUCCESS', 
+                              field: 'Product tags (initial)',
+                              attempt: tagFocusAttempt + 1
+                            }));
+                            break;
+                          }
+                          
+                          if (tagFocusAttempt < 4) {
+                            let parent = tagsField.parentElement;
+                            for (let i = 0; i < 3 && parent; i++) {
+                              parent.click();
+                              parent = parent.parentElement;
+                            }
+                            await wait(300);
+                          }
+                        }
+                        
                       for (let i = 0; i < tagsToUse.length; i++) {
                         const tag = tagsToUse[i];
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                          type: 'TAG_PROCESSING',
+                          index: i + 1,
+                          total: tagsToUse.length,
+                          tag: tag
+                        }));
                         
-                        // Focus the input
-                        tagInput.focus();
-                        await wait(200 + Math.random() * 200);
-                        
-                        // Type tag character-by-character
-                        for (let charIdx = 0; charIdx < tag.length; charIdx++) {
-                          const char = tag[charIdx];
+                        // AGGRESSIVE FOCUS before EACH tag
+                        for (let perTagFocus = 0; perTagFocus < 3; perTagFocus++) {
+                          tagsField.focus();
+                          tagsField.click();
+                          tagsField.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
                           
-                          // Typo simulation: 2% chance
-                          const shouldTypo = Math.random() < 0.02 && charIdx < tag.length - 2 && char !== ' ';
-                          if (shouldTypo) {
-                            const wrong = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
-                            tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: wrong, bubbles: true }));
-                            document.execCommand('insertText', false, wrong);
-                            tagInput.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: wrong, bubbles: true }));
-                            await wait(280 + Math.random() * 180);
-                            tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
-                            document.execCommand('delete', false, null);
-                            tagInput.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
-                            await wait(80 + Math.random() * 80);
+                          await wait(100);
+                          
+                          const isFocused = document.activeElement === tagsField;
+                          if (isFocused || perTagFocus >= 2) {
+                            window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                              type: 'FOCUS_SUCCESS', 
+                              field: 'Product tags (tag ' + (i + 1) + ')',
+                              attempt: perTagFocus + 1
+                            }));
+                            break;
                           }
-                          
-                          // Insert character
-                          tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
-                          const inserted = document.execCommand('insertText', false, char);
-                          if (!inserted) {
-                            if (tagInput.isContentEditable) {
-                              tagInput.textContent += char;
-                            } else if (tagInput.tagName === 'INPUT' || tagInput.tagName === 'TEXTAREA') {
-                              const descriptor = Object.getOwnPropertyDescriptor(
-                                tagInput.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
-                                'value'
-                              );
-                              if (descriptor && descriptor.set) {
-                                descriptor.set.call(tagInput, tagInput.value + char);
-                              } else {
-                                tagInput.value += char;
-                              }
-                            } else {
-                              tagInput.textContent += char;
-                            }
-                          }
-                          
-                          tagInput.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: char, bubbles: true }));
-                          
-                          let baseDelay = 50;
-                          if (/[0-9!@#$%^&*()]/.test(char)) {
-                            baseDelay = 80;
-                          } else if (/[aeiou ]/.test(char.toLowerCase())) {
-                            baseDelay = 40;
-                          }
-                          await wait(baseDelay + Math.random() * 100);
                         }
                         
-                        // Force commit via multiple strategies
-                        await wait(100);
+                        await humanTouch(tagsField);
+                        await wait(300);
                         
-                        // Strategy 1: Send Enter key BEFORE comma (most reliable)
-                        ['keydown', 'keypress', 'keyup'].forEach(type => {
-                          tagInput.dispatchEvent(new KeyboardEvent(type, {
-                            key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-                            bubbles: true, cancelable: true
-                          }));
-                        });
-                        await wait(150);
+                        // Type the tag (skipClear=false to clear field before each tag)
+                        await stealthType(tagsField, tag, false);
                         
-                        // Strategy 2: Clear the input value (force React to process)
-                        const descriptor = Object.getOwnPropertyDescriptor(
-                          tagInput.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
-                          'value'
-                        );
-                        if (descriptor && descriptor.set) {
-                          descriptor.set.call(tagInput, '');
-                        } else {
-                          tagInput.value = '';
-                        }
-                        tagInput.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentBackward', bubbles: true }));
-                        tagInput.dispatchEvent(new Event('change', { bubbles: true }));
-                        await wait(100);
+                        // Dispatch Enter key to convert text to chip
+                        tagsField.dispatchEvent(new KeyboardEvent('keydown', {
+                          key: 'Enter',
+                          code: 'Enter',
+                          keyCode: 13,
+                          which: 13,
+                          bubbles: true,
+                          cancelable: true,
+                          composed: true
+                        }));
                         
-                        // Strategy 3: Blur/focus cycle to ensure React processes
-                        tagInput.blur();
-                        await wait(100);
-                        tagInput.focus();
-                        await wait(200);
+                        // Wait for chip creation
+                        await wait(800);
                         
-                        // Human-like variable delay between tags
-                        let baseDelay = 400;
-                        if (i < 2) {
-                          baseDelay = 600;
-                        } else if (i >= tagsToUse.length - 2) {
-                          baseDelay = 700;
-                        }
+                        // Verify chip was created
+                        const chips = document.querySelectorAll('[role="button"][aria-label*="Remove"]');
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                          type: 'TAG_CHIP_CHECK',
+                          expected: i + 1,
+                          actual: chips.length
+                        }));
                         
+                        // Human-like delay between tags
                         if (i < tagsToUse.length - 1) {
-                          await wait(baseDelay + Math.random() * 500);
+                          await wait(800 + Math.random() * 400);
                         }
                       }
+                      
+                      // Final verification
+                      const finalChips = document.querySelectorAll('[role="button"][aria-label*="Remove"]');
                       window.ReactNativeWebView.postMessage(JSON.stringify({ 
                         type: 'FIELD_FILLED', 
                         field: 'Product tags', 
-                        count: tagsToUse.length
+                        count: tagsToUse.length,
+                        chipsCreated: finalChips.length
                       }));
                     } else {
                       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'FIELD_NOT_FOUND', field: 'Product tags' }));
@@ -1463,10 +1680,38 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
         }, 500);
       } else if (mode === 'sell' && data.type === 'DEBUG_INPUTS') {
         console.log('[FB_SELL] Available inputs:', data.inputs);
+      } else if (mode === 'sell' && data.type === 'FOCUS_CHECK') {
+        console.log(`[FB_SELL] Focus check: ${data.field} | Attempt: ${data.attempt} | Focused: ${data.isFocused} | Blue border: ${data.hasBlueBorder}`);
+        if (data.borderColor) console.log(`[FB_SELL] Border color: ${data.borderColor}`);
+        if (data.boxShadow) console.log(`[FB_SELL] Box shadow: ${data.boxShadow}`);
+        if (data.outline) console.log(`[FB_SELL] Outline: ${data.outline}`);
+      } else if (mode === 'sell' && data.type === 'FOCUS_SUCCESS') {
+        console.log(`[FB_SELL] ✅ Focus success: ${data.field} | Attempt: ${data.attempt}`);
       } else if (mode === 'sell' && data.type === 'FIELD_FILLED') {
         console.log('[FB_SELL] Field filled:', data.field);
+        if (data.field === 'Product tags') {
+          console.log('[FB_SELL] Product tags complete - Tags:', data.count, '| Chips:', data.chipsCreated);
+        }
       } else if (mode === 'sell' && data.type === 'FIELD_NOT_FOUND') {
         console.log('[FB_SELL] Field not found:', data.field);
+      } else if (mode === 'sell' && data.type === 'TAG_FILL_START') {
+        console.log('[FB_SELL] Starting Product Tags fill with', data.tagCount, 'tags');
+      } else if (mode === 'sell' && data.type === 'TAG_SEARCH_START') {
+        console.log('[FB_SELL] Searching for Product Tags field...');
+      } else if (mode === 'sell' && data.type === 'TAG_FOUND') {
+        console.log('[FB_SELL] ✅ Product Tags field found via:', data.method);
+      } else if (mode === 'sell' && data.type === 'TAG_FOUND_DETAILS') {
+        console.log('[FB_SELL] ✅ Product Tags field:', data.tag, '| role:', data.role, '| aria-label:', data.ariaLabel);
+      } else if (mode === 'sell' && data.type === 'TAG_PROCESSING') {
+        console.log('[FB_SELL] Processing tag', data.index, '/', data.total, ':', data.tag);
+      } else if (mode === 'sell' && data.type === 'TAG_CHIP_CHECK') {
+        console.log('[FB_SELL] Chip check - Expected:', data.expected, '| Actual:', data.actual);
+      } else if (mode === 'sell' && data.type === 'TAG_FIELD_NOT_FOUND') {
+        console.log('[FB_SELL] ❌ Product Tags field NOT FOUND');
+        console.log('[FB_SELL] DIAGNOSTIC - Contenteditable elements:', JSON.stringify(data.diagnostics.editables, null, 2));
+        console.log('[FB_SELL] DIAGNOSTIC - Textbox elements:', JSON.stringify(data.diagnostics.textboxes, null, 2));
+        console.log('[FB_SELL] DIAGNOSTIC - Input elements:', JSON.stringify(data.diagnostics.inputs, null, 2));
+        console.log('[FB_SELL] DIAGNOSTIC - Tag-related text:', JSON.stringify(data.diagnostics.tagRelated, null, 2));
       } else if (mode === 'sell' && data.type === 'MORE_DETAILS_CLICKED') {
         console.log('[FB_SELL] More details expanded');
       } else if (mode === 'sell' && data.type === 'DESC_DEBUG') {
@@ -1812,6 +2057,8 @@ export const FacebookUnifiedWebView = ({ navigation, route }) => {
         // Media — prevents photo upload from hanging
         mediaPlaybackRequiresUserAction={false}
         allowsInlineMediaPlayback={true}
+        // Android keyboard handling — CRITICAL for tag chip creation
+        keyboardDisplayRequiresUserAction={false}
         // Hardware acceleration (Android) — passes Facebook's WebGL/Canvas fingerprint checks
         androidHardwareAccelerationDisabled={false}
         // Prevent Facebook from blocking redirects

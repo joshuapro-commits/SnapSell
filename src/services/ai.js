@@ -214,13 +214,16 @@ export const aiService = {
       
       // CRITICAL: Always ensure categoryHierarchy exists using official taxonomy
       const carousellPath = getCarousellCategoryPath(productData.name, productData.category);
+      console.log('[AI] Input - Product name:', productData.name, 'Category:', productData.category);
       console.log('[AI] Mapped to Carousell path:', carousellPath);
       
       // Validate path exists in taxonomy
       if (!validateCategoryPath(carousellPath)) {
         console.warn('[AI] ⚠️ Invalid category path, using fallback');
+        console.warn('[AI] Invalid path was:', carousellPath);
         productData.platformData.carousell.categoryPath = ['Everything Else'];
       } else {
+        console.log('[AI] ✅ Valid category path confirmed');
         productData.platformData.carousell.categoryPath = carousellPath;
       }
       

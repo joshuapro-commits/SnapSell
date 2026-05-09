@@ -56,6 +56,9 @@ export const getCarousellCategoryPath = (productName, snapSellCategory) => {
   const name = productName.toLowerCase();
   const category = snapSellCategory.toLowerCase();
   
+  console.log('[CAROUSELL_MAPPING] Input - Product name:', productName, 'Category:', snapSellCategory);
+  console.log('[CAROUSELL_MAPPING] Normalized - name:', name, 'category:', category);
+  
   // PRIORITY 1: Product name-based mapping (most specific)
   const productMappings = [
     // Home Appliances
@@ -73,7 +76,8 @@ export const getCarousellCategoryPath = (productName, snapSellCategory) => {
     { keywords: ['projector'], path: ['TV & Home Appliances', 'TV & Entertainment', 'Projectors'] },
     
     // Fashion
-    { keywords: ['backpack', 'bag', 'handbag', 'purse', 'tote', 'sling bag'], path: ["Women's Fashion", 'Bags & Wallets', 'Shoulder Bags'] },
+    { keywords: ['backpack', 'school bag', 'rucksack'], path: ["Women's Fashion", 'Bags & Wallets', 'Backpacks'] },
+    { keywords: ['bag', 'handbag', 'purse', 'tote', 'sling bag'], path: ["Women's Fashion", 'Bags & Wallets', 'Shoulder Bags'] },
     { keywords: ['mens bag', 'man bag', 'messenger bag'], path: ["Men's Fashion", 'Bags', 'Sling Bags'] },
     { keywords: ['watch', 'wristwatch'], path: ["Men's Fashion", 'Watches & Accessories', 'Watches'] },
     { keywords: ['dress', 'gown'], path: ["Women's Fashion", 'Dresses & Sets', 'Dresses'] },
@@ -160,9 +164,12 @@ export const getCarousellCategoryPath = (productName, snapSellCategory) => {
   // Check product name against mappings
   for (const mapping of productMappings) {
     if (mapping.keywords.some(keyword => name.includes(keyword))) {
+      console.log('[CAROUSELL_MAPPING] ✅ Found product name match:', mapping.path, 'for keywords:', mapping.keywords.filter(k => name.includes(k)));
       return mapping.path;
     }
   }
+  
+  console.log('[CAROUSELL_MAPPING] No product name match found, trying category mapping...');
   
   // PRIORITY 2: SnapSell category-based mapping (fallback)
   const categoryMappings = {
@@ -177,6 +184,8 @@ export const getCarousellCategoryPath = (productName, snapSellCategory) => {
     'furniture': ['Furniture & Home Living', 'Furniture', 'Sofas'],
     'sporting': ['Sports Equipment', 'Other Sports Equipment and Supplies'],
     'sports': ['Sports Equipment', 'Other Sports Equipment and Supplies'],
+    'sporting goods': ['Sports Equipment', 'Other Sports Equipment and Supplies'],
+    'home & garden': ['Furniture & Home Living', 'Kitchenware & Tableware', 'Water Bottles & Tumblers'],
     'books': ['Hobbies & Toys', 'Books & Magazines', 'Fiction & Non-Fiction'],
     'toys': ['Hobbies & Toys', 'Toys & Games'],
     'beauty': ['Beauty & Personal Care', 'Face', 'Face Care'],
@@ -188,8 +197,12 @@ export const getCarousellCategoryPath = (productName, snapSellCategory) => {
   };
   
   if (categoryMappings[category]) {
+    console.log('[CAROUSELL_MAPPING] ✅ Found category match:', categoryMappings[category], 'for category:', category);
     return categoryMappings[category];
   }
+  
+  console.log('[CAROUSELL_MAPPING] ❌ No mapping found, using Everything Else fallback');
+  console.log('[CAROUSELL_MAPPING] Available category keys:', Object.keys(categoryMappings));
   
   // PRIORITY 3: Default fallback
   return ['Everything Else'];
@@ -201,10 +214,25 @@ export const getCarousellCategoryPath = (productName, snapSellCategory) => {
  * @returns {boolean} - True if path exists
  */
 export const validateCategoryPath = (path) => {
-  return CATEGORY_MAP.some(entry => 
+  console.log('[CAROUSELL_VALIDATION] Validating path:', path);
+  
+  const isValid = CATEGORY_MAP.some(entry => 
     entry.path.length === path.length &&
     entry.path.every((level, i) => level === path[i])
   );
+  
+  console.log('[CAROUSELL_VALIDATION] Path is valid:', isValid);
+  
+  if (!isValid) {
+    console.log('[CAROUSELL_VALIDATION] Available paths with same length:');
+    const sameLengthPaths = CATEGORY_MAP
+      .filter(entry => entry.path.length === path.length)
+      .slice(0, 10) // Show first 10 for debugging
+      .map(entry => entry.path);
+    console.log('[CAROUSELL_VALIDATION] Sample paths:', sameLengthPaths);
+  }
+  
+  return isValid;
 };
 
 /**
